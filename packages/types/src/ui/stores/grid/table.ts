@@ -5,13 +5,13 @@ import {
   RelationSchemaField,
   SortOrder,
   Table,
+  UIRow,
   UISearchFilter,
 } from "@budibase/types"
 
-export interface UITable extends Omit<Table, "type"> {
+export interface UITable extends Table {
   name: string
   id: string
-  type: string
   tableId: string
   primaryDisplay?: string
   sort?: {
@@ -28,6 +28,7 @@ export type UIFieldSchema = FieldSchema &
     columns?: Record<string, UIRelationSchemaField>
     cellRenderType?: string
     disabled?: boolean
+    format?: (row: UIRow) => any
   }
 
 interface UIRelationSchemaField extends RelationSchemaField {
