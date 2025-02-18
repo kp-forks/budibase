@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { Label } from "@budibase/bbui"
   import { onMount, createEventDispatcher, onDestroy } from "svelte"
   import { FIND_ANY_HBS_REGEX } from "@budibase/string-templates"
@@ -12,7 +12,6 @@
     completionStatus,
   } from "@codemirror/autocomplete"
   import {
-    EditorView,
     lineNumbers,
     keymap,
     highlightSpecialChars,
@@ -25,6 +24,7 @@
     MatchDecorator,
     ViewPlugin,
     Decoration,
+    EditorView,
   } from "@codemirror/view"
   import {
     bracketMatching,
@@ -40,16 +40,22 @@
     indentMore,
     indentLess,
   } from "@codemirror/commands"
+  import { setDiagnostics } from "@codemirror/lint"
   import { Compartment, EditorState } from "@codemirror/state"
+  import type { Extension } from "@codemirror/state"
   import { javascript } from "@codemirror/lang-javascript"
   import { EditorModes } from "./"
   import { themeStore } from "@/stores/portal"
+  import type { EditorMode } from "@budibase/types"
+  import type { BindingCompletion, CodeValidator } from "@/types"
+  import { validateHbsTemplate } from "./validator/hbs"
 
-  export let label
-  export let completions = []
-  export let mode = EditorModes.Handlebars
-  export let value = ""
-  export let placeholder = null
+  export let label: string | undefined = undefined
+  export let completions: BindingCompletion[] = []
+  export let validations: CodeValidator | null = null
+  export let mode: EditorMode = EditorModes.Handlebars
+  export let value: string | null = ""
+  export let placeholder: string | null = null
   export let autocompleteEnabled = true
   export let autofocus = false
   export let jsBindingWrapping = true
@@ -58,8 +64,8 @@
 
   const dispatch = createEventDispatcher()
 
-  let textarea
-  let editor
+  let textarea: HTMLDivElement
+  let editor: EditorView
   let mounted = false
   let isEditorInitialised = false
   let queuedRefresh = false
@@ -100,15 +106,22 @@
   /**
    * Will refresh the editor contents only after
    * it has been fully initialised
-   * @param value {string} the editor value
    */
-  const refresh = (value, initialised, mounted) => {
+  const refresh = (
+    value: string | null,
+    initialised?: boolean,
+    mounted?: boolean
+  ) => {
     if (!initialised || !mounted) {
       queuedRefresh = true
       return
     }
 
-    if (editor.state.doc.toString() !== value || queuedRefresh) {
+    if (
+      editor &&
+      value &&
+      (editor.state.doc.toString() !== value || queuedRefresh)
+    ) {
       editor.dispatch({
         changes: { from: 0, to: editor.state.doc.length, insert: value },
       })
@@ -120,12 +133,17 @@
   export const getCaretPosition = () => {
     const selection_range = editor.state.selection.ranges[0]
     return {
-      start: selection_range.from,
-      end: selection_range.to,
+      start: selection_range?.from,
+      end: selection_range?.to,
     }
   }
 
-  export const insertAtPos = opts => {
+  export const insertAtPos = (opts: {
+    start: number
+    end?: number
+    value: string
+    cursor: { anchor: number }
+  }) => {
     // Updating the value inside.
     // Retain focus
     editor.dispatch({
@@ -192,7 +210,7 @@
 
   const indentWithTabCustom = {
     key: "Tab",
-    run: view => {
+    run: (view: EditorView) => {
       if (completionStatus(view.state) === "active") {
         acceptCompletion(view)
         return true
@@ -200,7 +218,7 @@
       indentMore(view)
       return true
     },
-    shift: view => {
+    shift: (view: EditorView) => {
       indentLess(view)
       return true
     },
@@ -232,7 +250,8 @@
 
   // None of this is reactive, but it never has been, so we just assume most
   // config flags aren't changed at runtime
-  const buildExtensions = base => {
+  // TODO: work out type for base
+  const buildExtensions = (base: Extension[]) => {
     let complete = [...base]
 
     if (autocompleteEnabled) {
@@ -242,7 +261,7 @@
           closeOnBlur: true,
           icons: false,
           optionClass: completion =>
-            completion.simple
+            "simple" in completion && completion.simple
               ? "autocomplete-option-simple"
               : "autocomplete-option",
         })
@@ -324,6 +343,24 @@
     return complete
   }
 
+  function validate(
+    value: string | null,
+    editor: EditorView | undefined,
+    mode: EditorMode,
+    validations: CodeValidator | null
+  ) {
+    if (!value || !validations || !editor) {
+      return
+    }
+
+    if (mode === EditorModes.Handlebars) {
+      const diagnostics = validateHbsTemplate(value, validations)
+      editor.dispatch(setDiagnostics(editor.state, diagnostics))
+    }
+  }
+
+  $: validate(value, editor, mode, validations)
+
   const initEditor = () => {
     const baseExtensions = buildBaseExtensions()
 
@@ -347,10 +384,9 @@
 
 {#if label}
   <div>
-    <Label small>{label}</Label>
+    <Label size="S">{label}</Label>
   </div>
 {/if}
-
 <div class={`code-editor ${mode?.name || ""}`}>
   <div tabindex="-1" bind:this={textarea} />
 </div>

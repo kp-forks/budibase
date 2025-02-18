@@ -29,6 +29,7 @@ const DEFAULTS = {
   PLUGINS_DIR: "/plugins",
   FORKED_PROCESS_NAME: "main",
   JS_RUNNER_MEMORY_LIMIT: 64,
+  USE_LOCAL_COMPONENT_LIBS: coreEnv.isDev() || coreEnv.isTest(),
 }
 
 const QUERY_THREAD_TIMEOUT =
@@ -54,7 +55,6 @@ const environment = {
   REDIS_URL: process.env.REDIS_URL,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   REDIS_CLUSTERED: process.env.REDIS_CLUSTERED,
-  HTTP_MIGRATIONS: process.env.HTTP_MIGRATIONS,
   CLUSTER_MODE: process.env.CLUSTER_MODE,
   API_REQ_LIMIT_PER_SEC: process.env.API_REQ_LIMIT_PER_SEC,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
@@ -114,6 +114,8 @@ const environment = {
     DEFAULTS.JS_RUNNER_MEMORY_LIMIT,
   LOG_JS_ERRORS: process.env.LOG_JS_ERRORS,
   DISABLE_USER_SYNC: process.env.DISABLE_USER_SYNC,
+  USE_LOCAL_COMPONENT_LIBS:
+    process.env.USE_LOCAL_COMPONENT_LIBS || DEFAULTS.USE_LOCAL_COMPONENT_LIBS,
   // old
   CLIENT_ID: process.env.CLIENT_ID,
   _set(key: string, value: any) {

@@ -26,7 +26,7 @@
   import { createEventDispatcher, getContext, onMount } from "svelte"
   import { cloneDeep } from "lodash/fp"
   import { tables, datasources } from "@/stores/builder"
-  import { featureFlags } from "@/stores/portal"
+  import { licensing } from "@/stores/portal"
   import { TableNames, UNEDITABLE_USER_FIELDS } from "@/constants"
   import {
     FIELDS,
@@ -100,7 +100,8 @@
   let optionsValid = true
 
   $: rowGoldenSample = RowUtils.generateGoldenSample($rows)
-  $: aiEnabled = $featureFlags.BUDIBASE_AI || $featureFlags.AI_CUSTOM_CONFIGS
+  $: aiEnabled =
+    $licensing.customAIConfigsEnabled || $licensing.budibaseAiEnabled
   $: if (primaryDisplay) {
     editableColumn.constraints.presence = { allowEmpty: false }
   }
@@ -385,7 +386,7 @@
       editableColumn.relationshipType = RelationshipType.MANY_TO_MANY
     } else if (editableColumn.type === FieldType.FORMULA) {
       editableColumn.formulaType = "dynamic"
-      editableColumn.responseType = field.responseType || FIELDS.STRING.type
+      editableColumn.responseType = field?.responseType || FIELDS.STRING.type
     }
   }
 

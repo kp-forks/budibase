@@ -40,7 +40,9 @@ export async function get(viewId: string): Promise<ViewV2> {
   return pickApi(tableId).get(viewId)
 }
 
-export async function getEnriched(viewId: string): Promise<ViewV2Enriched> {
+export async function getEnriched(
+  viewId: string
+): Promise<ViewV2Enriched | undefined> {
   const { tableId } = utils.extractViewInfoFromID(viewId)
   return pickApi(tableId).getEnriched(viewId)
 }
@@ -77,6 +79,14 @@ export async function getTable(view: string | ViewV2): Promise<Table> {
 
 export function isView(view: any): view is ViewV2 {
   return view.id && docIds.isViewId(view.id) && view.version === 2
+}
+
+export function isInternal(viewId: string) {
+  if (!docIds.isViewId(viewId)) {
+    return false
+  }
+  const { tableId } = utils.extractViewInfoFromID(viewId)
+  return !isExternalTableID(tableId)
 }
 
 function guardDuplicateCalculationFields(view: Omit<ViewV2, "id" | "version">) {

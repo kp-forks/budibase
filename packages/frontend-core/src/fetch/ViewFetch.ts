@@ -1,16 +1,7 @@
-import { Table } from "@budibase/types"
-import DataFetch from "./DataFetch"
+import { Table, ViewV1Datasource } from "@budibase/types"
+import BaseDataFetch from "./DataFetch"
 
-type ViewV1Datasource = {
-  type: "view"
-  name: string
-  tableId: string
-  calculation: string
-  field: string
-  groupBy: string
-}
-
-export default class ViewFetch extends DataFetch<ViewV1Datasource, Table> {
+export default class ViewFetch extends BaseDataFetch<ViewV1Datasource, Table> {
   async getDefinition() {
     const { datasource } = this.options
 
@@ -30,7 +21,7 @@ export default class ViewFetch extends DataFetch<ViewV1Datasource, Table> {
 
   getSchema(definition: Table) {
     const { datasource } = this.options
-    return definition?.views?.[datasource.name]?.schema
+    return definition?.views?.[datasource?.name]?.schema
   }
 
   async getData() {

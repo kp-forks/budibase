@@ -6,8 +6,8 @@ import {
 } from "../../db/views/staticViews"
 import {
   backupClientLibrary,
-  createApp,
-  deleteApp,
+  uploadAppFiles,
+  deleteAppFiles,
   revertClientLibrary,
   updateClientLibrary,
 } from "../../utilities/fileSystem"
@@ -27,7 +27,6 @@ import {
   env as envCore,
   ErrorCode,
   events,
-  migrations,
   objectStore,
   roles,
   tenancy,
@@ -43,7 +42,6 @@ import { groups, licensing, quotas } from "@budibase/pro"
 import {
   App,
   Layout,
-  MigrationType,
   PlanType,
   Screen,
   UserCtx,
@@ -230,7 +228,7 @@ export async function fetchAppPackage(
   const license = await licensing.cache.getCachedLicense()
 
   // Enrich plugin URLs
-  application.usedPlugins = objectStore.enrichPluginURLs(
+  application.usedPlugins = await objectStore.enrichPluginURLs(
     application.usedPlugins
   )
 
@@ -377,9 +375,8 @@ async function performAppCreate(
     const response = await db.put(newApplication, { force: true })
     newApplication._rev = response.rev
 
-    /* istanbul ignore next */
-    if (!env.isTest()) {
-      await createApp(appId)
+    if (!env.USE_LOCAL_COMPONENT_LIBS) {
+      await uploadAppFiles(appId)
     }
 
     const latestMigrationId = appMigrations.getLatestEnabledMigrationId()
@@ -488,13 +485,6 @@ async function creationEvents(request: BBRequest<CreateAppRequest>, app: App) {
 }
 
 async function appPostCreate(ctx: UserCtx<CreateAppRequest, App>, app: App) {
-  const tenantId = tenancy.getTenantId()
-  await migrations.backPopulateMigrations({
-    type: MigrationType.APP,
-    tenantId,
-    appId: app.appId,
-  })
-
   await creationEvents(ctx.request, app)
 
   // app import, template creation and duplication
@@ -665,7 +655,7 @@ async function destroyApp(ctx: UserCtx) {
   await events.app.deleted(app)
 
   if (!env.isTest()) {
-    await deleteApp(appId)
+    await deleteAppFiles(appId)
   }
 
   await removeAppFromUserRoles(ctx, appId)

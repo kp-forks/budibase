@@ -11,7 +11,7 @@ import { replaceFakeBindings } from "../automations/loopUtils"
 import { dataFilters, helpers, utils } from "@budibase/shared-core"
 import { default as AutomationEmitter } from "../events/AutomationEmitter"
 import { generateAutomationMetadataID, isProdAppID } from "../db/utils"
-import { definitions as triggerDefs } from "../automations/triggerInfo"
+import { automations } from "@budibase/shared-core"
 import { AutomationErrors, MAX_AUTOMATION_RECURRING_ERRORS } from "../constants"
 import { storeLog } from "../automations/logging"
 import {
@@ -29,6 +29,7 @@ import {
   LoopStep,
   UserBindings,
   isBasicSearchOperator,
+  ContextEmitter,
 } from "@budibase/types"
 import {
   AutomationContext,
@@ -49,7 +50,7 @@ import env from "../environment"
 import tracer from "dd-trace"
 
 threadUtils.threadSetup()
-const CRON_STEP_ID = triggerDefs.CRON.stepId
+const CRON_STEP_ID = automations.triggers.definitions.CRON.stepId
 const STOPPED_STATUS = { success: true, status: AutomationStatus.STOPPED }
 
 function getLoopIterations(loopStep: LoopStep) {
@@ -71,6 +72,24 @@ function getLoopIterations(loopStep: LoopStep) {
   return 0
 }
 
+export async function enrichBaseContext(context: Record<string, any>) {
+  context.env = await sdkUtils.getEnvironmentVariables()
+
+  try {
+    const { config } = await configs.getSettingsConfigDoc()
+    context.settings = {
+      url: config.platformUrl,
+      logo: config.logoUrl,
+      company: config.company,
+    }
+  } catch (e) {
+    // if settings doc doesn't exist, make the settings blank
+    context.settings = {}
+  }
+
+  return context
+}
+
 /**
  * The automation orchestrator is a class responsible for executing automations.
  * It handles the context of the automation and makes sure each step gets the correct
@@ -80,7 +99,7 @@ class Orchestrator {
   private chainCount: number
   private appId: string
   private automation: Automation
-  private emitter: any
+  private emitter: ContextEmitter
   private context: AutomationContext
   private job: Job
   private loopStepOutputs: LoopStep[]
@@ -136,23 +155,12 @@ class Orchestrator {
     return step
   }
 
-  async getMetadata(): Promise<AutomationMetadata> {
-    const metadataId = generateAutomationMetadataID(this.automation._id!)
-    const db = context.getAppDB()
-    let metadata: AutomationMetadata
-    try {
-      metadata = await db.get(metadataId)
-    } catch (err) {
-      metadata = {
-        _id: metadataId,
-        errorCount: 0,
-      }
-    }
-    return metadata
+  isCron(): boolean {
+    return isRecurring(this.automation)
   }
 
   async stopCron(reason: string) {
-    if (!this.job.opts.repeat) {
+    if (!this.isCron()) {
       return
     }
     logging.logWarn(
@@ -173,45 +181,37 @@ class Orchestrator {
     await storeLog(automation, this.executionOutput)
   }
 
-  async checkIfShouldStop(metadata: AutomationMetadata): Promise<boolean> {
-    if (!metadata.errorCount || !this.job.opts.repeat) {
-      return false
-    }
-    if (metadata.errorCount >= MAX_AUTOMATION_RECURRING_ERRORS) {
-      await this.stopCron("errors")
-      return true
-    }
-    return false
+  async getMetadata(): Promise<AutomationMetadata> {
+    const metadataId = generateAutomationMetadataID(this.automation._id!)
+    const db = context.getAppDB()
+    const metadata = await db.tryGet<AutomationMetadata>(metadataId)
+    return metadata || { _id: metadataId, errorCount: 0 }
   }
 
-  async updateMetadata(metadata: AutomationMetadata) {
-    const output = this.executionOutput,
-      automation = this.automation
-    if (!output || !isRecurring(automation)) {
-      return
-    }
-    const count = metadata.errorCount
-    const isError = isErrorInOutput(output)
-    // nothing to do in this scenario, escape
-    if (!count && !isError) {
-      return
-    }
-    if (isError) {
-      metadata.errorCount = count ? count + 1 : 1
-    } else {
-      metadata.errorCount = 0
-    }
+  async incrementErrorCount() {
     const db = context.getAppDB()
-    try {
-      await db.put(metadata)
-    } catch (err) {
-      logging.logAlertWithInfo(
-        "Failed to write automation metadata",
-        db.name,
-        automation._id!,
-        err
-      )
+    let err: Error | undefined = undefined
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const metadata = await this.getMetadata()
+      metadata.errorCount ||= 0
+      metadata.errorCount++
+
+      try {
+        await db.put(metadata)
+        return metadata.errorCount
+      } catch (error: any) {
+        err = error
+        await helpers.wait(1000 + Math.random() * 1000)
+      }
     }
+
+    logging.logAlertWithInfo(
+      "Failed to update error count in automation metadata",
+      db.name,
+      this.automation._id!,
+      err
+    )
+    return undefined
   }
 
   updateExecutionOutput(id: string, stepId: string, inputs: any, outputs: any) {
@@ -270,33 +270,10 @@ class Orchestrator {
           appId: this.appId,
           automationId: this.automation._id,
         })
-        this.context.env = await sdkUtils.getEnvironmentVariables()
+
+        await enrichBaseContext(this.context)
         this.context.user = this.currentUser
 
-        try {
-          const { config } = await configs.getSettingsConfigDoc()
-          this.context.settings = {
-            url: config.platformUrl,
-            logo: config.logoUrl,
-            company: config.company,
-          }
-        } catch (e) {
-          // if settings doc doesn't exist, make the settings blank
-          this.context.settings = {}
-        }
-
-        let metadata
-
-        // check if this is a recurring automation,
-        if (isProdAppID(this.appId) && isRecurring(this.automation)) {
-          span?.addTags({ recurring: true })
-          metadata = await this.getMetadata()
-          const shouldStop = await this.checkIfShouldStop(metadata)
-          if (shouldStop) {
-            span?.addTags({ shouldStop: true })
-            return
-          }
-        }
         const start = performance.now()
 
         await this.executeSteps(this.automation.definition.steps)
@@ -312,23 +289,22 @@ class Orchestrator {
           }
         )
 
-        try {
-          await storeLog(this.automation, this.executionOutput)
-        } catch (e: any) {
-          if (e.status === 413 && e.request?.data) {
-            // if content is too large we shouldn't log it
-            delete e.request.data
-            e.request.data = { message: "removed due to large size" }
-          }
-          logging.logAlert("Error writing automation log", e)
-        }
+        let errorCount = 0
         if (
           isProdAppID(this.appId) &&
-          isRecurring(this.automation) &&
-          metadata
+          this.isCron() &&
+          isErrorInOutput(this.executionOutput)
         ) {
-          await this.updateMetadata(metadata)
+          errorCount = (await this.incrementErrorCount()) || 0
         }
+
+        if (errorCount >= MAX_AUTOMATION_RECURRING_ERRORS) {
+          await this.stopCron("errors")
+          span?.addTags({ shouldStop: true })
+        } else {
+          await storeLog(this.automation, this.executionOutput)
+        }
+
         return this.executionOutput
       }
     )
@@ -755,7 +731,7 @@ export async function executeInThread(
   })) as AutomationResponse
 }
 
-export const removeStalled = async (job: Job) => {
+export const removeStalled = async (job: Job<AutomationData>) => {
   const appId = job.data.event.appId
   if (!appId) {
     throw new Error("Unable to execute, event doesn't contain app ID.")
