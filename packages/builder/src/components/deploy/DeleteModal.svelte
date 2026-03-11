@@ -3,15 +3,15 @@
   import { goto as gotoStore } from "@roxi/routify"
   import ConfirmDialog from "@/components/common/ConfirmDialog.svelte"
   import { appStore } from "@/stores/builder"
+  import { appsStore, enrichedApps } from "@/stores/portal"
   import { API } from "@/api"
+  import { get } from "svelte/store"
 
   $: goto = $gotoStore
 
   export let appId
   export let appName
-  export let onDeleteSuccess = () => {
-    goto("/")
-  }
+  export let onDeleteSuccess = async () => {}
 
   let deleting = false
 
@@ -30,21 +30,43 @@
     deletionConfirmationAppName = appName
   }
 
+  const getPostDeleteRedirectPath = deletedAppId => {
+    const nextWorkspace = get(enrichedApps).find(
+      workspace => workspace.editable && workspace.devId !== deletedAppId
+    )
+    return nextWorkspace?.devId
+      ? `/builder/workspace/${nextWorkspace.devId}`
+      : "/"
+  }
+
+  const redirectAfterDeletingCurrentWorkspace = async deletedAppId => {
+    await appsStore.load()
+    goto(getPostDeleteRedirectPath(deletedAppId))
+  }
+
   const deleteApp = async () => {
     if (!appId) {
       console.error("No app id provided")
       return
     }
     deleting = true
+    const deletedCurrentWorkspace = $appStore.appId === appId
     try {
       await API.deleteApp(appId)
-      // Clear the current app from appStore since it no longer exists
-      appStore.reset()
+      // Clear app state only when deleting the active workspace.
+      if (deletedCurrentWorkspace) {
+        appStore.reset()
+      }
       notifications.success("Workspace deleted successfully")
-      deleting = false
-      onDeleteSuccess()
+      await onDeleteSuccess()
+
+      if (!deletedCurrentWorkspace) {
+        return
+      }
+      await redirectAfterDeletingCurrentWorkspace(appId)
     } catch (err) {
       notifications.error("Error deleting workspace")
+    } finally {
       deleting = false
     }
   }
