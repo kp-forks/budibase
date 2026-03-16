@@ -18,9 +18,15 @@ jest.mock("chat", () => {
       private messageHandler:
         | ((thread: any, message: any) => Promise<void>)
         | null = null
+      private directMessageHandler:
+        | ((thread: any, message: any) => Promise<void>)
+        | null = null
 
       onNewMention(h: any) {
         this.messageHandler = h
+      }
+      onDirectMessage(h: any) {
+        this.directMessageHandler = h
       }
       onSubscribedMessage(h: any) {
         this.messageHandler = h
@@ -64,6 +70,7 @@ jest.mock("chat", () => {
           const messages: string[] = []
           if (this.messageHandler) {
             const thread = {
+              id: body.threadId || body.conversation?.id || "teams:thread-1",
               post: async (message: unknown) => {
                 messages.push(toMessageText(message))
               },
@@ -87,7 +94,14 @@ jest.mock("chat", () => {
                 fullName: body.from?.name,
               },
             }
-            await this.messageHandler(thread, message)
+            if (
+              body.conversation?.conversationType === "personal" &&
+              this.directMessageHandler
+            ) {
+              await this.directMessageHandler(thread, message)
+            } else {
+              await this.messageHandler(thread, message)
+            }
           }
 
           return new Response(JSON.stringify({ messages }), {

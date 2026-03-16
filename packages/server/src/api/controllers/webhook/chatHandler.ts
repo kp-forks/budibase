@@ -245,9 +245,13 @@ const matchesScope = ({
   }
 
   if (provider === "msteams") {
+    const threadMatches =
+      !scope.threadId || !ch?.threadId || ch.threadId === scope.threadId
+
     return (
       ch?.conversationId === scope.conversationId &&
       (ch?.channelId || undefined) === scope.channelId &&
+      threadMatches &&
       ch?.externalUserId === scope.externalUserId
     )
   }

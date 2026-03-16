@@ -25,6 +25,7 @@ export class ConsoleLogger {
 export class Chat {
   slashHandlers = new Map<string, AnyFn>()
   mentionHandlers: AnyFn[] = []
+  directMessageHandlers: AnyFn[] = []
   subscribedHandlers: AnyFn[] = []
   installationHandlers = new Map<string, AnyFn>()
   adapters: Record<string, unknown>
@@ -117,6 +118,10 @@ export class Chat {
     this.mentionHandlers.push(handler)
   }
 
+  onDirectMessage(handler: AnyFn) {
+    this.directMessageHandlers.push(handler)
+  }
+
   onSubscribedMessage(handler: AnyFn) {
     this.subscribedHandlers.push(handler)
   }
@@ -171,7 +176,9 @@ export interface Message {
 }
 
 export interface Thread {
+  id?: string
   post: (message: string | MockCardElement) => Promise<void>
+  subscribe?: () => Promise<void>
   postEphemeral?: (
     user: string | { userId?: string },
     message: string | MockCardElement,

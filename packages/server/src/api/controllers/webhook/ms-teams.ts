@@ -106,6 +106,14 @@ export const isTeamsLifecycleActivity = (activity: MSTeamsActivity) =>
   isTeamsInstallAddedActivity(activity) ||
   isTeamsBotAddedToConversation(activity)
 
+const ensureTeamsThreadSubscription = async (thread: Thread) => {
+  try {
+    await thread.subscribe()
+  } catch (error) {
+    console.error("Failed to subscribe Teams thread", error)
+  }
+}
+
 const createTeamsMessageHandler = ({
   workspaceId,
   chatAppId,
@@ -131,6 +139,7 @@ const createTeamsMessageHandler = ({
     }
 
     const conversationId = raw?.conversation?.id?.trim() || ""
+    const threadId = thread.id || undefined
     const externalUserId =
       raw?.from?.aadObjectId?.trim() ||
       raw?.from?.id?.trim() ||
@@ -156,6 +165,7 @@ const createTeamsMessageHandler = ({
       conversationId,
       conversationType,
       channelId,
+      threadId,
       teamId,
       tenantId,
       externalUserId,
@@ -167,10 +177,13 @@ const createTeamsMessageHandler = ({
       agentId,
       conversationId,
       channelId,
+      threadId,
       externalUserId,
     }
 
     try {
+      await ensureTeamsThreadSubscription(thread)
+
       await handleChatMessage({
         reply: async (text: string) => {
           const chunks = splitTeamsMessage(text)
@@ -258,9 +271,11 @@ export async function MSTeamsWebhook(
         agentId,
         idleTimeoutMinutes,
       })
+      chat.onDirectMessage(async (thread, message) => {
+        await handler(thread, message)
+      })
       chat.onNewMention(handler)
       chat.onSubscribedMessage(handler)
-      chat.onNewMessage(/./, handler)
 
       return request => chat.webhooks.teams(request)
     },

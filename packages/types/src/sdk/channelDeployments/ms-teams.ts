@@ -49,6 +49,7 @@ export interface MSTeamsConversationScope {
   agentId: string
   conversationId: string
   channelId?: string
+  threadId?: string
   externalUserId: string
 }
 

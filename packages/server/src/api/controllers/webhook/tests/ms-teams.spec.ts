@@ -29,7 +29,7 @@ const matchesTeamsConversationScope = ({
   ) {
     return false
   }
-  return true
+  return !scope.threadId || !ch.threadId || ch.threadId === scope.threadId
 }
 
 const pickTeamsConversation = ({
@@ -66,6 +66,7 @@ const makeChat = (
     provider: "msteams",
     conversationId: "conversation-1",
     channelId: "channel-1",
+    threadId: "teams:conversation-1:service-1",
     externalUserId: "user-1",
   },
   ...overrides,
@@ -155,6 +156,7 @@ describe("teams webhook helpers", () => {
       agentId: "agent-1",
       conversationId: "conversation-1",
       channelId: "channel-1",
+      threadId: "teams:conversation-1:service-1",
       externalUserId: "user-1",
     }
 
@@ -162,11 +164,16 @@ describe("teams webhook helpers", () => {
       provider: "msteams" as const,
       conversationId: "conversation-1",
       channelId: "channel-1",
+      threadId: "teams:conversation-1:service-1",
       externalUserId: "user-1",
       ...overrides,
     })
 
     const matching = makeChat({ _id: "matching", channel: channel() })
+    const wrongThread = makeChat({
+      _id: "wrong-thread",
+      channel: channel({ threadId: "teams:conversation-1:service-2" }),
+    })
     const wrongConversation = makeChat({
       _id: "wrong-conversation",
       channel: channel({ conversationId: "conversation-2" }),
@@ -182,6 +189,9 @@ describe("teams webhook helpers", () => {
     })
 
     expect(matchesTeamsConversationScope({ chat: matching, scope })).toBe(true)
+    expect(matchesTeamsConversationScope({ chat: wrongThread, scope })).toBe(
+      false
+    )
     expect(
       matchesTeamsConversationScope({ chat: wrongConversation, scope })
     ).toBe(false)
@@ -191,6 +201,28 @@ describe("teams webhook helpers", () => {
     expect(matchesTeamsConversationScope({ chat: wrongUser, scope })).toBe(
       false
     )
+  })
+
+  it("keeps matching legacy Teams conversations without a stored thread id", () => {
+    const chat = makeChat({
+      channel: {
+        provider: "msteams",
+        conversationId: "conversation-1",
+        channelId: "channel-1",
+        externalUserId: "user-1",
+      },
+    })
+
+    const scope = {
+      chatAppId: "chat-app-1",
+      agentId: "agent-1",
+      conversationId: "conversation-1",
+      channelId: "channel-1",
+      threadId: "teams:conversation-1:service-1",
+      externalUserId: "user-1",
+    }
+
+    expect(matchesTeamsConversationScope({ chat, scope })).toBe(true)
   })
 
   it("requires channel external user id to match conversation scope", () => {
@@ -222,6 +254,7 @@ describe("teams webhook helpers", () => {
       agentId: "agent-1",
       conversationId: "conversation-1",
       channelId: "channel-1",
+      threadId: "teams:conversation-1:service-1",
       externalUserId: "user-1",
     }
 
@@ -240,6 +273,7 @@ describe("teams webhook helpers", () => {
         provider: "msteams",
         conversationId: "conversation-1",
         channelId: "channel-1",
+        threadId: "teams:conversation-1:service-1",
         externalUserId: "user-2",
       },
     })
