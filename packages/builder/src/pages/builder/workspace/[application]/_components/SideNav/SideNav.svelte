@@ -71,6 +71,7 @@
     pinned.set(true)
   }
   export let canInviteUsers = false
+  export let canManageConnections = false
   export let onInviteUser: () => void = () => {}
 
   $: automationErrors = getAutomationErrors($enrichedApps || [], workspaceId)
@@ -623,15 +624,17 @@
             </div>
 
             <div class="core-secondary">
-              <SideNavLink
-                icon="cube"
-                text="Connections"
-                {collapsed}
-                on:click={() => {
-                  bb.settings(`/connections/apis`)
-                  keepCollapsed()
-                }}
-              />
+              {#if canManageConnections}
+                <SideNavLink
+                  icon="cube"
+                  text="Connections"
+                  {collapsed}
+                  on:click={() => {
+                    bb.settings(`/connections/apis`)
+                    keepCollapsed()
+                  }}
+                />
+              {/if}
               <SideNavLink
                 icon="globe-simple"
                 text="API explorer"
