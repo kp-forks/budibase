@@ -312,10 +312,10 @@ export const serveApp = async function (ctx: UserCtx<void, ServeAppResponse>) {
     const appInfo = await sdk.workspaces.metadata.get()
     const clientVersion = isChatRoute ? envCore.VERSION : appInfo.version
     const clientCacheKey = await objectStore.getClientCacheKey(clientVersion)
-    const clientAssetWorkspaceId = isChatRoute
+    const clientAssetScopeId = isChatRoute
       ? GLOBAL_CLIENT_ASSET_ID
       : workspaceId
-    const clientLibPath = `/api/assets/${clientAssetWorkspaceId}/client?${clientCacheKey}`
+    const clientLibPath = `/api/assets/${clientAssetScopeId}/client?${clientCacheKey}`
     const hideDevTools = !!ctx.params.appUrl
     const sideNav = workspaceApp?.navigation.navigation === "Left"
     const hideFooter =
