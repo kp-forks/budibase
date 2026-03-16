@@ -127,6 +127,9 @@
     e: MouseEvent,
     ws: EnrichedApp
   ) => {
+    if (!ws.editable) {
+      return
+    }
     e.preventDefault()
     e.stopPropagation()
     openWorkspaceContextMenu(ws, {
@@ -142,7 +145,7 @@
   ) => {
     const isContextMenuKey = e.key === "ContextMenu"
 
-    if (!isContextMenuKey || !itemEl) {
+    if (!isContextMenuKey || !itemEl || !ws.editable) {
       return
     }
 
