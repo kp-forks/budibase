@@ -40,7 +40,6 @@
   }
 
   const redirectAfterDeletingCurrentWorkspace = async deletedAppId => {
-    await appsStore.load()
     goto(getPostDeleteRedirectPath(deletedAppId))
   }
 
@@ -51,21 +50,27 @@
     }
     deleting = true
     const deletedCurrentWorkspace = $appStore.appId === appId
+    let deletedSuccessfully = false
     try {
       await API.deleteApp(appId)
-      // Clear app state only when deleting the active workspace.
+      deletedSuccessfully = true
+
       if (deletedCurrentWorkspace) {
         appStore.reset()
       }
       notifications.success("Workspace deleted successfully")
       await onDeleteSuccess()
+      await appsStore.load()
 
-      if (!deletedCurrentWorkspace) {
-        return
+      if (deletedCurrentWorkspace) {
+        await redirectAfterDeletingCurrentWorkspace(appId)
       }
-      await redirectAfterDeletingCurrentWorkspace(appId)
     } catch (err) {
-      notifications.error("Error deleting workspace")
+      if (!deletedSuccessfully) {
+        notifications.error("Error deleting workspace")
+      } else {
+        console.error("Post-delete follow-up failed", err)
+      }
     } finally {
       deleting = false
     }
