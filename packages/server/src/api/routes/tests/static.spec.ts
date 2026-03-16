@@ -53,13 +53,34 @@ describe("/static", () => {
     it("should serve the app by url", async () => {
       const headers = config.defaultHeaders()
       delete headers[constants.Header.APP_ID]
+      const workspaceId = config.getProdWorkspaceId()
 
       const res = await request
         .get(`/app${config.getProdWorkspace().url}`)
         .set(headers)
         .expect(200)
 
-      expect(res.body.appId).toBe(config.prodWorkspaceId)
+      expect(res.body.appId).toBe(workspaceId)
+      expect(res.body.clientLibPath).toContain(
+        `/api/assets/${workspaceId}/client?`
+      )
+    })
+
+    it("should serve app-chat with the global client library path", async () => {
+      const headers = config.defaultHeaders()
+      delete headers[constants.Header.APP_ID]
+      const workspaceId = config.getProdWorkspaceId()
+
+      const res = await request
+        .get(`/app-chat${config.getProdWorkspace().url}`)
+        .set(headers)
+        .expect(200)
+
+      expect(res.body.appId).toBe(workspaceId)
+      expect(res.body.clientLibPath).toContain("/api/assets/global/client?")
+      expect(res.body.clientLibPath).not.toContain(
+        `/api/assets/${workspaceId}/client?`
+      )
     })
 
     it("should serve the app preview by id", async () => {
@@ -171,6 +192,20 @@ describe("/static", () => {
 
       expect(res.body.appId).toBe(config.devWorkspaceId)
       expect(res.body.builderPreview).toBe(true)
+    })
+  })
+
+  describe("/api/assets/:appId/client", () => {
+    it("should serve the global client library without an app ID header", async () => {
+      const headers = config.defaultHeaders()
+      delete headers[constants.Header.APP_ID]
+
+      const res = await request
+        .get("/api/assets/global/client")
+        .set(headers)
+        .expect(200)
+
+      expect(res.headers["content-type"]).toContain("javascript")
     })
   })
 
