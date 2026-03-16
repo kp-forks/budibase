@@ -115,7 +115,8 @@ export const isTeamsLifecycleActivity = (activity: MSTeamsActivity) =>
   isTeamsBotAddedToConversation(activity)
 
 export const isTeamsMentionActivity = (activity?: MSTeamsActivity) => {
-  if (!activity?.recipient?.id?.trim()) {
+  const recipientId = activity?.recipient?.id?.trim()
+  if (!recipientId) {
     return false
   }
 
