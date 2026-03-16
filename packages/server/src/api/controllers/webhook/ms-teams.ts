@@ -293,6 +293,7 @@ export async function MSTeamsWebhook(
       chat.onNewMention(handler)
       chat.onNewMessage(/./, async (thread, message) => {
         if (
+          message.isMention ||
           !isTeamsMentionActivity(message.raw as MSTeamsActivity | undefined)
         ) {
           return

@@ -5,156 +5,6 @@ interface MockWebhookChatPayload {
   }
 }
 
-let slackPostEphemeralResult = { usedFallback: false }
-
-jest.mock("chat", () => {
-  const actual = jest.requireActual("../../../../../__mocks__/chat")
-  const toMessageText = (value: unknown) =>
-    typeof value === "string" ? value : JSON.stringify(value)
-
-  return {
-    ...actual,
-    Chat: class MockChat {
-      private messageHandler:
-        | ((thread: any, message: any) => Promise<void>)
-        | null = null
-      private slashHandlers = new Map<string, (event: any) => Promise<void>>()
-
-      onNewMention(h: any) {
-        this.messageHandler = h
-      }
-      onSubscribedMessage(h: any) {
-        this.messageHandler = h
-      }
-      onNewMessage(_pattern: any, h: any) {
-        this.messageHandler = h
-      }
-      onSlashCommand(command: string | string[], handler: any) {
-        const commands = Array.isArray(command) ? command : [command]
-        for (const cmd of commands) {
-          this.slashHandlers.set(cmd, handler)
-        }
-      }
-
-      webhooks = {
-        slack: async (request: Request) => {
-          const body = await request.json()
-          const command = typeof body?.command === "string" ? body.command : ""
-          const slashHandler = this.slashHandlers.get(command)
-          if (slashHandler) {
-            const messages: string[] = []
-            const channel = {
-              post: async (message: unknown) => {
-                messages.push(toMessageText(message))
-              },
-              postEphemeral: async (
-                _user: unknown,
-                message: unknown,
-                _options: { fallbackToDM: boolean }
-              ) => {
-                if (!slackPostEphemeralResult.usedFallback) {
-                  messages.push(toMessageText(message))
-                }
-                return slackPostEphemeralResult
-              },
-            }
-            await slashHandler({
-              command,
-              text: body?.text || "",
-              raw: {
-                channel: body?.channel_id,
-                channel_id: body?.channel_id,
-                user: body?.user_id,
-                user_id: body?.user_id,
-                team_id: body?.team_id,
-              },
-              user: {
-                userId: body?.user_id || "",
-                userName: body?.user_name || body?.user_id || "",
-                fullName: body?.user_name || body?.user_id || "",
-              },
-              channel,
-            })
-
-            return new Response(JSON.stringify({ messages }), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            })
-          }
-
-          const event = body?.event
-          if (body?.type !== "event_callback" || event?.type !== "message") {
-            return new Response(JSON.stringify({ messages: [] }), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            })
-          }
-
-          const messages: string[] = []
-          if (this.messageHandler) {
-            const channel = event.channel || ""
-            const threadTs =
-              event.channel_type === "im"
-                ? event.thread_ts || ""
-                : event.thread_ts || event.ts || ""
-            const channelTarget = {
-              id: `slack:${channel}`,
-              post: async (text: string) => {
-                messages.push(toMessageText(text))
-              },
-              postEphemeral: async (
-                _user: unknown,
-                message: unknown,
-                _options: { fallbackToDM: boolean }
-              ) => {
-                if (!slackPostEphemeralResult.usedFallback) {
-                  messages.push(toMessageText(message))
-                }
-                return slackPostEphemeralResult
-              },
-            }
-            const thread = {
-              id: `slack:${channel}:${threadTs}`,
-              channelId: channel,
-              post: async (text: string) => {
-                messages.push(toMessageText(text))
-              },
-              postEphemeral: async (
-                _user: unknown,
-                message: unknown,
-                _options: { fallbackToDM: boolean }
-              ) => {
-                if (!slackPostEphemeralResult.usedFallback) {
-                  messages.push(toMessageText(message))
-                }
-                return slackPostEphemeralResult
-              },
-              subscribe: async () => {},
-              channel: channelTarget,
-            }
-            const message = {
-              text: event.text || "",
-              raw: event,
-              isMention: false,
-              author: {
-                userId: event.user || "",
-                userName: event.username || event.user || "",
-                fullName: event.username || event.user || "",
-              },
-            }
-            await this.messageHandler(thread, message)
-          }
-
-          return new Response(JSON.stringify({ messages }), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          })
-        },
-      }
-    },
-  }
-})
-
 jest.mock("@chat-adapter/slack", () => ({
   createSlackAdapter: jest.fn(() => ({})),
 }))
@@ -183,6 +33,10 @@ jest.mock("../../../controllers/ai/chatConversations", () => {
 })
 
 import sdk from "../../../../sdk"
+import {
+  resetMockChatState,
+  setMockPostEphemeralResult,
+} from "../../../../../__mocks__/chat"
 
 import { context, db, docIds, encryption } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
@@ -231,7 +85,7 @@ describe("agent slack integration provisioning", () => {
   beforeEach(async () => {
     await config.newTenant()
     mockedWebhookChat.mockClear()
-    slackPostEphemeralResult = { usedFallback: false }
+    resetMockChatState()
   })
 
   afterAll(() => {
@@ -547,7 +401,7 @@ describe("agent slack integration provisioning", () => {
     })
 
     it("acknowledges when the link prompt falls back to a DM", async () => {
-      slackPostEphemeralResult = { usedFallback: true }
+      setMockPostEphemeralResult("slack", { usedFallback: true })
 
       const { agent, chatAppId } = await setupProvisionedSlackAgent()
       const path = `/api/webhooks/slack/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`

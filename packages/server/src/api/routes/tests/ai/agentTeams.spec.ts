@@ -5,115 +5,6 @@ interface MockWebhookChatPayload {
   }
 }
 
-let teamsPostEphemeralResult = { usedFallback: false }
-
-jest.mock("chat", () => {
-  const actual = jest.requireActual("../../../../../__mocks__/chat")
-  const toMessageText = (value: unknown) =>
-    typeof value === "string" ? value : JSON.stringify(value)
-
-  return {
-    ...actual,
-    Chat: class MockChat {
-      private messageHandler:
-        | ((thread: any, message: any) => Promise<void>)
-        | null = null
-      private directMessageHandler:
-        | ((thread: any, message: any) => Promise<void>)
-        | null = null
-
-      onNewMention(h: any) {
-        this.messageHandler = h
-      }
-      onDirectMessage(h: any) {
-        this.directMessageHandler = h
-      }
-      onSubscribedMessage(h: any) {
-        this.messageHandler = h
-      }
-      onNewMessage(_pattern: any, h: any) {
-        this.messageHandler = h
-      }
-
-      webhooks = {
-        teams: async (request: Request) => {
-          const auth = request.headers.get("authorization")
-          if (!auth) {
-            return new Response(
-              JSON.stringify({
-                "jwt-auth-error": "authorization header not found",
-              }),
-              {
-                status: 401,
-                headers: { "content-type": "application/json" },
-              }
-            )
-          }
-          if (auth !== "Bearer valid-token") {
-            return new Response(
-              JSON.stringify({ "jwt-auth-error": "invalid token" }),
-              {
-                status: 401,
-                headers: { "content-type": "application/json" },
-              }
-            )
-          }
-
-          const body = await request.json()
-          if (body.type !== "message") {
-            return new Response(JSON.stringify({}), {
-              status: 200,
-              headers: { "content-type": "application/json" },
-            })
-          }
-
-          const messages: string[] = []
-          if (this.messageHandler) {
-            const thread = {
-              id: body.threadId || body.conversation?.id || "teams:thread-1",
-              post: async (message: unknown) => {
-                messages.push(toMessageText(message))
-              },
-              postEphemeral: async (
-                _user: unknown,
-                message: unknown,
-                _options: { fallbackToDM: boolean }
-              ) => {
-                if (!teamsPostEphemeralResult.usedFallback) {
-                  messages.push(toMessageText(message))
-                }
-                return teamsPostEphemeralResult
-              },
-              subscribe: async () => {},
-            }
-            const message = {
-              text: body.text || "",
-              raw: body,
-              author: {
-                userId: body.from?.id,
-                fullName: body.from?.name,
-              },
-            }
-            if (
-              body.conversation?.conversationType === "personal" &&
-              this.directMessageHandler
-            ) {
-              await this.directMessageHandler(thread, message)
-            } else {
-              await this.messageHandler(thread, message)
-            }
-          }
-
-          return new Response(JSON.stringify({ messages }), {
-            status: 200,
-            headers: { "content-type": "application/json" },
-          })
-        },
-      }
-    },
-  }
-})
-
 jest.mock("@chat-adapter/teams", () => ({
   createTeamsAdapter: jest.fn(() => ({})),
 }))
@@ -142,6 +33,10 @@ jest.mock("../../../controllers/ai/chatConversations", () => {
 })
 
 import sdk from "../../../../sdk"
+import {
+  resetMockChatState,
+  setMockPostEphemeralResult,
+} from "../../../../../__mocks__/chat"
 import { context, docIds } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import {
@@ -167,7 +62,7 @@ describe("agent teams integration provisioning", () => {
   beforeEach(async () => {
     await config.newTenant()
     mockedWebhookChat.mockClear()
-    teamsPostEphemeralResult = { usedFallback: false }
+    resetMockChatState()
   })
 
   afterAll(() => {
@@ -366,7 +261,7 @@ describe("agent teams integration provisioning", () => {
     })
 
     it("acknowledges when the link prompt falls back to a DM", async () => {
-      teamsPostEphemeralResult = { usedFallback: true }
+      setMockPostEphemeralResult("teams", { usedFallback: true })
 
       const { agent, chatAppId } = await setupProvisionedTeamsAgent()
       const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`

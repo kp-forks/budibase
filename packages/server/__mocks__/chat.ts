@@ -1,6 +1,8 @@
 import crypto from "crypto"
 
 type AnyFn = (...args: any[]) => any
+type MockProvider = "slack" | "teams"
+type MockPostEphemeralResult = { usedFallback: boolean }
 
 interface MockCardElement {
   type: string
@@ -12,6 +14,50 @@ interface ChatOptions {
   adapters?: Record<string, unknown>
   state?: unknown
   logger?: string
+}
+
+const defaultPostEphemeralResult = (): MockPostEphemeralResult => ({
+  usedFallback: false,
+})
+
+const mockWebhookState: Record<MockProvider, MockPostEphemeralResult> = {
+  slack: defaultPostEphemeralResult(),
+  teams: defaultPostEphemeralResult(),
+}
+
+const toMessageText = (value: unknown) =>
+  typeof value === "string" ? value : JSON.stringify(value)
+
+const createMessageCollector = (
+  provider: MockProvider,
+  messages: string[]
+) => ({
+  post: async (message: unknown) => {
+    messages.push(toMessageText(message))
+  },
+  postEphemeral: async (
+    _user: unknown,
+    message: unknown,
+    _options: { fallbackToDM: boolean }
+  ) => {
+    const result = mockWebhookState[provider]
+    if (!result.usedFallback) {
+      messages.push(toMessageText(message))
+    }
+    return result
+  },
+})
+
+export const resetMockChatState = () => {
+  mockWebhookState.slack = defaultPostEphemeralResult()
+  mockWebhookState.teams = defaultPostEphemeralResult()
+}
+
+export const setMockPostEphemeralResult = (
+  provider: MockProvider,
+  result: MockPostEphemeralResult
+) => {
+  mockWebhookState[provider] = result
 }
 
 export class ConsoleLogger {
@@ -26,6 +72,8 @@ export class Chat {
   slashHandlers = new Map<string, AnyFn>()
   mentionHandlers: AnyFn[] = []
   directMessageHandlers: AnyFn[] = []
+  messageHandler: AnyFn | null = null
+  directMessageHandler: AnyFn | null = null
   subscribedHandlers: AnyFn[] = []
   installationHandlers = new Map<string, AnyFn>()
   adapters: Record<string, unknown>
@@ -102,8 +150,142 @@ export class Chat {
 
         return new Response("", { status: 200 })
       },
-      teams: async () => new Response("", { status: 200 }),
-      slack: async () => new Response("", { status: 200 }),
+      teams: async request => {
+        const auth = request.headers.get("authorization")
+        if (!auth) {
+          return new Response(
+            JSON.stringify({
+              "jwt-auth-error": "authorization header not found",
+            }),
+            {
+              status: 401,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        }
+        if (auth !== "Bearer valid-token") {
+          return new Response(
+            JSON.stringify({ "jwt-auth-error": "invalid token" }),
+            {
+              status: 401,
+              headers: { "content-type": "application/json" },
+            }
+          )
+        }
+
+        const body = await request.json()
+        if (body.type !== "message") {
+          return new Response(JSON.stringify({}), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        const messages: string[] = []
+        const thread = {
+          id: body.threadId || body.conversation?.id || "teams:thread-1",
+          ...createMessageCollector("teams", messages),
+          subscribe: async () => {},
+        }
+        const message = {
+          text: body.text || "",
+          raw: body,
+          author: {
+            userId: body.from?.id || "",
+            fullName: body.from?.name,
+          },
+        }
+
+        if (
+          body.conversation?.conversationType === "personal" &&
+          this.directMessageHandler
+        ) {
+          await this.directMessageHandler(thread, message)
+        } else if (this.messageHandler) {
+          await this.messageHandler(thread, message)
+        }
+
+        return new Response(JSON.stringify({ messages }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      },
+      slack: async request => {
+        const body = await request.json()
+        const command = typeof body?.command === "string" ? body.command : ""
+        const slashHandler = this.slashHandlers.get(command)
+
+        if (slashHandler) {
+          const messages: string[] = []
+          const channel = createMessageCollector("slack", messages)
+          await slashHandler({
+            command,
+            text: body?.text || "",
+            raw: {
+              channel: body?.channel_id,
+              channel_id: body?.channel_id,
+              user: body?.user_id,
+              user_id: body?.user_id,
+              team_id: body?.team_id,
+            },
+            user: {
+              userId: body?.user_id || "",
+              userName: body?.user_name || body?.user_id || "",
+              fullName: body?.user_name || body?.user_id || "",
+            },
+            channel,
+          })
+
+          return new Response(JSON.stringify({ messages }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        const event = body?.event
+        if (body?.type !== "event_callback" || event?.type !== "message") {
+          return new Response(JSON.stringify({ messages: [] }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        }
+
+        const messages: string[] = []
+        if (this.messageHandler) {
+          const channelId = event.channel || ""
+          const threadTs =
+            event.channel_type === "im"
+              ? event.thread_ts || ""
+              : event.thread_ts || event.ts || ""
+          const channel = {
+            id: `slack:${channelId}`,
+            ...createMessageCollector("slack", messages),
+          }
+          const thread = {
+            id: `slack:${channelId}:${threadTs}`,
+            channelId,
+            ...createMessageCollector("slack", messages),
+            subscribe: async () => {},
+            channel,
+          }
+          const message = {
+            text: event.text || "",
+            raw: event,
+            isMention: false,
+            author: {
+              userId: event.user || "",
+              userName: event.username || event.user || "",
+              fullName: event.username || event.user || "",
+            },
+          }
+          await this.messageHandler(thread, message)
+        }
+
+        return new Response(JSON.stringify({ messages }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      },
     }
   }
 
@@ -116,14 +298,21 @@ export class Chat {
 
   onNewMention(handler: AnyFn) {
     this.mentionHandlers.push(handler)
+    this.messageHandler = handler
   }
 
   onDirectMessage(handler: AnyFn) {
     this.directMessageHandlers.push(handler)
+    this.directMessageHandler = handler
   }
 
   onSubscribedMessage(handler: AnyFn) {
     this.subscribedHandlers.push(handler)
+    this.messageHandler = handler
+  }
+
+  onNewMessage(_pattern: unknown, handler: AnyFn) {
+    this.messageHandler = handler
   }
 
   onInstallationUpdate(action: string, handler: AnyFn) {
@@ -169,14 +358,26 @@ export const CardLink = (
 export interface Message {
   text?: string
   raw?: unknown
+  isMention?: boolean
   author: {
     userId: string
     fullName?: string
+    userName?: string
   }
 }
 
 export interface Thread {
   id?: string
+  channelId?: string
+  channel?: {
+    id?: string
+    post: (message: string | MockCardElement) => Promise<void>
+    postEphemeral?: (
+      user: string | { userId?: string },
+      message: string | MockCardElement,
+      options: { fallbackToDM: boolean }
+    ) => Promise<{ usedFallback: boolean } | null>
+  }
   post: (message: string | MockCardElement) => Promise<void>
   subscribe?: () => Promise<void>
   postEphemeral?: (
