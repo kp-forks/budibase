@@ -82,6 +82,7 @@ const storeSession = async (session: ChatIdentityLinkSession) => {
     )
   } catch (error) {
     console.error("Failed to store chat identity link session", error)
+    throw error
   }
 }
 
