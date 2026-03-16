@@ -12,6 +12,7 @@
 
   const DISCORD_ASK_COMMAND = ChatCommands.ASK
   const DISCORD_NEW_COMMAND = ChatCommands.NEW
+  const DISCORD_LINK_COMMAND = ChatCommands.LINK
   const AI_CONFIG_REQUIRED_MESSAGE =
     "Select an AI model in Agent config before enabling Discord."
 
@@ -197,10 +198,15 @@
     {#if isConnected}
       <div class="synced-info">
         <Body size="S"
-          >Commands synced: /{DISCORD_ASK_COMMAND} and /{DISCORD_NEW_COMMAND}</Body
+          >Commands synced: /{DISCORD_ASK_COMMAND}, /{DISCORD_NEW_COMMAND}, and
+          /{DISCORD_LINK_COMMAND}</Body
         >
       </div>
-      <CopyInput label="Webhook URL" value={webhookUrl} disabled />
+      <CopyInput
+        label="Interactions endpoint URL"
+        value={webhookUrl}
+        disabled
+      />
     {/if}
   {/snippet}
 </ChannelConfigLayout>

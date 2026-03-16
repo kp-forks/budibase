@@ -5,6 +5,7 @@ import type {
 import { ChatCommands } from "@budibase/shared-core"
 import {
   isTeamsLifecycleActivity,
+  isTeamsMentionActivity,
   parseTeamsCommand,
   splitTeamsMessage,
   stripTeamsMentions,
@@ -19,17 +20,15 @@ const matchesTeamsConversationScope = ({
   scope: MSTeamsConversationScope
 }) => {
   const ch = chat.channel
-  if (
-    chat.chatAppId !== scope.chatAppId ||
-    chat.agentId !== scope.agentId ||
-    ch?.provider !== "msteams" ||
-    ch?.conversationId !== scope.conversationId ||
-    (ch?.channelId || undefined) !== scope.channelId ||
-    ch.externalUserId !== scope.externalUserId
-  ) {
-    return false
-  }
-  return !scope.threadId || !ch.threadId || ch.threadId === scope.threadId
+  return !!(
+    chat.chatAppId === scope.chatAppId &&
+    chat.agentId === scope.agentId &&
+    ch?.provider === "msteams" &&
+    ch?.conversationId === scope.conversationId &&
+    ch?.threadId === scope.threadId &&
+    (ch?.channelId || undefined) === scope.channelId &&
+    ch.externalUserId === scope.externalUserId
+  )
 }
 
 const pickTeamsConversation = ({
@@ -75,24 +74,16 @@ const makeChat = (
 describe("teams webhook helpers", () => {
   it("strips teams mention entities", () => {
     expect(
-      stripTeamsMentions(`<at>Budibase Bot</at> ${ChatCommands.ASK} hello`, [
+      stripTeamsMentions(`<at>Budibase Bot</at> hello`, [
         {
           type: "mention",
           text: "<at>Budibase Bot</at>",
         },
       ])
-    ).toEqual(`${ChatCommands.ASK} hello`)
+    ).toEqual("hello")
   })
 
   it.each([
-    [
-      `${ChatCommands.ASK} hello there`,
-      { command: ChatCommands.ASK, content: "hello there" },
-    ],
-    [
-      `/${ChatCommands.ASK} hello there`,
-      { command: ChatCommands.ASK, content: "hello there" },
-    ],
     [ChatCommands.NEW, { command: ChatCommands.NEW, content: "" }],
     [
       `/${ChatCommands.NEW} start fresh`,
@@ -106,14 +97,12 @@ describe("teams webhook helpers", () => {
   })
 
   it("parses command text containing mention entities", () => {
-    expect(
-      parseTeamsCommand(`<at>Budibase Bot</at> ${ChatCommands.ASK} follow up`, [
-        {
-          type: "mention",
-          text: "<at>Budibase Bot</at>",
-        },
-      ])
-    ).toEqual({
+    expect(parseTeamsCommand(`<at>Budibase Bot</at> follow up`, [
+      {
+        type: "mention",
+        text: "<at>Budibase Bot</at>",
+      },
+    ])).toEqual({
       command: ChatCommands.ASK,
       content: "follow up",
     })
@@ -148,6 +137,32 @@ describe("teams webhook helpers", () => {
     ).toBe(false)
     expect(isTeamsLifecycleActivity({ type: "conversationUpdate" })).toBe(false)
     expect(isTeamsLifecycleActivity({ type: "message" })).toBe(false)
+  })
+
+  it("detects Teams mention activities using mention entities", () => {
+    expect(
+      isTeamsMentionActivity({
+        recipient: { id: "bot-1" },
+        entities: [
+          {
+            type: "mention",
+            mentioned: { id: "bot-1" },
+          },
+        ],
+      })
+    ).toBe(true)
+
+    expect(
+      isTeamsMentionActivity({
+        recipient: { id: "bot-1" },
+        entities: [
+          {
+            type: "mention",
+            mentioned: { id: "bot-2" },
+          },
+        ],
+      })
+    ).toBe(false)
   })
 
   it("scopes conversations by chat app, agent, conversation, channel, and user", () => {
@@ -203,28 +218,6 @@ describe("teams webhook helpers", () => {
     )
   })
 
-  it("keeps matching legacy Teams conversations without a stored thread id", () => {
-    const chat = makeChat({
-      channel: {
-        provider: "msteams",
-        conversationId: "conversation-1",
-        channelId: "channel-1",
-        externalUserId: "user-1",
-      },
-    })
-
-    const scope = {
-      chatAppId: "chat-app-1",
-      agentId: "agent-1",
-      conversationId: "conversation-1",
-      channelId: "channel-1",
-      threadId: "teams:conversation-1:service-1",
-      externalUserId: "user-1",
-    }
-
-    expect(matchesTeamsConversationScope({ chat, scope })).toBe(true)
-  })
-
   it("requires channel external user id to match conversation scope", () => {
     const chat = makeChat({
       userId: "msteams:user-legacy",
@@ -232,6 +225,7 @@ describe("teams webhook helpers", () => {
         provider: "msteams",
         conversationId: "conversation-1",
         channelId: "channel-1",
+        threadId: "teams:conversation-1:service-1",
       },
     })
 

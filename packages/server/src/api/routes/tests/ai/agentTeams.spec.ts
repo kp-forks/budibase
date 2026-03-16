@@ -353,7 +353,7 @@ describe("agent teams integration provisioning", () => {
         body: {
           id: "activity-ask-unlinked",
           type: "message",
-          text: `${ChatCommands.ASK} hello teams`,
+          text: "hello teams",
           from: { id: "user-unlinked", name: "Teams User" },
           conversation: { id: "conversation-1", conversationType: "personal" },
           channelData: { tenant: { id: "tenant-1" } },
@@ -376,7 +376,7 @@ describe("agent teams integration provisioning", () => {
         body: {
           id: "activity-link-fallback",
           type: "message",
-          text: `${ChatCommands.ASK} hello teams`,
+          text: "hello teams",
           from: { id: "user-unlinked", name: "Teams User" },
           conversation: { id: "conversation-1", conversationType: "channel" },
           channelData: {
@@ -394,7 +394,7 @@ describe("agent teams integration provisioning", () => {
       expect(mockedWebhookChat).not.toHaveBeenCalled()
     })
 
-    it(`creates a conversation from an incoming ${ChatCommands.ASK} message`, async () => {
+    it("creates a conversation from an incoming plain Teams message", async () => {
       const { agent, chatAppId, linkExternalUser } =
         await setupProvisionedTeamsAgent()
       const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
@@ -405,7 +405,7 @@ describe("agent teams integration provisioning", () => {
         body: {
           id: "activity-ask-1",
           type: "message",
-          text: `${ChatCommands.ASK} hello teams`,
+          text: "hello teams",
           from: { id: "user-1", name: "Teams User" },
           conversation: { id: "conversation-1", conversationType: "personal" },
           channelData: { tenant: { id: "tenant-1" } },
@@ -438,7 +438,7 @@ describe("agent teams integration provisioning", () => {
         body: {
           id: "activity-ask-1",
           type: "message",
-          text: `${ChatCommands.ASK} first`,
+          text: "first",
           from: { id: "user-1", name: "Teams User" },
           conversation: { id: "conversation-1", conversationType: "personal" },
           channelData: { tenant: { id: "tenant-1" } },
@@ -450,7 +450,7 @@ describe("agent teams integration provisioning", () => {
         body: {
           id: "activity-ask-2",
           type: "message",
-          text: `${ChatCommands.ASK} second`,
+          text: "second",
           from: { id: "user-1", name: "Teams User" },
           conversation: { id: "conversation-1", conversationType: "personal" },
           channelData: { tenant: { id: "tenant-1" } },
