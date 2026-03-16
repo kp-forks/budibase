@@ -36,6 +36,28 @@ const getCurrentGlobalUserId = (ctx: UserCtx) => {
   return currentUserId
 }
 
+const renderLinkSuccessPage = () => {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Authentication succeeded</title>
+  </head>
+  <body>
+    <p>Authentication succeeded.</p>
+    <script>
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.focus()
+          window.close()
+        } catch (error) {}
+      }
+    </script>
+  </body>
+</html>`
+}
+
 export async function handoffChatLinkSession(
   ctx: UserCtx<void, void, { instance: string; token: string }>
 ) {
@@ -83,10 +105,6 @@ export async function handoffChatLinkSession(
     linkedBy: currentGlobalUserId,
   })
 
-  const providerRedirectUrl =
-    sdk.ai.chatIdentityLinks.buildChatIdentityProviderRedirectUrl({
-      provider: consumedSession.provider,
-      teamId: consumedSession.teamId,
-    })
-  ctx.redirect(providerRedirectUrl)
+  ctx.type = "text/html"
+  ctx.body = renderLinkSuccessPage()
 }

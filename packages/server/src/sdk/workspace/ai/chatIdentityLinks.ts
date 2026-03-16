@@ -179,7 +179,7 @@ export const getChatIdentityLink = async ({
   providerTenantId,
 }: ChatIdentityLinkLookupInput) => {
   const tenantId = context.getTenantId()
-  const db = context.getWorkspaceDB()
+  const db = context.getGlobalDB()
 
   const linkId = getLinkDocId({
     tenantId,
@@ -203,7 +203,7 @@ export const upsertChatIdentityLink = async ({
 }: UpsertChatIdentityLinkInput): Promise<ChatIdentityLink> => {
   const tenantId = context.getTenantId()
 
-  const db = context.getWorkspaceDB()
+  const db = context.getGlobalDB()
   const linkId = getLinkDocId({
     tenantId,
     provider,

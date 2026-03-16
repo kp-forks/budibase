@@ -349,7 +349,7 @@ describe("agent slack integration provisioning", () => {
         externalUserId: string,
         teamId = "T123"
       ) => {
-        await config.doInContext(config.getProdWorkspaceId(), async () => {
+        await config.doInTenant(async () => {
           await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
             provider: "slack",
             externalUserId,
@@ -410,7 +410,7 @@ describe("agent slack integration provisioning", () => {
     it("stores Slack links separately for the same external user in different teams", async () => {
       const otherUser = await config.createUser()
 
-      await config.doInContext(config.getProdWorkspaceId(), async () => {
+      await config.doInTenant(async () => {
         await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
           provider: "slack",
           externalUserId: "user-1",
@@ -479,10 +479,11 @@ describe("agent slack integration provisioning", () => {
         .getRequest()!
         .get(handoffPath)
         .set(config.defaultHeaders({}, true))
-        .expect(302)
-      expect(authHandoff.headers.location).toContain("slack")
+        .expect(200)
+      expect(authHandoff.type).toEqual("text/html")
+      expect(authHandoff.text).toContain("Authentication succeeded.")
 
-      await config.doInContext(config.getProdWorkspaceId(), async () => {
+      await config.doInTenant(async () => {
         const link = await sdk.ai.chatIdentityLinks.getChatIdentityLink({
           provider: "slack",
           externalUserId: "user-1",

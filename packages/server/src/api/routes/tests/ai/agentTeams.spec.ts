@@ -311,7 +311,7 @@ describe("agent teams integration provisioning", () => {
         externalUserId: string,
         providerTenantId = "tenant-1"
       ) => {
-        await config.doInContext(config.getProdWorkspaceId(), async () => {
+        await config.doInTenant(async () => {
           await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
             provider: "msteams",
             externalUserId,
