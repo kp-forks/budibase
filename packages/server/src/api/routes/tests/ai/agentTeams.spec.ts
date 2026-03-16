@@ -5,6 +5,14 @@ interface MockWebhookChatPayload {
   }
 }
 
+interface ChatMockModule {
+  resetMockChatState: () => void
+  setMockPostEphemeralResult: (
+    provider: "slack" | "teams",
+    result: { usedFallback: boolean }
+  ) => void
+}
+
 jest.mock("@chat-adapter/teams", () => ({
   createTeamsAdapter: jest.fn(() => ({})),
 }))
@@ -33,10 +41,6 @@ jest.mock("../../../controllers/ai/chatConversations", () => {
 })
 
 import sdk from "../../../../sdk"
-import {
-  resetMockChatState,
-  setMockPostEphemeralResult,
-} from "../../../../../__mocks__/chat"
 import { context, docIds } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import {
@@ -47,6 +51,9 @@ import {
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { webhookChat } from "../../../controllers/ai/chatConversations"
 
+const { resetMockChatState, setMockPostEphemeralResult } = jest.requireActual(
+  "chat"
+) as ChatMockModule
 const mockedWebhookChat = webhookChat as jest.MockedFunction<typeof webhookChat>
 
 const extractLinkUrl = (messages: string[]) => {

@@ -5,6 +5,14 @@ interface MockWebhookChatPayload {
   }
 }
 
+interface ChatMockModule {
+  resetMockChatState: () => void
+  setMockPostEphemeralResult: (
+    provider: "slack" | "teams",
+    result: { usedFallback: boolean }
+  ) => void
+}
+
 jest.mock("@chat-adapter/slack", () => ({
   createSlackAdapter: jest.fn(() => ({})),
 }))
@@ -33,11 +41,6 @@ jest.mock("../../../controllers/ai/chatConversations", () => {
 })
 
 import sdk from "../../../../sdk"
-import {
-  resetMockChatState,
-  setMockPostEphemeralResult,
-} from "../../../../../__mocks__/chat"
-
 import { context, db, docIds, encryption } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import {
@@ -49,6 +52,9 @@ import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { webhookChat } from "../../../controllers/ai/chatConversations"
 
 const SECRET_ENCODING_PREFIX = "bbai_enc::"
+const { resetMockChatState, setMockPostEphemeralResult } = jest.requireActual(
+  "chat"
+) as ChatMockModule
 
 const mockedWebhookChat = webhookChat as jest.MockedFunction<typeof webhookChat>
 
