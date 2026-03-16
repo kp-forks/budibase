@@ -59,8 +59,16 @@
         appStore.reset()
       }
       notifications.success("Workspace deleted successfully")
-      await onDeleteSuccess()
-      await appsStore.load()
+      try {
+        await onDeleteSuccess()
+      } catch (err) {
+        console.error("Post-delete callback failed", err)
+      }
+      try {
+        await appsStore.load()
+      } catch (err) {
+        console.error("Post-delete workspace list refresh failed", err)
+      }
 
       if (deletedCurrentWorkspace) {
         await redirectAfterDeletingCurrentWorkspace(appId)
