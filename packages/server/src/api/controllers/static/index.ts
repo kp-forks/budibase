@@ -484,9 +484,7 @@ function serveLocalFile(ctx: Ctx, fileName: string) {
 export const serveClientLibrary = async function (
   ctx: Ctx<void, ServeClientLibraryResponse>
 ) {
-  const appId = Array.isArray(ctx.params.appId)
-    ? ctx.params.appId[0]
-    : ctx.params.appId
+  const appId = ctx.params.appId
   if (appId === GLOBAL_CLIENT_ASSET_ID) {
     return serveLocalFile(ctx, "budibase-client.js")
   }
@@ -514,9 +512,7 @@ export const serve3rdPartyFile = async function (ctx: Ctx) {
   const file = Array.isArray(ctx.params.file)
     ? ctx.params.file.join("/")
     : ctx.params.file
-  const appId = Array.isArray(ctx.params.appId)
-    ? ctx.params.appId[0]
-    : ctx.params.appId
+  const appId = ctx.params.appId
   if (appId === GLOBAL_CLIENT_ASSET_ID) {
     return serveLocalFile(ctx, file)
   }
