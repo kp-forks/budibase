@@ -4,6 +4,7 @@ import fsp from "fs/promises"
 import path from "path"
 import { tmpdir } from "os"
 import { setEnv } from "../../../environment"
+import * as fileSystem from "../../../utilities/fileSystem"
 import { afterAll as _afterAll, getConfig, getRequest } from "./utilities"
 
 jest.mock("extract-zip", () => jest.fn())
@@ -199,13 +200,22 @@ describe("/static", () => {
     it("should serve the global client library without an app ID header", async () => {
       const headers = config.defaultHeaders()
       delete headers[constants.Header.APP_ID]
+      const shouldServeLocallySpy = jest.spyOn(fileSystem, "shouldServeLocally")
+      const getReadStreamSpy = jest.spyOn(objectStore, "getReadStream")
 
-      const res = await request
-        .get("/api/assets/global/client")
-        .set(headers)
-        .expect(200)
+      try {
+        const res = await request
+          .get("/api/assets/global/client")
+          .set(headers)
+          .expect(200)
 
-      expect(res.headers["content-type"]).toContain("javascript")
+        expect(res.headers["content-type"]).toContain("javascript")
+        expect(shouldServeLocallySpy).not.toHaveBeenCalled()
+        expect(getReadStreamSpy).not.toHaveBeenCalled()
+      } finally {
+        shouldServeLocallySpy.mockRestore()
+        getReadStreamSpy.mockRestore()
+      }
     })
   })
 
