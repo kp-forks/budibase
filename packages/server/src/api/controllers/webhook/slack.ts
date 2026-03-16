@@ -22,6 +22,12 @@ const SLACK_FALLBACK_ERROR_MESSAGE =
 export const isSlackDirectMessage = (event?: SlackEvent) =>
   event?.channel_type === "im" || !!event?.channel?.startsWith("D")
 
+export const extractSlackMessageContent = (text?: string) =>
+  (text || "")
+    .replace(/<@[A-Z0-9]+(?:\|[^>]+)?>/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
 export const matchesSlackConversationScope = ({
   chat,
   scope,
@@ -165,7 +171,8 @@ const createSlackMessageHandler = (
 ) => {
   return async (thread: Thread, message: Message) => {
     const raw = message.raw as SlackEvent | undefined
-    if (!message.text) {
+    const content = extractSlackMessageContent(raw?.text || message.text)
+    if (!content) {
       await thread.post("Send a message to continue.")
       return
     }
@@ -179,7 +186,7 @@ const createSlackMessageHandler = (
       privateTarget: thread.channel as SlackReplyTarget,
       author: message.author,
       command: ChatCommands.ASK,
-      content: message.text,
+      content,
       channelId: thread.channelId,
       threadId: thread.id || undefined,
       externalUserId: message.author.userId,
