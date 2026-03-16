@@ -48,6 +48,71 @@ const createMessageCollector = (
   },
 })
 
+interface MockSlackEvent {
+  type?: string
+  channel?: string
+  channel_type?: string
+  text?: string
+  thread_ts?: string
+  ts?: string
+  user?: string
+  username?: string
+}
+
+interface MockTeamsMentionEntity {
+  type?: string
+  mentioned?: {
+    id?: string
+  }
+}
+
+interface MockTeamsActivity {
+  type?: string
+  text?: string
+  threadId?: string
+  recipient?: {
+    id?: string
+  }
+  conversation?: {
+    id?: string
+    conversationType?: string
+  }
+  from?: {
+    id?: string
+    name?: string
+  }
+  entities?: MockTeamsMentionEntity[]
+}
+
+const isSlackDirectMessage = (event: MockSlackEvent) =>
+  event.channel_type === "im" || !!event.channel?.startsWith("D")
+
+const isSlackMentionMessage = (event: MockSlackEvent) =>
+  /<@[A-Z0-9]+(?:\|[^>]+)?>/i.test(event.text || "")
+
+const isTeamsMentionActivity = (activity: MockTeamsActivity) => {
+  const recipientId = activity.recipient?.id?.trim()
+  if (!recipientId) {
+    return false
+  }
+
+  return (activity.entities || []).some(
+    entity =>
+      entity.type?.toLowerCase() === "mention" &&
+      entity.mentioned?.id?.trim() === recipientId
+  )
+}
+
+const invokeHandlers = async (
+  handlers: AnyFn[],
+  thread: unknown,
+  message: unknown
+) => {
+  for (const handler of handlers) {
+    await handler(thread, message)
+  }
+}
+
 export const resetMockChatState = () => {
   mockWebhookState.slack = defaultPostEphemeralResult()
   mockWebhookState.teams = defaultPostEphemeralResult()
@@ -72,8 +137,7 @@ export class Chat {
   slashHandlers = new Map<string, AnyFn>()
   mentionHandlers: AnyFn[] = []
   directMessageHandlers: AnyFn[] = []
-  messageHandler: AnyFn | null = null
-  directMessageHandler: AnyFn | null = null
+  newMessageHandlers: AnyFn[] = []
   subscribedHandlers: AnyFn[] = []
   installationHandlers = new Map<string, AnyFn>()
   adapters: Record<string, unknown>
@@ -173,7 +237,7 @@ export class Chat {
           )
         }
 
-        const body = await request.json()
+        const body = (await request.json()) as MockTeamsActivity
         if (body.type !== "message") {
           return new Response(JSON.stringify({}), {
             status: 200,
@@ -187,22 +251,26 @@ export class Chat {
           ...createMessageCollector("teams", messages),
           subscribe: async () => {},
         }
+        const isMention = isTeamsMentionActivity(body)
         const message = {
           text: body.text || "",
           raw: body,
+          isMention,
           author: {
             userId: body.from?.id || "",
             fullName: body.from?.name,
           },
         }
 
-        if (
-          body.conversation?.conversationType === "personal" &&
-          this.directMessageHandler
-        ) {
-          await this.directMessageHandler(thread, message)
-        } else if (this.messageHandler) {
-          await this.messageHandler(thread, message)
+        if (body.conversation?.conversationType === "personal") {
+          await invokeHandlers(this.directMessageHandlers, thread, message)
+        } else {
+          if (isMention) {
+            await invokeHandlers(this.mentionHandlers, thread, message)
+          } else {
+            await invokeHandlers(this.subscribedHandlers, thread, message)
+          }
+          await invokeHandlers(this.newMessageHandlers, thread, message)
         }
 
         return new Response(JSON.stringify({ messages }), {
@@ -242,7 +310,7 @@ export class Chat {
           })
         }
 
-        const event = body?.event
+        const event = (body?.event || {}) as MockSlackEvent
         if (body?.type !== "event_callback" || event?.type !== "message") {
           return new Response(JSON.stringify({ messages: [] }), {
             status: 200,
@@ -251,34 +319,43 @@ export class Chat {
         }
 
         const messages: string[] = []
-        if (this.messageHandler) {
-          const channelId = event.channel || ""
-          const threadTs =
-            event.channel_type === "im"
-              ? event.thread_ts || ""
-              : event.thread_ts || event.ts || ""
-          const channel = {
-            id: `slack:${channelId}`,
-            ...createMessageCollector("slack", messages),
+        const channelId = event.channel || ""
+        const threadTs =
+          event.channel_type === "im"
+            ? event.thread_ts || ""
+            : event.thread_ts || event.ts || ""
+        const channel = {
+          id: `slack:${channelId}`,
+          ...createMessageCollector("slack", messages),
+        }
+        const thread = {
+          id: `slack:${channelId}:${threadTs}`,
+          channelId,
+          ...createMessageCollector("slack", messages),
+          subscribe: async () => {},
+          channel,
+        }
+        const isMention = isSlackMentionMessage(event)
+        const message = {
+          text: event.text || "",
+          raw: event,
+          isMention,
+          author: {
+            userId: event.user || "",
+            userName: event.username || event.user || "",
+            fullName: event.username || event.user || "",
+          },
+        }
+
+        if (isSlackDirectMessage(event)) {
+          await invokeHandlers(this.newMessageHandlers, thread, message)
+        } else {
+          if (isMention) {
+            await invokeHandlers(this.mentionHandlers, thread, message)
+          } else if (event.thread_ts) {
+            await invokeHandlers(this.subscribedHandlers, thread, message)
           }
-          const thread = {
-            id: `slack:${channelId}:${threadTs}`,
-            channelId,
-            ...createMessageCollector("slack", messages),
-            subscribe: async () => {},
-            channel,
-          }
-          const message = {
-            text: event.text || "",
-            raw: event,
-            isMention: false,
-            author: {
-              userId: event.user || "",
-              userName: event.username || event.user || "",
-              fullName: event.username || event.user || "",
-            },
-          }
-          await this.messageHandler(thread, message)
+          await invokeHandlers(this.newMessageHandlers, thread, message)
         }
 
         return new Response(JSON.stringify({ messages }), {
@@ -298,21 +375,18 @@ export class Chat {
 
   onNewMention(handler: AnyFn) {
     this.mentionHandlers.push(handler)
-    this.messageHandler = handler
   }
 
   onDirectMessage(handler: AnyFn) {
     this.directMessageHandlers.push(handler)
-    this.directMessageHandler = handler
   }
 
   onSubscribedMessage(handler: AnyFn) {
     this.subscribedHandlers.push(handler)
-    this.messageHandler = handler
   }
 
   onNewMessage(_pattern: unknown, handler: AnyFn) {
-    this.messageHandler = handler
+    this.newMessageHandlers.push(handler)
   }
 
   onInstallationUpdate(action: string, handler: AnyFn) {
