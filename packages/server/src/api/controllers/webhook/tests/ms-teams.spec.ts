@@ -97,12 +97,14 @@ describe("teams webhook helpers", () => {
   })
 
   it("parses command text containing mention entities", () => {
-    expect(parseTeamsCommand(`<at>Budibase Bot</at> follow up`, [
-      {
-        type: "mention",
-        text: "<at>Budibase Bot</at>",
-      },
-    ])).toEqual({
+    expect(
+      parseTeamsCommand(`<at>Budibase Bot</at> follow up`, [
+        {
+          type: "mention",
+          text: "<at>Budibase Bot</at>",
+        },
+      ])
+    ).toEqual({
       command: ChatCommands.ASK,
       content: "follow up",
     })
@@ -234,6 +236,7 @@ describe("teams webhook helpers", () => {
       agentId: "agent-1",
       conversationId: "conversation-1",
       channelId: "channel-1",
+      threadId: "teams:conversation-1:service-1",
       externalUserId: "user-legacy",
     }
 

@@ -468,7 +468,9 @@ describe("agent slack integration provisioning", () => {
         .get(handoffPath)
         .expect(302)
       expect(unauthHandoff.headers.location).toEqual("/builder/auth/login")
-      const cookies = unauthHandoff.headers["set-cookie"] || []
+      const cookies = Array.isArray(unauthHandoff.headers["set-cookie"])
+        ? unauthHandoff.headers["set-cookie"]
+        : []
       expect(
         cookies.some((cookie: string) =>
           cookie.startsWith("budibase:returnurl=/api/chat-links/")

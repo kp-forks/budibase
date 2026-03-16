@@ -1,4 +1,10 @@
-import { context, redis, utils, type RedisClient } from "@budibase/backend-core"
+import {
+  context,
+  redis,
+  tenancy,
+  utils,
+  type RedisClient,
+} from "@budibase/backend-core"
 import type {
   ChatIdentityLink,
   ChatIdentityLinkLookupInput,
@@ -179,7 +185,7 @@ export const getChatIdentityLink = async ({
   providerTenantId,
 }: ChatIdentityLinkLookupInput) => {
   const tenantId = context.getTenantId()
-  const db = context.getGlobalDB()
+  const db = tenancy.getGlobalDB()
 
   const linkId = getLinkDocId({
     tenantId,
@@ -203,7 +209,7 @@ export const upsertChatIdentityLink = async ({
 }: UpsertChatIdentityLinkInput): Promise<ChatIdentityLink> => {
   const tenantId = context.getTenantId()
 
-  const db = context.getGlobalDB()
+  const db = tenancy.getGlobalDB()
   const linkId = getLinkDocId({
     tenantId,
     provider,

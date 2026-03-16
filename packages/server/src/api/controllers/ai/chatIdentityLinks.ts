@@ -59,7 +59,7 @@ const renderLinkSuccessPage = () => {
 }
 
 export async function handoffChatLinkSession(
-  ctx: UserCtx<void, void, { instance: string; token: string }>
+  ctx: UserCtx<void, string, { instance: string; token: string }>
 ) {
   const token = resolveToken(ctx.params.token)
   const session =
