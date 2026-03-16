@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Modal } from "@budibase/bbui"
   import DeleteModal from "@/components/deploy/DeleteModal.svelte"
-  import { appsStore, licensing } from "@/stores/portal"
+  import { licensing } from "@/stores/portal"
   import DuplicateAppModal from "./DuplicateAppModal.svelte"
   import ExportAppModal from "./ExportAppModal.svelte"
   import type { EnrichedApp } from "@/types"
@@ -38,7 +38,7 @@
   appId={app?.devId}
   appName={app?.name}
   onDeleteSuccess={async () => {
-    await Promise.all([licensing.init(), appsStore.load()])
+    await licensing.init()
   }}
 />
 
