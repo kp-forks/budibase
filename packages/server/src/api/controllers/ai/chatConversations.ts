@@ -25,6 +25,7 @@ import {
   extractReasoningMiddleware,
   isTextUIPart,
   ModelMessage,
+  pruneMessages,
   stepCountIs,
   streamText,
   wrapLanguageModel,
@@ -194,6 +195,20 @@ interface WebhookChatCompleteResult {
   title?: string
 }
 
+const TOOL_CALL_PRUNING_STRATEGY = "before-last-2-messages" as const
+
+const prepareModelMessages = async (
+  messages: ChatConversationRequest["messages"]
+): Promise<ModelMessage[]> => {
+  const modelMessages = await convertToModelMessages(messages)
+  return pruneMessages({
+    messages: modelMessages,
+    reasoning: "all",
+    toolCalls: TOOL_CALL_PRUNING_STRATEGY,
+    emptyMessages: "remove",
+  })
+}
+
 export async function webhookChat({
   chat,
   user,
@@ -258,7 +273,7 @@ export async function webhookChat({
     agentId
   )
 
-  const modelMessages = await convertToModelMessages(chat.messages)
+  const modelMessages = await prepareModelMessages(chat.messages)
   const messagesWithContext: ModelMessage[] =
     retrievedContext.trim().length > 0
       ? [
@@ -477,7 +492,7 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
       agentId
     )
 
-    const modelMessages = await convertToModelMessages(chat.messages)
+    const modelMessages = await prepareModelMessages(chat.messages)
     const messagesWithContext: ModelMessage[] =
       retrievedContext.trim().length > 0
         ? [

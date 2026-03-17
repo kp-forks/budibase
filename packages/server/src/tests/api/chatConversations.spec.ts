@@ -7,11 +7,12 @@ import type {
   ChatConversationRequest,
   User,
 } from "@budibase/types"
-import type { ToolSet } from "ai"
+import type { ModelMessage, ToolSet } from "ai"
 import type { ServerResponse } from "http"
 import {
   convertToModelMessages,
   extractReasoningMiddleware,
+  pruneMessages,
   streamText,
   wrapLanguageModel,
 } from "ai"
@@ -49,6 +50,7 @@ jest.mock("ai", () => {
     ...actual,
     convertToModelMessages: jest.fn(),
     extractReasoningMiddleware: jest.fn(),
+    pruneMessages: jest.fn(),
     streamText: jest.fn(),
     wrapLanguageModel: jest.fn(),
   }
@@ -445,6 +447,9 @@ describe("chat conversation transient behavior", () => {
         typeof convertToModelMessages
       >
     ).mockResolvedValue([])
+    ;(pruneMessages as jest.MockedFunction<typeof pruneMessages>).mockReturnValue(
+      []
+    )
     ;(streamText as jest.MockedFunction<typeof streamText>).mockImplementation(
       () =>
         ({
@@ -585,6 +590,52 @@ describe("chat conversation transient behavior", () => {
       expect.objectContaining({
         tools: undefined,
         toolChoice: "none",
+      })
+    )
+  })
+
+  it("prunes old reasoning and tool calls before sending messages to the model", async () => {
+    setupMocks()
+    const modelMessages: ModelMessage[] = [
+      { role: "user", content: "hello" },
+      { role: "assistant", content: "response" },
+    ]
+    const prunedMessages: ModelMessage[] = [
+      { role: "user", content: "hello" },
+    ]
+
+    jest
+      .mocked(convertToModelMessages)
+      .mockResolvedValue(modelMessages)
+    jest.mocked(pruneMessages).mockReturnValue(prunedMessages)
+
+    const headers = await config.defaultHeaders({}, true)
+
+    const res = await config
+      .getRequest()!
+      .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+      .set(headers)
+      .send({
+        agentId,
+        messages: [
+          {
+            id: "message-0",
+            role: "user",
+            parts: [{ type: "text", text: "hi" }],
+          },
+        ],
+      })
+
+    expect(res.status).toBe(200)
+    expect(pruneMessages).toHaveBeenCalledWith({
+      messages: modelMessages,
+      reasoning: "all",
+      toolCalls: "before-last-2-messages",
+      emptyMessages: "remove",
+    })
+    expect(streamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: prunedMessages,
       })
     )
   })
