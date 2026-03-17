@@ -239,7 +239,7 @@ describe("rest", () => {
         {
           status: 400,
           body: {
-            message: "Cannot connect to URL.",
+            message: "URL is blocked or could not be resolved safely.",
           },
         }
       )
