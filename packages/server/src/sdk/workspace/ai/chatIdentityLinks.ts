@@ -5,14 +5,15 @@ import {
   utils,
   type RedisClient,
 } from "@budibase/backend-core"
-import type {
-  ChatIdentityLink,
-  ChatIdentityLinkLookupInput,
-  ChatIdentityLinkProvider,
-  ChatIdentityLinkSession,
-  ChatIdentityProviderRedirectInput,
-  CreateChatIdentityLinkSessionInput,
-  UpsertChatIdentityLinkInput,
+import {
+  AgentChannelProvider,
+  type ChatIdentityLink,
+  type ChatIdentityLinkLookupInput,
+  type ChatIdentityLinkProvider,
+  type ChatIdentityLinkSession,
+  type ChatIdentityProviderRedirectInput,
+  type CreateChatIdentityLinkSessionInput,
+  type UpsertChatIdentityLinkInput,
 } from "@budibase/types"
 import { DocumentType } from "@budibase/types"
 
@@ -28,11 +29,11 @@ const getProviderScopeKey = ({
   teamId?: string
   providerTenantId?: string
 }) => {
-  if (provider === "slack") {
+  if (provider === AgentChannelProvider.SLACK) {
     return teamId
   }
 
-  if (provider === "msteams") {
+  if (provider === AgentChannelProvider.MSTEAMS) {
     return providerTenantId || teamId
   }
 
@@ -119,13 +120,13 @@ export const buildChatIdentityProviderRedirectUrl = ({
   provider,
   teamId,
 }: ChatIdentityProviderRedirectInput) => {
-  if (provider === "slack") {
+  if (provider === AgentChannelProvider.SLACK) {
     if (teamId) {
       return `https://app.slack.com/client/${encodeURIComponent(teamId)}`
     }
     return "https://slack.com/app_redirect"
   }
-  if (provider === "msteams") {
+  if (provider === AgentChannelProvider.MSTEAMS) {
     return "https://teams.microsoft.com"
   }
   return "https://discord.com/channels/@me"

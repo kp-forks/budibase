@@ -1,11 +1,12 @@
 import { context, HTTPError } from "@budibase/backend-core"
 import { ChatCommands, SupportedChatCommands } from "@budibase/shared-core"
-import type {
-  ChatConversation,
-  ChatConversationChannel,
-  Ctx,
-  DiscordConversationScope,
-  DiscordInteraction,
+import {
+  AgentChannelProvider,
+  type ChatConversation,
+  type ChatConversationChannel,
+  type Ctx,
+  type DiscordConversationScope,
+  type DiscordInteraction,
 } from "@budibase/types"
 import { Chat } from "chat"
 import { createDiscordAdapter } from "@chat-adapter/discord"
@@ -29,7 +30,7 @@ export const matchesDiscordConversationScope = ({
   if (
     chat.chatAppId !== scope.chatAppId ||
     chat.agentId !== scope.agentId ||
-    ch?.provider !== "discord" ||
+    ch?.provider !== AgentChannelProvider.DISCORD ||
     ch?.channelId !== scope.channelId ||
     (ch?.threadId || undefined) !== scope.threadId
   ) {
@@ -122,7 +123,7 @@ export async function discordWebhook(
             event.user.fullName || event.user.userName || userId || ""
 
           const channel: ChatConversationChannel = {
-            provider: "discord",
+            provider: AgentChannelProvider.DISCORD,
             channelId,
             threadId: interaction.thread_id,
             guildId: interaction.guild_id,
@@ -172,7 +173,7 @@ export async function discordWebhook(
               workspaceId,
               chatAppId,
               agentId,
-              provider: "discord",
+              provider: AgentChannelProvider.DISCORD,
               command,
               content: event.text || "",
               user: { externalUserId: userId || "", displayName },

@@ -2,11 +2,12 @@ import { context, HTTPError } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import type { SlackEvent } from "@chat-adapter/slack"
 import { createSlackAdapter } from "@chat-adapter/slack"
-import type {
-  ChatConversation,
-  ChatConversationChannel,
-  Ctx,
-  SlackConversationScope,
+import {
+  AgentChannelProvider,
+  type ChatConversation,
+  type ChatConversationChannel,
+  type Ctx,
+  type SlackConversationScope,
 } from "@budibase/types"
 import { Chat, type Message, type SlashCommandEvent, type Thread } from "chat"
 import sdk from "../../../sdk"
@@ -39,7 +40,7 @@ export const matchesSlackConversationScope = ({
   return !!(
     chat.chatAppId === scope.chatAppId &&
     chat.agentId === scope.agentId &&
-    ch?.provider === "slack" &&
+    ch?.provider === AgentChannelProvider.SLACK &&
     ch?.channelId === scope.channelId &&
     (ch?.threadId || undefined) === scope.threadId &&
     ch?.externalUserId === scope.externalUserId
@@ -106,7 +107,7 @@ const createSlackInputHandler = ({
     const displayName = author.fullName || author.userName || externalUserId
 
     const channel: ChatConversationChannel = {
-      provider: "slack",
+      provider: AgentChannelProvider.SLACK,
       channelId,
       threadId,
       teamId,
@@ -147,7 +148,7 @@ const createSlackInputHandler = ({
         workspaceId,
         chatAppId,
         agentId,
-        provider: "slack",
+        provider: AgentChannelProvider.SLACK,
         command,
         content,
         user: { externalUserId, displayName },

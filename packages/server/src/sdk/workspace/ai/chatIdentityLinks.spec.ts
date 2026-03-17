@@ -1,3 +1,4 @@
+import { AgentChannelProvider } from "@budibase/types"
 import sdk from "../../../sdk"
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
 
@@ -20,7 +21,7 @@ describe("chatIdentityLinks", () => {
     let linkId: string | undefined
     await config.doInContext(firstProdWorkspaceId, async () => {
       const link = await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
-        provider: "slack",
+        provider: AgentChannelProvider.SLACK,
         externalUserId: "external-user-1",
         teamId: "team-1",
         globalUserId: config.getUser()._id!,
@@ -31,7 +32,7 @@ describe("chatIdentityLinks", () => {
 
     await config.doInContext(secondProdWorkspaceId, async () => {
       const link = await sdk.ai.chatIdentityLinks.getChatIdentityLink({
-        provider: "slack",
+        provider: AgentChannelProvider.SLACK,
         externalUserId: "external-user-1",
         teamId: "team-1",
       })

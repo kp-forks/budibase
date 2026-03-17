@@ -1,7 +1,26 @@
 import { AgentMessageMetadata, Document } from "../../"
 import type { UIMessage } from "ai"
 
-export type ChatIdentityLinkProvider = "discord" | "msteams" | "slack"
+export enum AgentChannelProvider {
+  DISCORD = "discord",
+  MSTEAMS = "msteams",
+  SLACK = "slack",
+}
+
+export type ChatIdentityLinkProvider = AgentChannelProvider
+
+/** Maps provider to deployment UI channel id (e.g. MSTeams for display) */
+export const DEPLOYMENT_CHANNEL_IDS: Record<AgentChannelProvider, string> = {
+  [AgentChannelProvider.DISCORD]: "discord",
+  [AgentChannelProvider.MSTEAMS]: "MSTeams",
+  [AgentChannelProvider.SLACK]: "slack",
+}
+
+export const DEPLOYMENT_ID_TO_PROVIDER: Record<string, AgentChannelProvider> = {
+  discord: AgentChannelProvider.DISCORD,
+  MSTeams: AgentChannelProvider.MSTEAMS,
+  slack: AgentChannelProvider.SLACK,
+}
 
 export interface ConversationStarter {
   prompt: string
@@ -25,7 +44,7 @@ export interface ChatApp extends Document {
 }
 
 export interface ChatConversationChannel {
-  provider: string
+  provider: AgentChannelProvider
   conversationId?: string
   conversationType?: string
   guildId?: string

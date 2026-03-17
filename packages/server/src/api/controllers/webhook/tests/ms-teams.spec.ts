@@ -1,6 +1,7 @@
-import type {
-  ChatConversation,
-  MSTeamsConversationScope,
+import {
+  AgentChannelProvider,
+  type ChatConversation,
+  type MSTeamsConversationScope,
 } from "@budibase/types"
 import { ChatCommands } from "@budibase/shared-core"
 import {
@@ -23,7 +24,7 @@ const matchesTeamsConversationScope = ({
   return !!(
     chat.chatAppId === scope.chatAppId &&
     chat.agentId === scope.agentId &&
-    ch?.provider === "msteams" &&
+    ch?.provider === AgentChannelProvider.MSTEAMS &&
     ch?.conversationId === scope.conversationId &&
     ch?.threadId === scope.threadId &&
     (ch?.channelId || undefined) === scope.channelId &&
@@ -62,7 +63,7 @@ const makeChat = (
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   channel: {
-    provider: "msteams",
+    provider: AgentChannelProvider.MSTEAMS,
     conversationId: "conversation-1",
     channelId: "channel-1",
     threadId: "teams:conversation-1:service-1",
@@ -178,7 +179,7 @@ describe("teams webhook helpers", () => {
     }
 
     const channel = (overrides = {}) => ({
-      provider: "msteams" as const,
+      provider: AgentChannelProvider.MSTEAMS,
       conversationId: "conversation-1",
       channelId: "channel-1",
       threadId: "teams:conversation-1:service-1",
@@ -224,7 +225,7 @@ describe("teams webhook helpers", () => {
     const chat = makeChat({
       userId: "msteams:user-legacy",
       channel: {
-        provider: "msteams",
+        provider: AgentChannelProvider.MSTEAMS,
         conversationId: "conversation-1",
         channelId: "channel-1",
         threadId: "teams:conversation-1:service-1",
@@ -267,7 +268,7 @@ describe("teams webhook helpers", () => {
       _id: "other-user",
       updatedAt: "2026-01-01T00:59:00.000Z",
       channel: {
-        provider: "msteams",
+        provider: AgentChannelProvider.MSTEAMS,
         conversationId: "conversation-1",
         channelId: "channel-1",
         threadId: "teams:conversation-1:service-1",

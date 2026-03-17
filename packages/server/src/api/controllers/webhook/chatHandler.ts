@@ -15,7 +15,7 @@ import type {
   ChatConversationRequest,
   ContextUser,
 } from "@budibase/types"
-import { DocumentType } from "@budibase/types"
+import { AgentChannelProvider, DocumentType } from "@budibase/types"
 import sdk from "../../../sdk"
 import { getGlobalUser } from "../../../utilities/global"
 import { canAccessChatAppAgentForUser } from "../ai/chatApps"
@@ -192,7 +192,7 @@ const findCachedConversationById = async ({
   db: ReturnType<typeof context.getWorkspaceDB>
   chatId: string
   scope: ConversationScope
-  provider: string
+  provider: AgentChannelProvider
   idleTimeoutMs: number
   cacheKey: string
 }) => {
@@ -220,7 +220,7 @@ const matchesScope = ({
 }: {
   chat: ChatConversation
   scope: ConversationScope
-  provider: string
+  provider: AgentChannelProvider
 }) => {
   const ch = chat.channel
   if (
@@ -231,7 +231,7 @@ const matchesScope = ({
     return false
   }
 
-  if (provider === "discord") {
+  if (provider === AgentChannelProvider.DISCORD) {
     if (
       ch?.channelId !== scope.channelId ||
       (ch?.threadId || undefined) !== scope.threadId
@@ -244,7 +244,7 @@ const matchesScope = ({
     return chat.userId === `discord:${scope.externalUserId}`
   }
 
-  if (provider === "msteams") {
+  if (provider === AgentChannelProvider.MSTEAMS) {
     return (
       ch?.conversationId === scope.conversationId &&
       ch?.threadId === scope.threadId &&
@@ -253,7 +253,7 @@ const matchesScope = ({
     )
   }
 
-  if (provider === "slack") {
+  if (provider === AgentChannelProvider.SLACK) {
     return (
       ch?.channelId === scope.channelId &&
       (ch?.threadId || undefined) === scope.threadId &&
@@ -274,7 +274,7 @@ const findConversation = async ({
   db: ReturnType<typeof context.getWorkspaceDB>
   workspaceId: string
   scope: ConversationScope
-  provider: string
+  provider: AgentChannelProvider
   idleTimeoutMs: number
 }) => {
   const cacheKey = getCacheKey({ workspaceId, scope })
@@ -357,7 +357,7 @@ export interface HandleChatMessageParams {
   workspaceId: string
   chatAppId: string
   agentId: string
-  provider: "discord" | "msteams" | "slack"
+  provider: AgentChannelProvider
   command: SupportedChatCommand
   content: string
   user: {
@@ -370,17 +370,17 @@ export interface HandleChatMessageParams {
 }
 
 const providerDisplayName = (provider: HandleChatMessageParams["provider"]) => {
-  if (provider === "discord") {
+  if (provider === AgentChannelProvider.DISCORD) {
     return "Discord"
   }
-  if (provider === "msteams") {
+  if (provider === AgentChannelProvider.MSTEAMS) {
     return "Teams"
   }
   return "Slack"
 }
 
 const getLinkCommand = (provider: HandleChatMessageParams["provider"]) =>
-  provider === "msteams"
+  provider === AgentChannelProvider.MSTEAMS
     ? `${ChatCommands.LINK} or /${ChatCommands.LINK}`
     : `/${ChatCommands.LINK}`
 
@@ -546,7 +546,7 @@ export const handleChatMessage = async ({
         idleTimeoutMs,
       })
       const msg =
-        provider === "discord"
+        provider === AgentChannelProvider.DISCORD
           ? `Started a new conversation. Use /${ChatCommands.ASK} with a message.`
           : "Started a new conversation. Send a message to continue."
       await reply(msg)
@@ -555,7 +555,7 @@ export const handleChatMessage = async ({
 
     if (!content) {
       const msg =
-        provider === "discord"
+        provider === AgentChannelProvider.DISCORD
           ? `Please provide a message after /${ChatCommands.ASK}.`
           : `Please provide a message after "${ChatCommands.ASK}", or just send a normal message.`
       await reply(msg)

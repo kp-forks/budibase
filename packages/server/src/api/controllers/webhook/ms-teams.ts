@@ -1,10 +1,11 @@
 import { context, HTTPError } from "@budibase/backend-core"
 import { ChatCommands, SupportedChatCommand } from "@budibase/shared-core"
-import type {
-  ChatConversationChannel,
-  Ctx,
-  MSTeamsActivity,
-  MSTeamsConversationScope,
+import {
+  AgentChannelProvider,
+  type ChatConversationChannel,
+  type Ctx,
+  type MSTeamsActivity,
+  type MSTeamsConversationScope,
 } from "@budibase/types"
 import { Chat, type Thread, type Message } from "chat"
 import { createTeamsAdapter } from "@chat-adapter/teams"
@@ -177,7 +178,7 @@ const createTeamsMessageHandler = ({
     }
 
     const channel: ChatConversationChannel = {
-      provider: "msteams",
+      provider: AgentChannelProvider.MSTEAMS,
       conversationId,
       conversationType,
       channelId,
@@ -227,7 +228,7 @@ const createTeamsMessageHandler = ({
         workspaceId,
         chatAppId,
         agentId,
-        provider: "msteams",
+        provider: AgentChannelProvider.MSTEAMS,
         command,
         content,
         user: { externalUserId, displayName },

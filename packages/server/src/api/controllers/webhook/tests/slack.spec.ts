@@ -1,4 +1,8 @@
-import type { ChatConversation, SlackConversationScope } from "@budibase/types"
+import {
+  AgentChannelProvider,
+  type ChatConversation,
+  type SlackConversationScope,
+} from "@budibase/types"
 import {
   extractSlackMessageContent,
   isSlackDirectMessage,
@@ -18,7 +22,7 @@ const makeChat = (
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
   channel: {
-    provider: "slack",
+    provider: AgentChannelProvider.SLACK,
     channelId: "C123",
     threadId: "slack:C123:1700000000.100",
     externalUserId: "user-1",
@@ -67,7 +71,7 @@ describe("slack webhook helpers", () => {
     }
 
     const channel = (overrides = {}) => ({
-      provider: "slack" as const,
+      provider: AgentChannelProvider.SLACK,
       channelId: "C123",
       threadId: "slack:C123:1700000000.100",
       externalUserId: "user-1",
@@ -124,7 +128,7 @@ describe("slack webhook helpers", () => {
       _id: "other-user",
       updatedAt: "2026-01-01T00:59:00.000Z",
       channel: {
-        provider: "slack",
+        provider: AgentChannelProvider.SLACK,
         channelId: "C123",
         threadId: "slack:C123:1700000000.100",
         externalUserId: "user-2",

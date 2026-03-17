@@ -44,6 +44,7 @@ import sdk from "../../../../sdk"
 import { context, docIds } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import {
+  AgentChannelProvider,
   DocumentType,
   type Agent,
   type ChatConversation,
@@ -215,7 +216,7 @@ describe("agent teams integration provisioning", () => {
       ) => {
         await config.doInTenant(async () => {
           await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
-            provider: "msteams",
+            provider: AgentChannelProvider.MSTEAMS,
             externalUserId,
             providerTenantId,
             globalUserId: config.getUser()._id!,
@@ -324,7 +325,9 @@ describe("agent teams integration provisioning", () => {
 
       const conversations = await fetchConversations()
       expect(conversations).toHaveLength(1)
-      expect(conversations[0]?.channel?.provider).toEqual("msteams")
+      expect(conversations[0]?.channel?.provider).toEqual(
+        AgentChannelProvider.MSTEAMS
+      )
       expect(conversations[0]?.userId).toEqual(config.getUser()._id)
       expect(conversations[0]?.messages).toHaveLength(2)
     })

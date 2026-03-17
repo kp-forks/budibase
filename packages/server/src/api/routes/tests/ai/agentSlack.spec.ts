@@ -44,6 +44,7 @@ import sdk from "../../../../sdk"
 import { context, db, docIds, encryption } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import {
+  AgentChannelProvider,
   DocumentType,
   type Agent,
   type ChatConversation,
@@ -211,7 +212,7 @@ describe("agent slack integration provisioning", () => {
       ) => {
         await config.doInTenant(async () => {
           await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
-            provider: "slack",
+            provider: AgentChannelProvider.SLACK,
             externalUserId,
             teamId,
             globalUserId: config.getUser()._id!,
@@ -272,14 +273,14 @@ describe("agent slack integration provisioning", () => {
 
       await config.doInTenant(async () => {
         await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
-          provider: "slack",
+          provider: AgentChannelProvider.SLACK,
           externalUserId: "user-1",
           teamId: "T123",
           globalUserId: config.getUser()._id!,
           linkedBy: config.getUser()._id!,
         })
         await sdk.ai.chatIdentityLinks.upsertChatIdentityLink({
-          provider: "slack",
+          provider: AgentChannelProvider.SLACK,
           externalUserId: "user-1",
           teamId: "T456",
           globalUserId: otherUser._id!,
@@ -287,12 +288,12 @@ describe("agent slack integration provisioning", () => {
         })
 
         const firstLink = await sdk.ai.chatIdentityLinks.getChatIdentityLink({
-          provider: "slack",
+          provider: AgentChannelProvider.SLACK,
           externalUserId: "user-1",
           teamId: "T123",
         })
         const secondLink = await sdk.ai.chatIdentityLinks.getChatIdentityLink({
-          provider: "slack",
+          provider: AgentChannelProvider.SLACK,
           externalUserId: "user-1",
           teamId: "T456",
         })
@@ -347,7 +348,7 @@ describe("agent slack integration provisioning", () => {
 
       await config.doInTenant(async () => {
         const link = await sdk.ai.chatIdentityLinks.getChatIdentityLink({
-          provider: "slack",
+          provider: AgentChannelProvider.SLACK,
           externalUserId: "user-1",
           teamId: "T123",
         })
@@ -462,7 +463,9 @@ describe("agent slack integration provisioning", () => {
 
       const conversations = await fetchConversations()
       expect(conversations).toHaveLength(1)
-      expect(conversations[0]?.channel?.provider).toEqual("slack")
+      expect(conversations[0]?.channel?.provider).toEqual(
+        AgentChannelProvider.SLACK
+      )
       expect(conversations[0]?.userId).toEqual(config.getUser()._id)
       expect(conversations[0]?.messages).toHaveLength(2)
     })

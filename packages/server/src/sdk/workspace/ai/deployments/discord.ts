@@ -1,7 +1,11 @@
 import fetch from "node-fetch"
 import { HTTPError } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
-import type { Agent, ResolvedDiscordIntegration } from "@budibase/types"
+import {
+  AgentChannelProvider,
+  type Agent,
+  type ResolvedDiscordIntegration,
+} from "@budibase/types"
 import * as shared from "./shared"
 
 const DISCORD_API_BASE_URL = "https://discord.com/api/v10"
@@ -62,7 +66,12 @@ export const resolveChatAppForAgent = async (
 export const buildDiscordWebhookUrl = async (
   chatAppId: string,
   agentId: string
-) => await shared.buildProviderWebhookUrl("discord", chatAppId, agentId)
+) =>
+  await shared.buildProviderWebhookUrl(
+    AgentChannelProvider.DISCORD,
+    chatAppId,
+    agentId
+  )
 
 export const buildDiscordInviteUrl = (applicationId: string) =>
   `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=bot+applications.commands&permissions=0`
