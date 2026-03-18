@@ -51,7 +51,6 @@
     type WorkspaceFavourite,
     PublishResourceState,
     WorkspaceResource,
-    AIConfigType,
   } from "@budibase/types"
   import { derived, get, type Readable } from "svelte/store"
   import { IntegrationTypes } from "@/constants/backend"
@@ -70,6 +69,8 @@
   export const show = () => {
     pinned.set(true)
   }
+  export let canInviteUsers = false
+  export let canManageConnections = false
   export let onInviteUser: () => void = () => {}
 
   $: backupErrors = getBackupErrors($enrichedApps || [], workspaceId)
@@ -293,7 +294,7 @@
           const entry: UIFavouriteResource = {
             name: resource.name,
             icon: isRestQuery
-              ? "webhooks-logo"
+              ? "globe-simple"
               : ResourceIcons[favourite.resourceType],
           }
 
@@ -561,15 +562,17 @@
             </div>
 
             <div class="core-secondary">
-              <SideNavLink
-                icon="sparkle"
-                text="AI models"
-                {collapsed}
-                on:click={() => {
-                  bb.settings(`/ai-config/${AIConfigType.COMPLETIONS}`)
-                  keepCollapsed()
-                }}
-              />
+              {#if canManageConnections}
+                <SideNavLink
+                  icon="cube"
+                  text="Connections"
+                  {collapsed}
+                  on:click={() => {
+                    bb.settings(`/connections/apis`)
+                    keepCollapsed()
+                  }}
+                />
+              {/if}
               <SideNavLink
                 icon="globe-simple"
                 text="API explorer"
@@ -584,12 +587,14 @@
                 {collapsed}
                 on:click={keepCollapsed}
               />
-              <SideNavLink
-                icon="user-plus"
-                text="Invite users"
-                on:click={openInviteUser}
-                {collapsed}
-              />
+              {#if canInviteUsers}
+                <SideNavLink
+                  icon="user-plus"
+                  text="Invite users"
+                  on:click={openInviteUser}
+                  {collapsed}
+                />
+              {/if}
               <span class="root-nav" class:error={backupErrorCount}>
                 {#if collapsed && backupErrorCount}
                   <span class="status-indicator">

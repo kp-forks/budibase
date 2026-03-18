@@ -173,6 +173,15 @@ describe("/applications", () => {
       await checkTableCount(1) // users table
     })
 
+    it("trims workspace name before saving when creating", async () => {
+      const newWorkspace = await config.api.workspace.create({
+        name: "  Trimmed Workspace  ",
+      })
+
+      expect(newWorkspace.name).toBe("Trimmed Workspace")
+      expect(newWorkspace.navigation?.title).toBe("Trimmed Workspace")
+    })
+
     it("adds the workspace creator to the dev users table", async () => {
       const creator = config.getUser()
       const newWorkspace = await config.api.workspace.create({
@@ -188,9 +197,7 @@ describe("/applications", () => {
     })
 
     it("creates default workspace without sample data when onboarding", async () => {
-      const name = "Welcome app"
       const newWorkspace = await config.api.workspace.create({
-        name,
         isOnboarding: "true",
       })
       expect(newWorkspace._id).toBeDefined()
@@ -206,6 +213,32 @@ describe("/applications", () => {
         const tables = await config.api.table.fetch()
         expect(tables.length).toEqual(1)
       })
+    })
+
+    it("creates a uniquely named default workspace when onboarding workspace already exists", async () => {
+      await config.api.workspace.create({
+        isOnboarding: "true",
+      })
+
+      const secondWorkspace = await config.api.workspace.create({
+        isOnboarding: "true",
+      })
+
+      expect(secondWorkspace.name).toBe("Workspace 2")
+      expect(secondWorkspace.navigation?.title).toBe("Workspace 2")
+    })
+
+    it("creates an onboarding workspace when normalized default name already exists", async () => {
+      await config.api.workspace.create({
+        name: "  DEFAULT workspace ",
+      })
+
+      const onboardingWorkspace = await config.api.workspace.create({
+        isOnboarding: "true",
+      })
+
+      expect(onboardingWorkspace.name).toBe("Workspace 2")
+      expect(onboardingWorkspace.navigation?.title).toBe("Workspace 2")
     })
 
     it("creates app from template", async () => {
@@ -289,6 +322,13 @@ describe("/applications", () => {
     it("should reject with a known name", async () => {
       await config.api.workspace.create(
         { name: workspace.name },
+        { body: { message: "Workspace name is already in use." }, status: 400 }
+      )
+    })
+
+    it("should reject with a known name ignoring case and whitespace", async () => {
+      await config.api.workspace.create(
+        { name: `  ${workspace.name.toUpperCase()}  ` },
         { body: { message: "Workspace name is already in use." }, status: 400 }
       )
     })
@@ -1186,6 +1226,14 @@ describe("/applications", () => {
       })
       expect(updatedApp._rev).toBeDefined()
       expect(events.app.updated).toHaveBeenCalledTimes(1)
+    })
+
+    it("trims workspace name before saving when updating", async () => {
+      const updatedApp = await config.api.workspace.update(workspace.appId, {
+        name: "  TEST_APP  ",
+      })
+
+      expect(updatedApp.name).toBe("TEST_APP")
     })
   })
 

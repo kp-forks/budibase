@@ -15,8 +15,8 @@
     Select,
   } from "@budibase/bbui"
   import { onMount } from "svelte"
+  import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeBaseFilesPanel from "./files-panel/index.svelte"
-  import { routeActions } from "../.."
 
   export interface Props {
     knowledgeBaseId: string
@@ -57,6 +57,11 @@
   let isModified = $derived(
     JSON.stringify(savedSnapshot) !== JSON.stringify(draft)
   )
+  let hasReferenceChanges = $derived.by(
+    () =>
+      savedSnapshot?.embeddingModel !== draft.embeddingModel ||
+      savedSnapshot?.vectorDb !== draft.vectorDb
+  )
 
   let embeddingModelOptions = $derived(
     [...$aiConfigsStore.customConfigsPerType.embeddings].sort((a, b) =>
@@ -66,6 +71,7 @@
   let vectorDbOptions = $derived(
     [...$vectorDbStore.configs].sort((a, b) => a.name.localeCompare(b.name))
   )
+  let canEditReferences = $derived((config?.files.length || 0) === 0)
   let duplicateNameError = $derived.by(() => {
     const normalizedDraftName = draft.name?.trim().toLowerCase()
     if (!normalizedDraftName) {
@@ -120,7 +126,7 @@
       const isCreation = knowledgeBaseId === "new"
       if (!isCreation && !config) {
         notifications.error("Knowledge base not found")
-        bb.settings(`/ai-config/knowledge-bases`)
+        bb.settings(`/connections/knowledge-bases`)
         return
       }
 
@@ -147,7 +153,7 @@
 
     try {
       isSaving = true
-      let savedId: string | undefined
+
       if (draft._id && draft._rev) {
         const updated = await knowledgeBaseStore.edit({
           _id: draft._id,
@@ -156,7 +162,7 @@
           embeddingModel: draft.embeddingModel || "",
           vectorDb: draft.vectorDb || "",
         })
-        savedId = updated._id
+
         draft._rev = updated._rev
         captureSavedSnapshot()
         notifications.success("Knowledge base updated")
@@ -166,16 +172,14 @@
           embeddingModel: draft.embeddingModel || "",
           vectorDb: draft.vectorDb || "",
         })
-        savedId = created._id
+
         draft._id = created._id
         draft._rev = created._rev
         captureSavedSnapshot()
         notifications.success("Knowledge base created")
       }
-      if (savedId) {
-        bb.settings(`/ai-config/knowledge-bases/${savedId}`)
-      }
       knowledgeBaseStore.clearFormDraft()
+      bb.settings(`/connections/knowledge-bases/${draft._id}`)
     } catch (err: any) {
       notifications.error(err.message || "Failed to save knowledge base")
     } finally {
@@ -183,20 +187,14 @@
     }
   }
 
-  function createEmbeddingModel() {
+  function createNewEmbeddingModel() {
     knowledgeBaseStore.setFormDraft(Helpers.cloneDeep(draft))
-    const currentKnowledgeBaseId = knowledgeBaseId || "new"
-    bb.settings(
-      `/ai-config/knowledge-bases/${currentKnowledgeBaseId}/embedding/new`
-    )
+    bb.settings(`/connections/knowledge-bases/${knowledgeBaseId}/embedding/new`)
   }
 
-  function createVectorDb() {
+  function createNewVectorDb() {
     knowledgeBaseStore.setFormDraft(Helpers.cloneDeep(draft))
-    const currentKnowledgeBaseId = knowledgeBaseId || "new"
-    bb.settings(
-      `/ai-config/knowledge-bases/${currentKnowledgeBaseId}/vectordb/new`
-    )
+    bb.settings(`/connections/knowledge-bases/${knowledgeBaseId}/vectordb/new`)
   }
 
   async function deleteKnowledgeBase() {
@@ -214,7 +212,7 @@
           await knowledgeBaseStore.delete(knowledgeBaseId)
           knowledgeBaseStore.clearFormDraft()
           notifications.success("Knowledge base deleted")
-          bb.settings(`/ai-config/knowledge-bases`)
+          bb.settings(`/connections/knowledge-bases`)
         } catch (err: any) {
           notifications.error(err.message || "Failed to delete knowledge base")
         }
@@ -223,7 +221,7 @@
   }
 </script>
 
-<div use:routeActions>
+<RouteActions>
   <div class="actions">
     {#if isEdit}
       <Button on:click={deleteKnowledgeBase} quiet overBackground>Delete</Button
@@ -237,7 +235,7 @@
       {/if}
     </Button>
   </div>
-</div>
+</RouteActions>
 
 <div class="form">
   <Input
@@ -258,13 +256,16 @@
       options={embeddingModelSelectOptions}
       getOptionValue={option => option.value}
       getOptionLabel={option => option.label}
-      disabled={isEdit}
+      disabled={!canEditReferences}
+      tooltip={!canEditReferences
+        ? "Remove all files to change the embedding model."
+        : ""}
     />
     <ActionButton
-      icon="Add"
+      icon={"Add"}
       size="M"
-      disabled={isEdit}
-      on:click={createEmbeddingModel}
+      disabled={!canEditReferences}
+      on:click={createNewEmbeddingModel}
     />
   </div>
 
@@ -277,17 +278,20 @@
       options={vectorDbSelectOptions}
       getOptionValue={option => option.value}
       getOptionLabel={option => option.label}
-      disabled={isEdit}
+      disabled={!canEditReferences}
+      tooltip={!canEditReferences
+        ? "Remove all files to change the vector database."
+        : ""}
     />
     <ActionButton
-      icon="Add"
+      icon={"Add"}
       size="M"
-      disabled={isEdit}
-      on:click={createVectorDb}
+      disabled={!canEditReferences}
+      on:click={createNewVectorDb}
     />
   </div>
 
-  <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} />
+  <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} {hasReferenceChanges} />
 </div>
 
 <style>

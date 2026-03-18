@@ -13,7 +13,11 @@ import { AppMetaState } from "@/stores/builder/app"
 import { PortalAppsStore } from "@/stores/portal/apps"
 import { StoreApp } from "@/types"
 import { featureFlag } from "@/helpers"
-import { aiConfigsStore, knowledgeBaseStore } from "@/stores/portal"
+import {
+  aiConfigsStore,
+  knowledgeBaseStore,
+  vectorDbStore,
+} from "@/stores/portal"
 import { get } from "svelte/store"
 
 const getPathId = (path: string | undefined) => {
@@ -33,10 +37,10 @@ export const globalRoutes = (user: GetGlobalSelfResponse) => {
       section: "Preferences",
       path: "profile",
       icon: {
-        comp: UserAvatar,
+        component: UserAvatar,
         props: { user, size: "XS" },
       },
-      comp: Pages.get("profile"),
+      component: Pages.get("profile"),
     },
   ]
 }
@@ -56,17 +60,17 @@ export const orgRoutes = (
     {
       path: "smtp",
       title: "SMTP",
-      comp: Pages.get("email"),
+      component: Pages.get("email"),
     },
     {
       path: "templates",
       title: "Templates",
-      comp: Pages.get("email_templates"),
+      component: Pages.get("email_templates"),
       routes: [
         {
           path: ":templateId",
           title: "Template",
-          comp: Pages.get("email_template"),
+          component: Pages.get("email_template"),
         },
       ],
     },
@@ -81,25 +85,25 @@ export const orgRoutes = (
         {
           path: "usage",
           title: "Usage",
-          comp: Pages.get("usage"),
+          component: Pages.get("usage"),
         },
         {
           path: "org",
           access: () => isAdmin,
           title: "Organisation",
-          comp: Pages.get("org"),
+          component: Pages.get("org"),
         },
         {
           path: "branding",
           access: () => isAdmin,
           title: "Branding",
-          comp: Pages.get("branding"),
+          component: Pages.get("branding"),
         },
         {
           path: "translations",
           access: () => isAdmin,
           title: "Translations",
-          comp: Pages.get("translations"),
+          component: Pages.get("translations"),
         },
       ],
     },
@@ -112,25 +116,27 @@ export const orgRoutes = (
         {
           path: "workspace",
           title: "Workspace",
-          comp: Pages.get("workspace_users"),
+          component: Pages.get("workspace_users"),
         },
         {
           path: "users",
           title: "Organisation",
-          comp: Pages.get("users"),
-          routes: [{ path: ":userId", comp: Pages.get("user"), title: "User" }],
+          component: Pages.get("users"),
+          routes: [
+            { path: ":userId", component: Pages.get("user"), title: "User" },
+          ],
         },
         {
           path: "invites",
           title: "Invites",
-          comp: Pages.get("user_invites"),
+          component: Pages.get("user_invites"),
         },
         {
           path: "groups",
           title: "Groups",
-          comp: Pages.get("groups"),
+          component: Pages.get("groups"),
           routes: [
-            { path: ":groupId", comp: Pages.get("group"), title: "Group" },
+            { path: ":groupId", component: Pages.get("group"), title: "Group" },
           ],
         },
       ],
@@ -140,14 +146,14 @@ export const orgRoutes = (
       access: () => isGlobalBuilder,
       path: "plugins",
       icon: "plug",
-      comp: Pages.get("plugins"),
+      component: Pages.get("plugins"),
     },
     {
       section: "Environment",
       access: () => isAdmin,
       path: "environment",
       icon: "shipping-container",
-      comp: Pages.get("environment"),
+      component: Pages.get("environment"),
     },
     {
       section: "Email",
@@ -161,21 +167,21 @@ export const orgRoutes = (
       access: () => isAdmin,
       path: "auth",
       icon: "key",
-      comp: Pages.get("auth"),
+      component: Pages.get("auth"),
     },
     {
       section: "Recaptcha",
       access: () => isAdmin,
       path: "recaptcha",
       icon: "shield-check",
-      comp: Pages.get("recaptcha"),
+      component: Pages.get("recaptcha"),
     },
     {
       section: "Audit logs",
       access: () => isAdmin,
       path: "audit",
       icon: "notepad",
-      comp: Pages.get("audit_logs"),
+      component: Pages.get("audit_logs"),
     },
     {
       section: "Self host",
@@ -185,17 +191,17 @@ export const orgRoutes = (
       routes: [
         {
           path: "version",
-          comp: Pages.get("version"),
+          component: Pages.get("version"),
           title: "Version",
         },
         {
           path: "diagnostics",
-          comp: Pages.get("diagnostics"),
+          component: Pages.get("diagnostics"),
           title: "Diagnostics",
         },
         {
           path: "systemLogs",
-          comp: Pages.get("system_logs"),
+          component: Pages.get("system_logs"),
           title: "System logs",
         },
       ],
@@ -214,7 +220,7 @@ export const orgRoutes = (
       access: () => !cloud && isAdmin,
       icon: "arrow-circle-up",
       path: "upgrade",
-      comp: Pages.get("upgrade"),
+      component: Pages.get("upgrade"),
       color: "var(--spectrum-global-color-blue-500)",
     },
     {
@@ -234,14 +240,15 @@ export const orgRoutes = (
   }))
 }
 
-export const appRoutes = (
+export const workspaceRoutes = (
   appStore: AppMetaState,
-  appsStore: PortalAppsStore
+  appsStore: PortalAppsStore,
+  user: GetGlobalSelfResponse
 ): Route[] => {
   if (!appStore?.appId) {
     return []
   }
-
+  const isCreator = user != null && sdk.users.canCreateApps(user)
   const getBackupErrors = (apps: StoreApp[], appId: string) => {
     const target = apps.find(app => app.devId === appId)
     return target?.backupErrors || {}
@@ -256,54 +263,67 @@ export const appRoutes = (
       icon: "sliders-horizontal",
       path: "general",
       routes: [
-        { path: "info", comp: Pages.get("general_info"), title: "Info" },
+        { path: "info", component: Pages.get("general_info"), title: "Info" },
         {
           path: "backups",
-          comp: Pages.get("backups"),
+          component: Pages.get("backups"),
           title: "Backups",
           error: () => backupErrorCount > 0,
         },
         {
           title: "OAuth2",
           path: "oauth2",
-          comp: Pages.get("oauth2"),
+          component: Pages.get("oauth2"),
         },
       ],
     },
     {
-      section: "Automations",
-      icon: "lightning-a",
-      path: "automations",
+      section: "Connections",
+      title: "Connections",
+      access: () => isCreator,
+      path: "connections",
+      icon: "cube",
+      new: true,
       routes: [
         {
-          path: "logs",
-          comp: Pages.get("automations"),
+          path: "apis",
+          title: "APIs",
+          component: Pages.get("connections"),
+          routes: [
+            {
+              title: "Create",
+              path: "create",
+              component: Pages.get("create_connection"),
+              skipNav: true,
+            },
+            {
+              title: "New connection",
+              path: "new",
+              component: Pages.get("connection"),
+              skipNav: true,
+            },
+            {
+              title: "New connection from template",
+              path: "new/:templateId",
+              component: Pages.get("connection"),
+              skipNav: true,
+            },
+            {
+              title: "Connection",
+              path: ":id",
+              component: Pages.get("connection"),
+              skipNav: true,
+            },
+          ],
         },
-      ],
-    },
-    {
-      section: "Apps",
-      icon: "layout",
-      path: "app",
-      routes: [
-        { path: "pwa", comp: Pages.get("pwa"), title: "PWA" },
-        { path: "embed", comp: Pages.get("embed"), title: "Embed" },
-        { path: "scripts", comp: Pages.get("scripts"), title: "Scripts" },
-      ],
-    },
-    {
-      section: "AI",
-      path: "ai-config",
-      icon: "sparkle",
-      routes: [
         {
           path: AIConfigType.COMPLETIONS,
-          title: featureFlag.isEnabled(FeatureFlag.AI_RAG) ? "AI Configs" : "",
-          comp: Pages.get("ai_configs"),
+          title: featureFlag.isEnabled(FeatureFlag.AI_RAG) ? "AI models" : "",
+          component: Pages.get("ai_configs"),
           routes: [
             {
               path: ":configId",
-              comp: Pages.get("ai_config"),
+              component: Pages.get("ai_config"),
               title: (path: string | undefined) => {
                 const id = getPathId(path)
                 if (!id) {
@@ -322,11 +342,49 @@ export const appRoutes = (
           path: "knowledge-bases",
           title: "Knowledge bases",
           access: () => featureFlag.isEnabled(FeatureFlag.AI_RAG),
-          comp: Pages.get("knowledgeBases"),
+          component: Pages.get("knowledgeBases"),
           routes: [
             {
+              path: "embedding",
+              routes: [
+                {
+                  path: ":configId",
+                  title: (path: string | undefined) => {
+                    const id = getPathId(path)
+                    if (!id) {
+                      return "New embedding model"
+                    }
+                    return (
+                      get(aiConfigsStore).customConfigs.find(c => c._id === id)
+                        ?.name ?? "Embedding model"
+                    )
+                  },
+                  component: Pages.get("embedding_model"),
+                },
+              ],
+            },
+            {
+              path: "vectordb",
+              routes: [
+                {
+                  path: ":id",
+                  title: (path: string | undefined) => {
+                    const id = getPathId(path)
+                    if (!id) {
+                      return "New vector database"
+                    }
+                    return (
+                      get(vectorDbStore).configs.find(db => db._id === id)
+                        ?.name ?? "Vector database"
+                    )
+                  },
+                  component: Pages.get("vector_database"),
+                },
+              ],
+            },
+            {
               path: ":knowledgeBaseId",
-              comp: Pages.get("knowledgeBase"),
+              component: Pages.get("knowledgeBase"),
               title: (path: string | undefined) => {
                 const id = getPathId(path)
                 if (!id) {
@@ -343,8 +401,18 @@ export const appRoutes = (
                   routes: [
                     {
                       path: ":configId",
-                      title: "New embedding model",
-                      comp: Pages.get("embedding_model"),
+                      title: (path: string | undefined) => {
+                        const id = getPathId(path)
+                        if (!id) {
+                          return "New embedding model"
+                        }
+                        return (
+                          get(aiConfigsStore).customConfigs.find(
+                            c => c._id === id
+                          )?.name ?? "Embedding model"
+                        )
+                      },
+                      component: Pages.get("embedding_model"),
                     },
                   ],
                 },
@@ -353,8 +421,17 @@ export const appRoutes = (
                   routes: [
                     {
                       path: ":id",
-                      title: "New vector database",
-                      comp: Pages.get("vector_database"),
+                      title: (path: string | undefined) => {
+                        const id = getPathId(path)
+                        if (!id) {
+                          return "New vector database"
+                        }
+                        return (
+                          get(vectorDbStore).configs.find(db => db._id === id)
+                            ?.name ?? "Vector database"
+                        )
+                      },
+                      component: Pages.get("vector_database"),
                     },
                   ],
                 },
@@ -362,6 +439,27 @@ export const appRoutes = (
             },
           ],
         },
+      ],
+    },
+    {
+      section: "Automations",
+      icon: "lightning-a",
+      path: "automations",
+      routes: [
+        {
+          path: "logs",
+          component: Pages.get("automations"),
+        },
+      ],
+    },
+    {
+      section: "Apps",
+      icon: "layout",
+      path: "app",
+      routes: [
+        { path: "pwa", component: Pages.get("pwa"), title: "PWA" },
+        { path: "embed", component: Pages.get("embed"), title: "Embed" },
+        { path: "scripts", component: Pages.get("scripts"), title: "Scripts" },
       ],
     },
   ].map((entry: Route) => ({
