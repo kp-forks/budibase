@@ -522,20 +522,27 @@
       </div>
     </RouteActions>
     <div class="details-box">
-      <div class="details-box-name">
-        <Input
-          label="Display name"
-          placeholder="Type here..."
-          value={data.name}
-          on:change={e => {
-            data.name = e.detail
-            data = { ...data }
-          }}
-          on:blur={validateName}
-          error={errors.name}
-          required
-        />
-      </div>
+      <Input
+        label="Display name"
+        placeholder="Type here..."
+        value={data.name}
+        on:change={e => {
+          data.name = e.detail
+          data = { ...data }
+        }}
+        on:blur={validateName}
+        error={errors.name}
+        required
+      />
+      <ServerUrlInput
+        label="Base URL"
+        value={data.baseUrl ?? ""}
+        servers={openApiInfo?.servers ?? []}
+        on:change={e => {
+          data.baseUrl = e.detail
+          data = { ...data }
+        }}
+      />
     </div>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -635,7 +642,7 @@
           {/if}
         </Layout>
       {:else if mode === "advanced"}
-        <div class="details-box">
+        <div class="details-box details-box--no-padding">
           <div class="settings-item first">
             <div class="settings-item-text">
               <span>Reject Unauthorized</span>
@@ -671,15 +678,6 @@
       {:else}
         <Layout gap="M" noPadding>
           <Divider noMargin noGrid size="S" />
-          <ServerUrlInput
-            label="Base URL"
-            value={data.baseUrl ?? ""}
-            servers={openApiInfo?.servers ?? []}
-            on:change={e => {
-              data.baseUrl = e.detail
-              data = { ...data }
-            }}
-          />
           <Layout gap="XXS" noPadding>
             <div class="prop-table-header">
               <Label>URL parameters</Label>
@@ -846,16 +844,18 @@
   .details-box {
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-l);
+    padding: var(--spacing-l);
     border: 1px solid var(--spectrum-global-color-gray-300);
     border-radius: var(--border-radius-m);
-    overflow: hidden;
   }
 
-  .details-box-name {
-    padding: var(--spacing-l);
+  .details-box--no-padding {
+    padding: 0;
+    gap: 0;
   }
 
-  .details-box-name :global(label) {
+  .details-box :global(label) {
     margin-top: 0;
     padding-top: 0;
   }
