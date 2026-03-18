@@ -45,6 +45,22 @@
     modal?.hide()
   }
 
+  function isEnvironmentVariableKey(str: unknown) {
+    return /^{{\s*env\.([^\s]+)\s*}}$/.test(String(str))
+  }
+  const onInput = (e: Event) => {
+    if (
+      e.target &&
+      "value" in e.target &&
+      ["number", "port"].includes(type) &&
+      !isEnvironmentVariableKey(e.target.value) &&
+      e.target.value != null
+    ) {
+      const safeValue = Number(e.target.value)
+      e.target.value = isNaN(safeValue) ? value : safeValue
+    }
+  }
+
   onMount(async () => {
     try {
       // load the environment variables
@@ -55,12 +71,14 @@
   })
 </script>
 
+<!-- Type needs to always be a string, as selected env are strings. Type values are processed on onInput -->
 <EnvDropdown
   on:change
   on:blur
+  on:input={onInput}
   bind:value
   {label}
-  type={type === "port" ? "text" : type}
+  type="text"
   {error}
   {placeholder}
   {autocomplete}
