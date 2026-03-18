@@ -150,7 +150,7 @@ export class TableGeneration {
         model: this.aiModel.chat,
         messages: this.toModelMessages(request.messages),
         output: Output.object({ schema }),
-        providerOptions: providerOptions,
+        providerOptions,
       })
       return result.output
     } catch (err: unknown) {

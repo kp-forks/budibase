@@ -40,7 +40,7 @@ const applyReasoningEffort = (
   }
 }
 
-async function supportsReasoningEffort(
+export async function supportsReasoningEffort(
   config: Pick<CustomAIProviderConfig, "provider" | "model">
 ): Promise<boolean> {
   if (config.provider === BUDIBASE_AI_PROVIDER_ID) {
