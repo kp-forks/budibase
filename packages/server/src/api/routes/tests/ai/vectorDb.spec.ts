@@ -8,6 +8,7 @@ import {
 import { context, docIds } from "@budibase/backend-core"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { validatePgVectorDbConfig } from "../../../../sdk/workspace/ai/vectorDb/pgVectorDb"
+import { mocks } from "@budibase/backend-core/tests"
 
 jest.mock("../../../../sdk/workspace/ai/vectorDb/pgVectorDb", () => {
   const actual = jest.requireActual(
@@ -53,6 +54,7 @@ describe("vector db configs", () => {
   }
 
   beforeEach(async () => {
+    mocks.licenses.useCloudFree()
     await config.newTenant()
     jest.clearAllMocks()
   })
@@ -91,6 +93,7 @@ describe("vector db configs", () => {
   })
 
   it("resolves environment variable vector db settings before validating and preserves env passwords in responses", async () => {
+    mocks.licenses.useEnvironmentVariables()
     await withRagEnabled(async () => {
       await config.api.environment.create({
         name: "pg_host",
@@ -120,6 +123,8 @@ describe("vector db configs", () => {
           host: "dev-db.internal",
           port: 5433,
           password: "dev-secret",
+          user: "bb_user",
+          database: "budibase",
         })
       )
       expect(created.password).toBe("{{ env.pg_password }}")
