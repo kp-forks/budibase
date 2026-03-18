@@ -112,7 +112,7 @@ export const save = async (ctx: UserCtx<UnsavedUser, SaveUserResponse>) => {
       email: user.email,
     }
   } catch (err: any) {
-    ctx.throw(err.status || 400, err)
+    ctx.throw(err.status || 400, err?.message || err)
   }
 }
 
@@ -146,7 +146,7 @@ export const changeTenantOwnerEmail = async (
     }
     ctx.status = 200
   } catch (err: any) {
-    ctx.throw(err.status || 400, err)
+    ctx.throw(err.status || 400, err?.message || err)
   }
 }
 
@@ -178,7 +178,7 @@ export const addSsoSupport = async (
     })
     ctx.body = { message: "SSO support added." }
   } catch (err: any) {
-    ctx.throw(err.status || 400, err)
+    ctx.throw(err.status || 400, err?.message || err)
   }
 }
 
@@ -271,7 +271,7 @@ export const adminUser = async (
         email: finalUser.email,
       }
     } catch (err: any) {
-      ctx.throw(err.status || 400, err)
+      ctx.throw(err.status || 400, err?.message || err)
     }
   })
 }
@@ -283,7 +283,7 @@ export const countByWorkspace = async (
   try {
     ctx.body = await userSdk.db.countUsersByWorkspace(workspaceId)
   } catch (err: any) {
-    ctx.throw(err.status || 400, err)
+    ctx.throw(err.status || 400, err?.message || err)
   }
 }
 
@@ -777,27 +777,52 @@ export const inviteAccept = async (
           resolvedTenantId
         )
         const user = await tenancy.doInTenant(info.tenantId, async () => {
+          const appRoles = info.apps || {}
+          const creatorAppsFromRoles = Object.keys(appRoles).filter(
+            appId => appRoles[appId] === "CREATOR"
+          )
+
+          const builderApps = [
+            ...(info?.builder?.apps || []),
+            ...creatorAppsFromRoles,
+          ]
+          const uniqueBuilderApps = [...new Set(builderApps)]
+          const hasCreatorPerms =
+            !!info?.builder?.creator || creatorAppsFromRoles.length > 0
+
           let request: any = {
             firstName,
             lastName,
             password,
             email,
             admin: { global: info?.admin?.global || false },
-            roles: info.apps,
+            roles: appRoles,
             tenantId: info.tenantId,
           }
-          const builder: { global: boolean; apps?: string[] } = {
+          const builder: {
+            global: boolean
+            creator?: boolean
+            apps?: string[]
+          } = {
             global: info?.builder?.global || false,
           }
 
-          if (info?.builder?.apps) {
-            builder.apps = info.builder.apps
-            request.builder = builder
+          if (hasCreatorPerms) {
+            builder.creator = true
           }
-          delete info.apps
+          if (uniqueBuilderApps.length) {
+            builder.apps = uniqueBuilderApps
+          }
+
+          const cleanedInviteInfo = { ...info }
+          delete cleanedInviteInfo.apps
+          delete cleanedInviteInfo.builder
           request = {
             ...request,
-            ...info,
+            ...cleanedInviteInfo,
+          }
+          if (info?.builder || hasCreatorPerms || uniqueBuilderApps.length) {
+            request.builder = builder
           }
 
           const saved = await userSdk.db.save(request)
@@ -823,10 +848,13 @@ export const inviteAccept = async (
   } catch (err: any) {
     if (err.code === APIWarningCode.USAGE_LIMIT_EXCEEDED) {
       // explicitly re-throw limit exceeded errors
-      ctx.throw(400, err)
+      ctx.throw(400, err?.message || err)
     }
     console.warn("Error inviting user", err)
-    ctx.throw(400, err || "Unable to create new user, invitation invalid.")
+    ctx.throw(
+      400,
+      err?.message || err || "Unable to create new user, invitation invalid."
+    )
   }
 }
 

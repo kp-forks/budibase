@@ -6,10 +6,28 @@ import type {
   UpdateAgentRequest,
 } from "@budibase/types"
 import { helpers } from "@budibase/shared-core"
-import { listAgentFiles, removeAgentFile } from "./files"
 
 const SECRET_MASK = "********"
 const SECRET_ENCODING_PREFIX = "bbai_enc::"
+const NAME_REQUIRED_ERROR = "Agent name is required."
+
+const guardName = async (name: string, id?: string) => {
+  if (!name.trim()) {
+    throw new HTTPError(NAME_REQUIRED_ERROR, 400)
+  }
+
+  const agents = await fetch()
+  const normalizedName = helpers.normalizeForComparison(name)
+  const duplicate = agents.find(
+    agent =>
+      helpers.normalizeForComparison(agent.name) === normalizedName &&
+      agent._id !== id
+  )
+
+  if (duplicate) {
+    throw new HTTPError(`Agent with name '${name}' already exists.`, 400)
+  }
+}
 
 const encodeSecret = (value?: string): string | undefined => {
   if (!value || value.startsWith(SECRET_ENCODING_PREFIX)) {
@@ -85,6 +103,7 @@ const withAgentDefaults = (agent: Agent): Agent => ({
   ...agent,
   live: agent.live ?? false,
   enabledTools: agent.enabledTools || [],
+  knowledgeBases: agent.knowledgeBases || [],
   discordIntegration: decodeDiscordIntegrationSecrets(agent.discordIntegration),
   slackIntegration: decodeSlackIntegrationSecrets(agent.slackIntegration),
 })
@@ -208,6 +227,8 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
   const db = context.getWorkspaceDB()
   const now = new Date().toISOString()
 
+  await guardName(request.name)
+
   const agent: Agent = {
     _id: docIds.generateAgentID(),
     name: request.name,
@@ -221,10 +242,7 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
     createdAt: now,
     createdBy: request.createdBy,
     enabledTools: request.enabledTools || [],
-    embeddingModel: request.embeddingModel,
-    vectorDb: request.vectorDb,
-    ragMinDistance: request.ragMinDistance,
-    ragTopK: request.ragTopK,
+    knowledgeBases: request.knowledgeBases || [],
     discordIntegration: request.discordIntegration,
     MSTeamsIntegration: request.MSTeamsIntegration,
     slackIntegration: request.slackIntegration,
@@ -263,10 +281,7 @@ export async function duplicate(
     _deleted: false,
     createdBy,
     enabledTools: source.enabledTools || [],
-    embeddingModel: source.embeddingModel,
-    vectorDb: source.vectorDb,
-    ragMinDistance: source.ragMinDistance,
-    ragTopK: source.ragTopK,
+    knowledgeBases: source.knowledgeBases || [],
   })
 }
 
@@ -279,12 +294,21 @@ export async function update(agent: UpdateAgentRequest): Promise<Agent> {
   const db = context.getWorkspaceDB()
   const existingRaw = await db.tryGet<Agent>(_id)
   const existing = existingRaw ? withAgentDefaults(existingRaw) : undefined
+  const normalizedName = helpers.normalizeForComparison(agent.name)
+  const normalizedExistingName = helpers.normalizeForComparison(
+    existing?.name || ""
+  )
+
+  if (existing && normalizedName !== normalizedExistingName) {
+    await guardName(agent.name, _id)
+  }
 
   const updated: Agent = {
     ...existing,
     ...agent,
     updatedAt: new Date().toISOString(),
     enabledTools: agent.enabledTools ?? existing?.enabledTools ?? [],
+    knowledgeBases: agent.knowledgeBases ?? existing?.knowledgeBases ?? [],
     discordIntegration: mergeDiscordIntegration({
       existing: existing?.discordIntegration,
       incoming: agent.discordIntegration,
@@ -315,11 +339,4 @@ export async function remove(agentId: string) {
   const agent = await getOrThrow(agentId)
 
   await db.remove(agent)
-
-  if (agent.vectorDb) {
-    const files = await listAgentFiles(agentId)
-    if (files.length > 0) {
-      await Promise.all(files.map(file => removeAgentFile(agent, file)))
-    }
-  }
 }
