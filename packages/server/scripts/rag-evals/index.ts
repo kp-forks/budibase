@@ -556,7 +556,7 @@ async function waitForKnowledgeBaseFilesReady(
   knowledgeBaseId: string,
   requiredFilenames: string[]
 ) {
-  const timeoutMs = 180000
+  const timeoutMs = 180_000
   const startedAt = Date.now()
   while (Date.now() - startedAt < timeoutMs) {
     const result = await api.request<{ files: UploadedFile[] }>(
