@@ -5,11 +5,13 @@ import { helpers } from "@budibase/shared-core"
 
 async function guardName(name: string, id?: string) {
   const existingWorkspaceApps = await fetch()
-  const normalizeName = (value: string) => value.toLowerCase().trim()
+  const normalizedName = helpers.normalizeForComparison(name)
 
   if (
     existingWorkspaceApps.find(
-      app => normalizeName(app.name) === normalizeName(name) && app._id !== id
+      app =>
+        helpers.normalizeForComparison(app.name) === normalizedName &&
+        app._id !== id
     )
   ) {
     throw new HTTPError(`App with name '${name}' is already taken.`, 400)

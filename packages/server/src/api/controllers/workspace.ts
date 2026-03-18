@@ -16,6 +16,7 @@ import {
 import { groups, licensing, quotas } from "@budibase/pro"
 import {
   DefaultAppTheme,
+  helpers,
   resolveWorkspaceTranslations,
   sdk as sharedCoreSDK,
 } from "@budibase/shared-core"
@@ -98,7 +99,6 @@ const workspaceNameSchema = Joi.string().trim().required().messages({
   "string.empty": "Name is required",
   "any.required": "Name is required",
 })
-const normalizeWorkspaceName = (value: string) => value.toLowerCase().trim()
 
 // utility function, need to do away with this
 async function getLayouts() {
@@ -148,10 +148,11 @@ function checkWorkspaceName(
       (ws: Workspace) => ws.appId !== currentWorkspaceId
     )
   }
+  const normalizedName = helpers.normalizeForComparison(trimmedName)
   if (
     workspaces.some(
       (app: Workspace) =>
-        normalizeWorkspaceName(app.name) === normalizeWorkspaceName(trimmedName)
+        helpers.normalizeForComparison(app.name) === normalizedName
     )
   ) {
     ctx.throw(400, "Workspace name is already in use.")
@@ -160,11 +161,14 @@ function checkWorkspaceName(
 }
 
 function getOnboardingWorkspaceName(workspaces: Workspace[]) {
-  const hasWorkspaceName = (name: string) =>
-    workspaces.some(
+  const hasWorkspaceName = (name: string) => {
+    const normalizedName = helpers.normalizeForComparison(name)
+
+    return workspaces.some(
       workspace =>
-        normalizeWorkspaceName(workspace.name) === normalizeWorkspaceName(name)
+        helpers.normalizeForComparison(workspace.name) === normalizedName
     )
+  }
 
   if (!hasWorkspaceName(DEFAULT_WORKSPACE_NAME)) {
     return DEFAULT_WORKSPACE_NAME
