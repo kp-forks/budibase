@@ -397,11 +397,11 @@ export class ChatboxController {
   }
 
   async deleteConversation(
-    conversationId?: string,
+    conversationId: string,
     conversationAgentId?: string
   ) {
     const { deletingChat, chatAppId, selectedConversationId } = this.state
-    if (!conversationId || deletingChat || !chatAppId) {
+    if (deletingChat || !chatAppId) {
       return
     }
 
