@@ -15,6 +15,10 @@
     title?: string
   }
 
+  type ConversationWithId = ConversationListItem & {
+    _id: string
+  }
+
   export let enabledAgentList: EnabledAgentListItem[] = []
   export let conversationHistory: ConversationListItem[] = []
   export let selectedConversationId: string | undefined
@@ -24,6 +28,11 @@
 
   $: defaultAgent =
     enabledAgentList.find(agent => agent.isDefault) || enabledAgentList[0]
+
+  $: conversationsWithId = conversationHistory.filter(
+    (conversation): conversation is ConversationWithId =>
+      Boolean(conversation._id)
+  )
 
   const dispatch = createEventDispatcher<{
     agentSelected: { agentId: string }
@@ -91,49 +100,47 @@
 
     <div class="list-section">
       <div class="list-title">Recent Chats</div>
-      {#if conversationHistory.length}
-        {#each conversationHistory as conversation}
-          {#if conversation._id}
-            <div
-              class="conversation-row"
-              class:selected={selectedConversationId === conversation._id}
+      {#if conversationsWithId.length}
+        {#each conversationsWithId as conversation (conversation._id)}
+          <div
+            class="conversation-row"
+            class:selected={selectedConversationId === conversation._id}
+          >
+            <button
+              class="list-item list-item-button conversation-button"
+              on:click={() => selectConversation(conversation._id)}
             >
-              <button
-                class="list-item list-item-button conversation-button"
-                on:click={() => selectConversation(conversation._id!)}
-              >
-                <span class="conversation-title">
-                  {conversation.title || "Untitled Chat"}
-                </span>
-              </button>
+              <span class="conversation-title">
+                {conversation.title || "Untitled Chat"}
+              </span>
+            </button>
 
-              <ActionMenu align="right" disabled={deletingChat}>
-                <button
-                  slot="control"
-                  class="conversation-actions"
-                  type="button"
-                  aria-label={`Open actions for ${
-                    conversation.title || "Untitled Chat"
-                  }`}
-                >
-                  <Icon size="S" name="dots-three" />
-                </button>
-                <MenuItem
-                  on:click={() => selectConversation(conversation._id!)}
-                  icon="chat-circle"
-                >
-                  View chat
-                </MenuItem>
-                <MenuItem
-                  on:click={() => deleteConversation(conversation._id!)}
-                  icon="trash"
-                  disabled={deletingChat}
-                >
-                  {deletingChat ? "Deleting..." : "Delete chat"}
-                </MenuItem>
-              </ActionMenu>
-            </div>
-          {/if}
+            <ActionMenu align="right" disabled={deletingChat}>
+              <button
+                slot="control"
+                class="conversation-actions"
+                type="button"
+                aria-label={`Open actions for ${
+                  conversation.title || "Untitled Chat"
+                }`}
+              >
+                <Icon size="S" name="dots-three" />
+              </button>
+              <MenuItem
+                on:click={() => selectConversation(conversation._id)}
+                icon="chat-circle"
+              >
+                View chat
+              </MenuItem>
+              <MenuItem
+                on:click={() => deleteConversation(conversation._id)}
+                icon="trash"
+                disabled={deletingChat}
+              >
+                {deletingChat ? "Deleting..." : "Delete chat"}
+              </MenuItem>
+            </ActionMenu>
+          </div>
         {/each}
       {:else}
         <Body size="XS" color="var(--spectrum-global-color-gray-500)">
