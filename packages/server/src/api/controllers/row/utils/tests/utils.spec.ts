@@ -2,6 +2,7 @@ import {
   FieldType,
   INTERNAL_TABLE_SOURCE_ID,
   RelationshipsJson,
+  RelationshipType,
   Table,
   TableSourceType,
 } from "@budibase/types"
@@ -10,6 +11,8 @@ import { processRelationshipFields } from "../utils"
 
 describe("processRelationshipFields", () => {
   it("uses the linked table schema when processing linked row dates", async () => {
+    const childTableId = generateTableID()
+
     const parentTable: Table = {
       type: "table",
       _id: generateTableID(),
@@ -24,14 +27,16 @@ describe("processRelationshipFields", () => {
         childRows: {
           name: "childRows",
           type: FieldType.LINK,
-          tableId: generateTableID(),
+          tableId: childTableId,
+          relationshipType: RelationshipType.ONE_TO_MANY,
+          fieldName: "parent",
         },
       },
     }
 
     const childTable: Table = {
       type: "table",
-      _id: generateTableID(),
+      _id: childTableId,
       name: "child",
       sourceId: INTERNAL_TABLE_SOURCE_ID,
       sourceType: TableSourceType.INTERNAL,
