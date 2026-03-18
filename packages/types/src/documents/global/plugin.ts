@@ -57,6 +57,7 @@ export interface PluginMetadata {
 export interface PluginUpload {
   metadata: PluginMetadata
   directory: string
+  cleanupDirectory: string
 }
 
 export interface PluginOrigin {
