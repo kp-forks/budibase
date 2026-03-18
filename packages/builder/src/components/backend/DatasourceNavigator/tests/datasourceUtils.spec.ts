@@ -3,7 +3,9 @@ import { DEFAULT_BB_DATASOURCE_ID } from "@/constants/backend"
 import { INTERNAL_TABLE_SOURCE_ID } from "@budibase/types"
 import { canCreateDatasourceQuery, enrichDatasources } from "../datasourceUtils"
 
-type DatasourceInput = { list?: Array<{ _id: string; name: string }> } | undefined
+type DatasourceInput =
+  | { list?: Array<{ _id: string; name: string }> }
+  | undefined
 
 describe("datasourceUtils", () => {
   describe("canCreateDatasourceQuery", () => {

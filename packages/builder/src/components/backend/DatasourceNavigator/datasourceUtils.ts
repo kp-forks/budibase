@@ -80,9 +80,10 @@ const defaultQueriesState: QueriesState = { list: [] }
 const defaultViewsState: ViewsState = {}
 const defaultViewsV2State: ViewsV2State = {}
 
-export const canCreateDatasourceQuery = (
-  datasource?: { _id?: string; source?: string }
-) => {
+export const canCreateDatasourceQuery = (datasource?: {
+  _id?: string
+  source?: string
+}) => {
   return (
     datasource?._id !== INTERNAL_TABLE_SOURCE_ID &&
     datasource?._id !== DEFAULT_BB_DATASOURCE_ID &&
@@ -237,8 +238,7 @@ export const enrichDatasources = (
     const visibleDsQueries = !normalisedSearchTerm
       ? dsQueries
       : dsQueries.filter(
-          q =>
-            (q.name?.toLowerCase() || "").indexOf(normalisedSearchTerm) > -1
+          q => (q.name?.toLowerCase() || "").indexOf(normalisedSearchTerm) > -1
         )
 
     const visibleDsTables = dsTables
@@ -252,7 +252,10 @@ export const enrichDatasources = (
                   viewName.toLowerCase().indexOf(normalisedSearchTerm) > -1
               )
               .reduce<Record<string, unknown>>(
-                (acc, viewName) => ({ ...acc, [viewName]: t.views?.[viewName] }),
+                (acc, viewName) => ({
+                  ...acc,
+                  [viewName]: t.views?.[viewName],
+                }),
                 {}
               ),
       }))
