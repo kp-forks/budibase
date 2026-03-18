@@ -1,5 +1,5 @@
 import { AIConfigType } from "@budibase/types"
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from "fs"
+import { existsSync, readFileSync, writeFileSync } from "fs"
 import { spawnSync } from "child_process"
 import { createHash } from "crypto"
 import { tmpdir } from "os"
