@@ -94,7 +94,7 @@
 
     const payload: VectorDb = {
       ...draft,
-      port: normalizedPort ?? draft.port,
+      port: normalizedPort || draft.port,
     }
 
     try {
