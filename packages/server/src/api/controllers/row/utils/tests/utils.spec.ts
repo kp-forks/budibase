@@ -17,8 +17,8 @@ describe("processRelationshipFields", () => {
       sourceId: INTERNAL_TABLE_SOURCE_ID,
       sourceType: TableSourceType.INTERNAL,
       schema: {
-        Uhrzeit: {
-          name: "Uhrzeit",
+        sharedDateField: {
+          name: "sharedDateField",
           type: FieldType.DATETIME,
         },
         childRows: {
@@ -36,8 +36,8 @@ describe("processRelationshipFields", () => {
       sourceId: INTERNAL_TABLE_SOURCE_ID,
       sourceType: TableSourceType.INTERNAL,
       schema: {
-        Uhrzeit: {
-          name: "Uhrzeit",
+        sharedDateField: {
+          name: "sharedDateField",
           type: FieldType.STRING,
         },
       },
@@ -53,7 +53,7 @@ describe("processRelationshipFields", () => {
     const row = {
       childRows: [
         {
-          Uhrzeit: "12:15",
+          sharedDateField: "12:15",
         },
       ],
     }
@@ -67,6 +67,6 @@ describe("processRelationshipFields", () => {
       relationships
     )
 
-    expect(processedRow.childRows[0].Uhrzeit).toEqual("12:15")
+    expect(processedRow.childRows[0].sharedDateField).toEqual("12:15")
   })
 })
