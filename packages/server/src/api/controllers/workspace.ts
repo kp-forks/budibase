@@ -19,7 +19,6 @@ import {
   resolveWorkspaceTranslations,
   sdk as sharedCoreSDK,
 } from "@budibase/shared-core"
-import type { File, Files } from "formidable"
 import {
   AddWorkspaceSampleDataResponse,
   BBReferenceFieldSubType,
@@ -51,6 +50,7 @@ import {
   UpdateWorkspaceResponse,
   UserCtx,
   Workspace,
+  KoaFile,
   OnboardingWorkspaceRequest,
 } from "@budibase/types"
 import { cleanupAutomations } from "../../automations/utils"
@@ -170,6 +170,10 @@ interface AppTemplate {
   }
   key?: string
 }
+
+const getUploadedFilePath = (file: KoaFile) => file.filepath
+
+const getUploadedFileType = (file: KoaFile) => file.mimetype
 
 async function createInstance(appId: string, template: AppTemplate) {
   const db = context.getWorkspaceDB()
@@ -528,7 +532,7 @@ export async function fetchAppPackage(
       !isChatRoute &&
       (!matchedWorkspaceApp || (matchedWorkspaceApp.disabled && !isDev))
     ) {
-      ctx.throw("No matching workspace app found for URL path: " + urlPath, 404)
+      ctx.throw(404, "No matching workspace app found for URL path: " + urlPath)
     }
 
     if (matchedWorkspaceApp) {
@@ -591,8 +595,21 @@ async function performWorkspaceCreate(
     key: templateKey,
   }
   if (ctx.request.files && ctx.request.files.fileToImport) {
+    const fileToImport = ctx.request.files.fileToImport
+    if (Array.isArray(fileToImport)) {
+      ctx.throw(400, "Must only supply one app export")
+    }
+    const path = getUploadedFilePath(fileToImport)
+    const type = getUploadedFileType(fileToImport)
+    if (!path) {
+      ctx.throw(400, "Must supply export file to import")
+    }
+    if (!type) {
+      ctx.throw(400, "Must supply export file content type")
+    }
     instanceConfig.file = {
-      ...(ctx.request.files.fileToImport as any),
+      type,
+      path,
       password: encryptionPassword,
     }
   } else if (typeof body.file?.path === "string") {
@@ -1101,9 +1118,9 @@ export async function sync(ctx: UserCtx<void, SyncWorkspaceResponse>) {
   }
 }
 
-type WorkspaceImportFiles = Files & {
-  appExport?: File | File[]
-  file?: File | File[]
+type WorkspaceImportFiles = {
+  appExport?: KoaFile | KoaFile[]
+  file?: KoaFile | KoaFile[]
 }
 
 export async function importToWorkspace(
@@ -1119,9 +1136,17 @@ export async function importToWorkspace(
   if (Array.isArray(workspaceExport)) {
     ctx.throw(400, "Must only supply one app export")
   }
+  const path = getUploadedFilePath(workspaceExport)
+  const type = getUploadedFileType(workspaceExport)
+  if (!path) {
+    ctx.throw(400, "Must supply export file to import")
+  }
+  if (!type) {
+    ctx.throw(400, "Must supply export file content type")
+  }
   const fileAttributes = {
-    type: workspaceExport.type!,
-    path: workspaceExport.path!,
+    type,
+    path,
   }
   try {
     await sdk.workspaces.updateWithExport(workspaceId, fileAttributes, password)
