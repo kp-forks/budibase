@@ -148,29 +148,22 @@
     />
   </Modal>
 {:else if showLoginButton}
-  <ActionMenu align={compact ? "right" : "left"}>
-    <svelte:fragment slot="control">
-      <div class="container">
-        <Icon
-          size={collapsed ? "M" : "S"}
-          name="sign-in"
-          color="var(--navTextColor)"
-        />
-        {#if !collapsed && !compact}
-          <div class="text">
-            <div class="name">Log in</div>
-          </div>
-        {/if}
-        {#if !collapsed}
-          <Icon size="S" name="caret-down" color="var(--navTextColor)" />
-        {/if}
+  <button
+    class="container login-button"
+    on:click={goToLogin}
+    disabled={embedded}
+  >
+    <Icon
+      size={collapsed ? "M" : "S"}
+      name="sign-in"
+      color="var(--navTextColor)"
+    />
+    {#if !collapsed}
+      <div class="text">
+        <div class="name">Log in</div>
       </div>
-    </svelte:fragment>
-
-    <MenuItem icon="sign-in" on:click={goToLogin} disabled={embedded}>
-      Log in
-    </MenuItem>
-  </ActionMenu>
+    {/if}
+  </button>
 {/if}
 
 <style>
@@ -203,5 +196,17 @@
   .container:hover {
     cursor: pointer;
     filter: brightness(110%);
+  }
+  .login-button {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .login-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 </style>
