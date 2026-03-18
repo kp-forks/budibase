@@ -158,7 +158,7 @@
       name="sign-in"
       color="var(--navTextColor)"
     />
-    {#if !collapsed}
+    {#if !collapsed && !compact}
       <div class="text">
         <div class="name">Log in</div>
       </div>
