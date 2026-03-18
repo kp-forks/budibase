@@ -84,39 +84,33 @@ const truncatePersistedToolValue = (value: unknown) => {
 const truncateToolPartsForSave = (
   messages: ChatConversation["messages"]
 ): ChatConversation["messages"] =>
-  messages.map((message, index) => {
-    if (index >= Math.max(0, messages.length - 2)) {
-      return message
-    }
-
-    return {
-      ...message,
-      parts: message.parts.map(part => {
-        if (!isToolUIPart(part)) {
-          return part
-        }
-
-        if (part.state === "output-available") {
-          return {
-            ...part,
-            output: truncatePersistedToolValue(part.output),
-          }
-        }
-
-        if (part.state === "output-error") {
-          return {
-            ...part,
-            errorText: truncatePersistedText(part.errorText),
-            ...(part.input !== undefined && {
-              input: truncatePersistedToolValue(part.input),
-            }),
-          }
-        }
-
+  messages.map(message => ({
+    ...message,
+    parts: message.parts.map(part => {
+      if (!isToolUIPart(part)) {
         return part
-      }),
-    }
-  })
+      }
+
+      if (part.state === "output-available") {
+        return {
+          ...part,
+          output: truncatePersistedToolValue(part.output),
+        }
+      }
+
+      if (part.state === "output-error") {
+        return {
+          ...part,
+          errorText: truncatePersistedText(part.errorText),
+          ...(part.input !== undefined && {
+            input: truncatePersistedToolValue(part.input),
+          }),
+        }
+      }
+
+      return part
+    }),
+  }))
 
 export const prepareChatConversationForSave = ({
   chatId,

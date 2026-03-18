@@ -347,7 +347,7 @@ describe("prepareChatConversationForSave", () => {
     expect(result.updatedAt).toEqual(now.toISOString())
   })
 
-  it("truncates large tool outputs only for older messages", () => {
+  it("truncates large tool outputs for all persisted messages", () => {
     const largeOutput = "a".repeat(9000)
     const chat: ChatConversation = {
       _id: "chat-3",
@@ -399,26 +399,37 @@ describe("prepareChatConversationForSave", () => {
       chat,
     })
 
-    const olderToolPart = result.messages[0].parts[0]
-    expect(olderToolPart).toMatchObject({
+    const firstToolPart = result.messages[0].parts[0]
+    expect(firstToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
     })
-    expect("output" in olderToolPart && typeof olderToolPart.output).toBe("string")
-    if ("output" in olderToolPart && typeof olderToolPart.output === "string") {
-      expect(olderToolPart.output.length).toBeLessThan(8100)
-      expect(olderToolPart.output).toContain("...[truncated]")
+    expect("output" in firstToolPart && typeof firstToolPart.output).toBe(
+      "string"
+    )
+    if ("output" in firstToolPart && typeof firstToolPart.output === "string") {
+      expect(firstToolPart.output.length).toBeLessThan(8100)
+      expect(firstToolPart.output).toContain("...[truncated]")
     }
 
     const latestToolPart = result.messages[2].parts[0]
     expect(latestToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
-      output: largeOutput,
     })
+    expect("output" in latestToolPart && typeof latestToolPart.output).toBe(
+      "string"
+    )
+    if (
+      "output" in latestToolPart &&
+      typeof latestToolPart.output === "string"
+    ) {
+      expect(latestToolPart.output.length).toBeLessThan(8100)
+      expect(latestToolPart.output).toContain("...[truncated]")
+    }
   })
 
-  it("replaces oversized structured tool outputs with a compact preview only for older messages", () => {
+  it("replaces oversized structured tool outputs with a compact preview for all persisted messages", () => {
     const largeObjectOutput = {
       rows: Array.from({ length: 100 }, (_, index) => ({
         id: index,
@@ -475,17 +486,17 @@ describe("prepareChatConversationForSave", () => {
       chat,
     })
 
-    const olderToolPart = result.messages[0].parts[0]
-    expect(olderToolPart).toMatchObject({
+    const firstToolPart = result.messages[0].parts[0]
+    expect(firstToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
     })
     if (
-      "output" in olderToolPart &&
-      olderToolPart.output &&
-      typeof olderToolPart.output === "object"
+      "output" in firstToolPart &&
+      firstToolPart.output &&
+      typeof firstToolPart.output === "object"
     ) {
-      expect(olderToolPart.output).toMatchObject({
+      expect(firstToolPart.output).toMatchObject({
         truncated: true,
         originalType: "object",
       })
@@ -497,8 +508,19 @@ describe("prepareChatConversationForSave", () => {
     expect(latestToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
-      output: largeObjectOutput,
     })
+    if (
+      "output" in latestToolPart &&
+      latestToolPart.output &&
+      typeof latestToolPart.output === "object"
+    ) {
+      expect(latestToolPart.output).toMatchObject({
+        truncated: true,
+        originalType: "object",
+      })
+    } else {
+      throw new Error("Expected latest structured tool output to be compacted")
+    }
   })
 })
 
