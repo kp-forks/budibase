@@ -8,7 +8,10 @@ import {
 } from "@budibase/types"
 import { createLLM } from "."
 import { configs } from ".."
-import { fetchPublicModelCostMap, fetchPublicProviders } from "../configs/litellm"
+import {
+  fetchPublicModelCostMap,
+  fetchPublicProviders,
+} from "../configs/litellm"
 
 interface GetDefaultLLMOptions {
   reasoningEffort?: ReasoningEffort
@@ -53,8 +56,9 @@ async function supportsReasoningEffort(
     fetchPublicModelCostMap(),
   ])
 
-  const liteLLMProvider = providers.find(p => p.provider === config.provider)
-    ?.litellm_provider
+  const liteLLMProvider = providers.find(
+    p => p.provider === config.provider
+  )?.litellm_provider
   if (!liteLLMProvider) {
     return false
   }
@@ -80,7 +84,8 @@ async function supportsReasoningEffort(
       : modelId
 
     return (
-      normalizedModelId === config.model && metadata?.supports_reasoning === true
+      normalizedModelId === config.model &&
+      metadata?.supports_reasoning === true
     )
   })
 }
