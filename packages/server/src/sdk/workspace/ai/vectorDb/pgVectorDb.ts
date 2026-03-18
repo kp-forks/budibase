@@ -7,7 +7,10 @@ import {
   HTTPError,
   tenancy,
 } from "@budibase/backend-core"
-import { processEnvironmentVariable } from "../../../utils"
+import {
+  isEnvironmentVariableKey,
+  processEnvironmentVariable,
+} from "../../../utils"
 import type {
   ChunkInput,
   PgVectorDbConfig,
@@ -47,22 +50,24 @@ const buildPgConnectionString = (config: VectorDbDoc) => {
   return `postgresql://${auth}${config.host}:${config.port}/${config.database}`
 }
 
+const resolvePort = async (portConfig: string | number): Promise<number> => {
+  if (typeof portConfig === "number") {
+    return portConfig
+  }
+
+  if (!isEnvironmentVariableKey(portConfig)) {
+    return Number(portConfig)
+  }
+
+  const envVariableValue = await processEnvironmentVariable(portConfig)
+  return Number(envVariableValue)
+}
+
 export const resolvePgVectorDbConfig = async (config: VectorDbDoc) => {
-  const rawPort = config.port
-  const resolvedPortValue =
-    typeof rawPort === "string"
-      ? await processEnvironmentVariable(rawPort)
-      : rawPort
-
-  const resolvedPort =
-    typeof resolvedPortValue === "string"
-      ? Number(resolvedPortValue)
-      : resolvedPortValue
-
   return {
     ...config,
     host: await processEnvironmentVariable(config.host),
-    port: Number.isFinite(resolvedPort) ? resolvedPort : config.port,
+    port: await resolvePort(config.port),
     database: await processEnvironmentVariable(config.database),
     user: config.user
       ? await processEnvironmentVariable(config.user)
