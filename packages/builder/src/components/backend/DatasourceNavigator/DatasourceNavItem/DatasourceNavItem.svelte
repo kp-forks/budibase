@@ -44,12 +44,12 @@
 
   const addQueryItem: MenuItem = {
     icon: "plus",
-    name: datasource?.source === "REST" ? "Add operation" : "Create new query",
+    name: datasource.source === "REST" ? "Add operation" : "Create new query",
     keyBind: null,
     visible: true,
     disabled: false,
     callback: () => {
-      const section = datasource?.source === "REST" ? "apis" : "data"
+      const section = datasource.source === "REST" ? "apis" : "data"
       $goto(`/builder/workspace/:application/${section}/query/new/:id`, {
         application: $params.application,
         id: datasourceId,
@@ -62,7 +62,7 @@
       ...(canCreateDatasourceQuery(datasource) ? [addQueryItem] : []),
       {
         icon: "pencil",
-        name: datasource?.source === "REST" ? "Edit connection" : "Edit",
+        name: datasource.source === "REST" ? "Edit connection" : "Edit",
         keyBind: null,
         visible: true,
         disabled: false,
