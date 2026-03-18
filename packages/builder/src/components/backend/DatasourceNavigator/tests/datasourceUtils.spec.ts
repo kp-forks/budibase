@@ -1,6 +1,9 @@
+import { describe, expect, it, vi } from "vitest"
 import { DEFAULT_BB_DATASOURCE_ID } from "@/constants/backend"
 import { INTERNAL_TABLE_SOURCE_ID } from "@budibase/types"
 import { canCreateDatasourceQuery, enrichDatasources } from "../datasourceUtils"
+
+type DatasourceInput = { list?: Array<{ _id: string; name: string }> } | undefined
 
 describe("datasourceUtils", () => {
   describe("canCreateDatasourceQuery", () => {
@@ -42,11 +45,11 @@ describe("datasourceUtils", () => {
   })
 
   describe("enrichDatasources", () => {
-    it.each([
+    it.each<[string, DatasourceInput]>([
       ["undefined", undefined],
       ["undefined list", {}],
       ["empty list", { list: [] }],
-    ])("%s datasources will return an empty list", datasources => {
+    ])("%s datasources will return an empty list", (_label, datasources) => {
       const result = enrichDatasources(datasources)
 
       expect(result).toEqual([])
@@ -166,8 +169,8 @@ describe("datasourceUtils", () => {
           isActive,
           { list: [] },
           { list: [] },
-          { list: [] },
-          { list: [] },
+          {},
+          {},
           {},
           searchTerm
         )
@@ -191,8 +194,8 @@ describe("datasourceUtils", () => {
           isActive,
           { list: tables },
           { list: [] },
-          { list: [] },
-          { list: [] },
+          {},
+          {},
           {},
           searchTerm
         )
@@ -230,8 +233,8 @@ describe("datasourceUtils", () => {
           isActive,
           { list: tables },
           { list: [] },
-          { list: [] },
-          { list: [] },
+          {},
+          {},
           {},
           searchTerm
         )

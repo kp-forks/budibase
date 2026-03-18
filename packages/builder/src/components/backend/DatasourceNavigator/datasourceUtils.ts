@@ -2,7 +2,87 @@ import { TableNames } from "@/constants"
 import { DEFAULT_BB_DATASOURCE_ID } from "@/constants/backend"
 import { INTERNAL_TABLE_SOURCE_ID, SourceName } from "@budibase/types"
 
-export const canCreateDatasourceQuery = datasource => {
+interface DatasourceTable {
+  _id: string
+  sourceId?: string
+  name?: string
+  views?: Record<string, unknown>
+  [key: string]: unknown
+}
+
+interface DatasourceQuery {
+  _id: string
+  datasourceId?: string
+  name?: string
+  [key: string]: unknown
+}
+
+interface NavigatorDatasource {
+  _id: string
+  name?: string
+  source?: string
+  entities?: DatasourceTable[] | Record<string, DatasourceTable>
+  [key: string]: unknown
+}
+
+interface RouteParams {
+  datasourceId?: string
+  queryId?: string
+  tableId?: string
+}
+
+type IsActive = (route: string) => boolean
+
+interface TablesState {
+  list: DatasourceTable[]
+  selected?: { _id?: string }
+}
+
+interface QueriesState {
+  list: DatasourceQuery[]
+  selectedQueryId?: string
+}
+
+interface ViewsState {
+  selected?: { name?: string }
+}
+
+interface ViewsV2State {
+  selected?: { tableId?: string }
+}
+
+interface DatasourcesState {
+  list?: NavigatorDatasource[]
+  selectedDatasourceId?: string
+}
+
+interface EnrichedDatasource extends NavigatorDatasource {
+  selected: boolean
+  containsSelected: boolean
+  open: boolean
+  queries: DatasourceQuery[]
+  tables: DatasourceTable[]
+  show: boolean
+}
+
+interface ShowDatasourceOpenParams {
+  selected: boolean
+  containsSelected: boolean
+  dsToggledStatus?: boolean
+  searchTerm?: string
+  onlyOneSource: boolean
+}
+
+const defaultParams: RouteParams = {}
+const defaultIsActive: IsActive = () => false
+const defaultTablesState: TablesState = { list: [] }
+const defaultQueriesState: QueriesState = { list: [] }
+const defaultViewsState: ViewsState = {}
+const defaultViewsV2State: ViewsV2State = {}
+
+export const canCreateDatasourceQuery = (
+  datasource?: Pick<NavigatorDatasource, "_id" | "source">
+) => {
   return (
     datasource?._id !== INTERNAL_TABLE_SOURCE_ID &&
     datasource?._id !== DEFAULT_BB_DATASOURCE_ID &&
@@ -16,7 +96,7 @@ const showDatasourceOpen = ({
   dsToggledStatus,
   searchTerm,
   onlyOneSource,
-}) => {
+}: ShowDatasourceOpenParams) => {
   // We want to display all the ds expanded while filtering ds
   if (searchTerm) {
     return true
@@ -35,13 +115,13 @@ const showDatasourceOpen = ({
 }
 
 const containsActiveEntity = (
-  datasource,
-  params,
-  isActive,
-  tables,
-  queries,
-  views,
-  viewsV2
+  datasource: NavigatorDatasource,
+  params: RouteParams,
+  isActive: IsActive,
+  tables: TablesState,
+  queries: QueriesState,
+  views: ViewsState,
+  viewsV2: ViewsV2State
 ) => {
   // Check for being on a datasource page
   if (params.datasourceId === datasource._id) {
@@ -75,10 +155,9 @@ const containsActiveEntity = (
   }
 
   // Get a list of table options
-  let options = datasource.entities
-  if (!Array.isArray(options)) {
-    options = Object.values(options)
-  }
+  const options = Array.isArray(datasource.entities)
+    ? datasource.entities
+    : Object.values(datasource.entities)
 
   // Check for a matching table
   if (params.tableId) {
@@ -88,9 +167,11 @@ const containsActiveEntity = (
 
   // Check for a matching view
   const selectedView = views.selected?.name
-  const viewTable = options.find(table => {
-    return table.views?.[selectedView] != null
-  })
+  const viewTable =
+    selectedView &&
+    options.find(table => {
+      return table.views?.[selectedView] != null
+    })
   if (viewTable) {
     return true
   }
@@ -101,31 +182,32 @@ const containsActiveEntity = (
 }
 
 export const enrichDatasources = (
-  datasources,
-  params,
-  isActive,
-  tables,
-  queries,
-  views,
-  viewsV2,
-  toggledDatasources,
-  searchTerm,
-  datasourceFilter = _ => true
-) => {
+  datasources?: DatasourcesState,
+  params: RouteParams = defaultParams,
+  isActive: IsActive = defaultIsActive,
+  tables: TablesState = defaultTablesState,
+  queries: QueriesState = defaultQueriesState,
+  views: ViewsState = defaultViewsState,
+  viewsV2: ViewsV2State = defaultViewsV2State,
+  toggledDatasources: Record<string, boolean | undefined> = {},
+  searchTerm?: string,
+  datasourceFilter: (datasource: NavigatorDatasource) => boolean = () => true
+): EnrichedDatasource[] => {
   if (!datasources?.list?.length) {
     return []
   }
 
-  const datasourceList = datasources.list.filter(datasourceFilter)
+  const datasourceList = (datasources.list || []).filter(datasourceFilter)
   if (!datasourceList.length) {
     return []
   }
 
+  const normalisedSearchTerm = searchTerm?.toLowerCase()
   const onlySource = datasourceList.length === 1
   return datasourceList.map(datasource => {
     const selected =
       isActive("./datasource") &&
-      datasources.selectedDatasourceId === datasource._id
+      datasources?.selectedDatasourceId === datasource._id
     const containsSelected = containsActiveEntity(
       datasource,
       params,
@@ -148,52 +230,56 @@ export const enrichDatasources = (
       selected,
       containsSelected,
       dsToggledStatus: toggledDatasources[datasource._id],
-      searchTerm,
+      searchTerm: normalisedSearchTerm,
       onlyOneSource: onlySource,
     })
 
-    const visibleDsQueries = dsQueries.filter(
-      q =>
-        !searchTerm ||
-        q.name?.toLowerCase()?.indexOf(searchTerm.toLowerCase()) > -1
-    )
+    const visibleDsQueries = !normalisedSearchTerm
+      ? dsQueries
+      : dsQueries.filter(
+          q =>
+            (q.name?.toLowerCase() || "").indexOf(normalisedSearchTerm) > -1
+        )
 
     const visibleDsTables = dsTables
       .map(t => ({
         ...t,
-        views: !searchTerm
+        views: !normalisedSearchTerm
           ? t.views
           : Object.keys(t.views || {})
               .filter(
                 viewName =>
-                  viewName.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
+                  viewName.toLowerCase().indexOf(normalisedSearchTerm) > -1
               )
-              .reduce(
-                (acc, viewName) => ({ ...acc, [viewName]: t.views[viewName] }),
+              .reduce<Record<string, unknown>>(
+                (acc, viewName) => ({ ...acc, [viewName]: t.views?.[viewName] }),
                 {}
               ),
       }))
       .filter(
         table =>
-          !searchTerm ||
-          table.name?.toLowerCase()?.indexOf(searchTerm.toLowerCase()) > -1 ||
-          Object.keys(table.views).length
+          !normalisedSearchTerm ||
+          (table.name?.toLowerCase() || "").indexOf(normalisedSearchTerm) >
+            -1 ||
+          Object.keys(table.views || {}).length > 0
       )
 
     const isRESTWithNoQueries =
-      datasource.source === "REST" && dsQueries.length === 0
+      datasource.source === SourceName.REST && dsQueries.length === 0
 
     const datasourceNameMatches =
-      searchTerm &&
-      datasource.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      normalisedSearchTerm != null
+        ? datasource.name?.toLowerCase().includes(normalisedSearchTerm)
+        : false
 
     const show = !!(
       !isRESTWithNoQueries &&
-      (!searchTerm ||
+      (!normalisedSearchTerm ||
         datasourceNameMatches ||
         visibleDsQueries.length ||
         visibleDsTables.length)
     )
+
     return {
       ...datasource,
       selected,
