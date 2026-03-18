@@ -1252,7 +1252,7 @@ describe("API Endpoint Viewer", () => {
   describe("Datasource switching (new query)", () => {
     it("updates baseUrlOptions when switching datasource", async () => {
       await setupTwoDatasources(REST_DS, REST_DS_2_WITH_URL)
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      const { container, rerender } = setupDOM({ datasourceId: REST_DS_ID })
 
       // Initially REST_DS has no URL, so no globe icon
       await waitFor(() =>
@@ -1260,9 +1260,11 @@ describe("API Endpoint Viewer", () => {
       )
       expect(container.querySelector(".globe-icon")).toBeNull()
 
-      // Simulate switching to DS 2 by updating the store query/datasource
-      // We switch by updating the picked datasource inside ConnectionSelect's change event.
-      // In tests we do this by re-rendering with the new datasourceId.
+      // Switch to DS 2 which has a base URL - globe icon should appear
+      await rerender({ datasourceId: REST_DS_ID_2 })
+      await waitFor(() =>
+        expect(container.querySelector(".globe-icon")).not.toBeNull()
+      )
     })
 
     it("does not overwrite customUrl for an existing (saved) query when datasource list updates", async () => {

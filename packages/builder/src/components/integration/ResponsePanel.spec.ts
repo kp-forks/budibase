@@ -1,4 +1,4 @@
-import { it, expect, describe, vi } from "vitest"
+import { it, expect, describe, vi, beforeEach, afterEach } from "vitest"
 import { render, waitFor, fireEvent } from "@testing-library/svelte"
 import ResponsePanel from "./ResponsePanel.svelte"
 import type { PreviewQueryResponse } from "@budibase/types"
@@ -38,6 +38,10 @@ beforeEach(() => {
   const modalContainer = document.createElement("div")
   modalContainer.classList.add("modal-container")
   document.body.appendChild(modalContainer)
+})
+
+afterEach(() => {
+  document.querySelectorAll(".modal-container").forEach(el => el.remove())
 })
 
 describe("ResponsePanel", () => {
