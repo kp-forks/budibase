@@ -49,11 +49,7 @@
   } from "@budibase/types"
   import CreateTableModal from "@/components/backend/TableNavigator/modals/CreateTableModal.svelte"
   import { getHomeTypeIcon, getHomeTypeIconColor } from "./_components/rows"
-  import {
-    beforeUrlChange,
-    goto as gotoStore,
-    url as urlStore,
-  } from "@roxi/routify"
+  import { goto as gotoStore, url as urlStore } from "@roxi/routify"
   import { onMount } from "svelte"
   import {
     buildHomeRows,
@@ -62,10 +58,6 @@
   } from "./_components/rows"
 
   import UpdateAgentModal from "../_components/UpdateAgentModal.svelte"
-
-  type HomeCreate = "app" | "automation" | "agent"
-
-  $beforeUrlChange
 
   $: goto = $gotoStore
   $: url = $urlStore
@@ -137,47 +129,6 @@
     return null
   }
 
-  const normaliseCreate = (value: string | null): HomeCreate | null => {
-    if (!value) {
-      return null
-    }
-    if (value === "app" || value === "automation") {
-      return value
-    }
-    if (value === "agent" && $featureFlags.AI_AGENTS) {
-      return value
-    }
-    return null
-  }
-
-  const consumeCreateParam = (urlString?: string) => {
-    if (typeof window === "undefined") {
-      return
-    }
-
-    const parsed = new URL(urlString ?? window.location.href)
-    const create = normaliseCreate(parsed.searchParams.get("create"))
-    if (!create) {
-      return
-    }
-
-    if (create === "automation") {
-      createAutomation()
-    } else if (create === "app") {
-      createApp()
-    } else if (create === "agent") {
-      createAgent()
-    }
-
-    parsed.searchParams.delete("create")
-    const query = parsed.searchParams.toString()
-    history.replaceState(
-      {},
-      "",
-      `${parsed.pathname}${query ? `?${query}` : ""}`
-    )
-  }
-
   const normaliseSortColumn = (value: string | null): HomeSortColumn | null => {
     if (!value) {
       return null
@@ -208,7 +159,6 @@
       return {
         q: "",
         type: null as HomeType | null,
-        create: null as HomeCreate | null,
         sort: null as HomeSortColumn | null,
         order: null as HomeSortOrder | null,
       }
@@ -218,8 +168,7 @@
     const type = normaliseType(params.get("type"))
     const sort = normaliseSortColumn(params.get("sort"))
     const order = normaliseSortOrder(params.get("order"))
-    const create = normaliseCreate(params.get("create"))
-    return { q, type, sort, order, create }
+    return { q, type, sort, order }
   }
 
   const writeUrlState = () => {
@@ -259,31 +208,6 @@
     const next = `${window.location.pathname}${query ? `?${query}` : ""}`
     history.replaceState({}, "", next)
   }
-
-  $beforeUrlChange((event: { url?: string } | undefined) => {
-    if (typeof window === "undefined") {
-      return true
-    }
-
-    const nextUrl = typeof event?.url === "string" ? event.url : ""
-    if (!nextUrl) {
-      return true
-    }
-
-    const parsed = new URL(nextUrl, window.location.origin)
-    if (!parsed.pathname.endsWith("/home")) {
-      return true
-    }
-
-    if (!parsed.searchParams.get("create")) {
-      return true
-    }
-
-    setTimeout(() => {
-      consumeCreateParam(parsed.toString())
-    }, 0)
-    return true
-  })
 
   const setTypeFilter = (value: string) => {
     const normalised = normaliseType(value)
@@ -653,7 +577,6 @@
     }
 
     hasMounted = true
-    consumeCreateParam()
     writeUrlState()
 
     await Promise.all([
