@@ -747,6 +747,8 @@ function runRagas(runtimeEnv: RuntimeEnv, samples: RagasSample[]): RagasOutput {
   )
 
   writeFileSync(inputPath, JSON.stringify({ samples }, null, 2), "utf-8")
+  console.log(cyan(`RAGAS input path: ${inputPath}`))
+  console.log(cyan(`RAGAS output path: ${outputPath}`))
 
   try {
     const executed = spawnSync(
