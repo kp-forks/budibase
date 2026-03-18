@@ -2,10 +2,12 @@ import { RoleColor, helpers } from "@budibase/shared-core"
 import {
   BuiltinPermissionID,
   Database,
+  InternalTable,
   PermissionLevel,
   Role as RoleDoc,
   RoleUIMetadata,
   Screen,
+  Table,
   Workspace,
 } from "@budibase/types"
 import { uniqBy } from "lodash"
@@ -552,6 +554,10 @@ export async function getAllRoles(appId?: string): Promise<RoleDoc[]> {
 }
 
 async function shouldIncludePowerRole(db: Database) {
+  if (await hasLegacyPowerRole(db)) {
+    return true
+  }
+
   const app = await db.tryGet<Workspace>(DocumentType.WORKSPACE_METADATA)
   const creationVersion = app?.creationVersion
   if (!creationVersion || !semver.valid(creationVersion)) {
@@ -564,6 +570,15 @@ async function shouldIncludePowerRole(db: Database) {
     env.MIN_VERSION_WITHOUT_POWER_ROLE
   )
   return !isGreaterThan3x
+}
+
+async function hasLegacyPowerRole(db: Database) {
+  const usersTable = await db.tryGet<Table>(InternalTable.USER_METADATA)
+  const inclusion = usersTable?.schema?.roleId?.constraints?.inclusion
+  return (
+    Array.isArray(inclusion) &&
+    inclusion.some(roleId => roleIDsAreEqual(roleId, BUILTIN_IDS.POWER))
+  )
 }
 
 export class AccessController {

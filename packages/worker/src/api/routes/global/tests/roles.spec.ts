@@ -45,6 +45,31 @@ async function updateAppMetadata(
   })
 }
 
+async function addLegacyPowerToUsersTable() {
+  await workspaceDb.put({
+    _id: "ta_users",
+    type: "table",
+    name: "Users",
+    sourceType: "internal",
+    sourceId: "bb_internal",
+    schema: {
+      roleId: {
+        name: "roleId",
+        type: "options",
+        constraints: {
+          type: "string",
+          inclusion: [
+            roles.BUILTIN_ROLE_IDS.ADMIN,
+            roles.BUILTIN_ROLE_IDS.POWER,
+            roles.BUILTIN_ROLE_IDS.BASIC,
+            roles.BUILTIN_ROLE_IDS.PUBLIC,
+          ],
+        },
+      },
+    },
+  })
+}
+
 describe("/api/global/roles", () => {
   const config = new TestConfiguration()
 
@@ -101,6 +126,20 @@ describe("/api/global/roles", () => {
         ])
       }
     )
+
+    it("includes POWER role for v3+ apps when users table still references it", async () => {
+      await updateAppMetadata({ creationVersion: "3.0.0" })
+      await addLegacyPowerToUsersTable()
+      const res = await config.api.roles.get()
+
+      expect(res.body[workspaceId].roles.map((r: any) => r._id)).toEqual([
+        ROLE_NAME,
+        roles.BUILTIN_ROLE_IDS.ADMIN,
+        roles.BUILTIN_ROLE_IDS.POWER,
+        roles.BUILTIN_ROLE_IDS.BASIC,
+        roles.BUILTIN_ROLE_IDS.PUBLIC,
+      ])
+    })
 
     it.each(["2.9.0", "1.0.0", "0.0.0", "2.32.17+2146.b125a7c"])(
       "include POWER roles before v3 (%s)",
