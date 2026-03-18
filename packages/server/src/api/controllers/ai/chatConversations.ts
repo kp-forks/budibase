@@ -70,7 +70,7 @@ const truncatePersistedToolValue = (value: unknown) => {
   }
 
   const serialized = JSON.stringify(value)
-  if (serialized.length <= MAX_PERSISTED_TOOL_TEXT_LENGTH) {
+  if (!serialized || serialized.length <= MAX_PERSISTED_TOOL_TEXT_LENGTH) {
     return value
   }
 
@@ -84,33 +84,39 @@ const truncatePersistedToolValue = (value: unknown) => {
 const truncateToolPartsForSave = (
   messages: ChatConversation["messages"]
 ): ChatConversation["messages"] =>
-  messages.map(message => ({
-    ...message,
-    parts: message.parts.map(part => {
-      if (!isToolUIPart(part)) {
+  messages.map((message, index) => {
+    if (index >= Math.max(0, messages.length - 2)) {
+      return message
+    }
+
+    return {
+      ...message,
+      parts: message.parts.map(part => {
+        if (!isToolUIPart(part)) {
+          return part
+        }
+
+        if (part.state === "output-available") {
+          return {
+            ...part,
+            output: truncatePersistedToolValue(part.output),
+          }
+        }
+
+        if (part.state === "output-error") {
+          return {
+            ...part,
+            errorText: truncatePersistedText(part.errorText),
+            ...(part.input !== undefined && {
+              input: truncatePersistedToolValue(part.input),
+            }),
+          }
+        }
+
         return part
-      }
-
-      if (part.state === "output-available") {
-        return {
-          ...part,
-          output: truncatePersistedToolValue(part.output),
-        }
-      }
-
-      if (part.state === "output-error") {
-        return {
-          ...part,
-          errorText: truncatePersistedText(part.errorText),
-          ...(part.input !== undefined && {
-            input: truncatePersistedToolValue(part.input),
-          }),
-        }
-      }
-
-      return part
-    }),
-  }))
+      }),
+    }
+  })
 
 export const prepareChatConversationForSave = ({
   chatId,

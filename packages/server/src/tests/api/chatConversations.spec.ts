@@ -347,7 +347,7 @@ describe("prepareChatConversationForSave", () => {
     expect(result.updatedAt).toEqual(now.toISOString())
   })
 
-  it("truncates large persisted tool outputs", () => {
+  it("truncates large tool outputs only for older messages", () => {
     const largeOutput = "a".repeat(9000)
     const chat: ChatConversation = {
       _id: "chat-3",
@@ -369,6 +369,24 @@ describe("prepareChatConversationForSave", () => {
             },
           ],
         },
+        {
+          id: "message-2",
+          role: "user",
+          parts: [{ type: "text", text: "follow up" }],
+        },
+        {
+          id: "message-3",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-search",
+              toolCallId: "call-2",
+              state: "output-available",
+              input: { query: "latest" },
+              output: largeOutput,
+            },
+          ],
+        },
       ],
     }
 
@@ -381,19 +399,26 @@ describe("prepareChatConversationForSave", () => {
       chat,
     })
 
-    const toolPart = result.messages[0].parts[0]
-    expect(toolPart).toMatchObject({
+    const olderToolPart = result.messages[0].parts[0]
+    expect(olderToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
     })
-    expect("output" in toolPart && typeof toolPart.output).toBe("string")
-    if ("output" in toolPart && typeof toolPart.output === "string") {
-      expect(toolPart.output.length).toBeLessThan(8100)
-      expect(toolPart.output).toContain("...[truncated]")
+    expect("output" in olderToolPart && typeof olderToolPart.output).toBe("string")
+    if ("output" in olderToolPart && typeof olderToolPart.output === "string") {
+      expect(olderToolPart.output.length).toBeLessThan(8100)
+      expect(olderToolPart.output).toContain("...[truncated]")
     }
+
+    const latestToolPart = result.messages[2].parts[0]
+    expect(latestToolPart).toMatchObject({
+      type: "tool-search",
+      state: "output-available",
+      output: largeOutput,
+    })
   })
 
-  it("replaces oversized structured tool outputs with a compact preview", () => {
+  it("replaces oversized structured tool outputs with a compact preview only for older messages", () => {
     const largeObjectOutput = {
       rows: Array.from({ length: 100 }, (_, index) => ({
         id: index,
@@ -420,6 +445,24 @@ describe("prepareChatConversationForSave", () => {
             },
           ],
         },
+        {
+          id: "message-2",
+          role: "user",
+          parts: [{ type: "text", text: "follow up" }],
+        },
+        {
+          id: "message-3",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-search",
+              toolCallId: "call-2",
+              state: "output-available",
+              input: { query: "latest" },
+              output: largeObjectOutput,
+            },
+          ],
+        },
       ],
     }
 
@@ -432,19 +475,30 @@ describe("prepareChatConversationForSave", () => {
       chat,
     })
 
-    const toolPart = result.messages[0].parts[0]
-    expect(toolPart).toMatchObject({
+    const olderToolPart = result.messages[0].parts[0]
+    expect(olderToolPart).toMatchObject({
       type: "tool-search",
       state: "output-available",
     })
-    if ("output" in toolPart && toolPart.output && typeof toolPart.output === "object") {
-      expect(toolPart.output).toMatchObject({
+    if (
+      "output" in olderToolPart &&
+      olderToolPart.output &&
+      typeof olderToolPart.output === "object"
+    ) {
+      expect(olderToolPart.output).toMatchObject({
         truncated: true,
         originalType: "object",
       })
     } else {
       throw new Error("Expected structured tool output to be compacted")
     }
+
+    const latestToolPart = result.messages[2].parts[0]
+    expect(latestToolPart).toMatchObject({
+      type: "tool-search",
+      state: "output-available",
+      output: largeObjectOutput,
+    })
   })
 })
 
@@ -547,9 +601,9 @@ describe("chat conversation transient behavior", () => {
         typeof convertToModelMessages
       >
     ).mockResolvedValue([])
-    ;(pruneMessages as jest.MockedFunction<typeof pruneMessages>).mockReturnValue(
-      []
-    )
+    ;(
+      pruneMessages as jest.MockedFunction<typeof pruneMessages>
+    ).mockReturnValue([])
     ;(streamText as jest.MockedFunction<typeof streamText>).mockImplementation(
       () =>
         ({
@@ -700,13 +754,9 @@ describe("chat conversation transient behavior", () => {
       { role: "user", content: "hello" },
       { role: "assistant", content: "response" },
     ]
-    const prunedMessages: ModelMessage[] = [
-      { role: "user", content: "hello" },
-    ]
+    const prunedMessages: ModelMessage[] = [{ role: "user", content: "hello" }]
 
-    jest
-      .mocked(convertToModelMessages)
-      .mockResolvedValue(modelMessages)
+    jest.mocked(convertToModelMessages).mockResolvedValue(modelMessages)
     jest.mocked(pruneMessages).mockReturnValue(prunedMessages)
 
     const headers = await config.defaultHeaders({}, true)
