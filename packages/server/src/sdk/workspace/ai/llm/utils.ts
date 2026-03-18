@@ -19,12 +19,8 @@ interface GetDefaultLLMOptions {
 
 const applyReasoningEffort = (
   llm: LLMResponse,
-  reasoningEffort?: ReasoningEffort
+  reasoningEffort: ReasoningEffort
 ): LLMResponse => {
-  if (!reasoningEffort) {
-    return llm
-  }
-
   return {
     ...llm,
     providerOptions: hasTools => {
