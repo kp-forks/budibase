@@ -56,7 +56,7 @@
     return (
       draft.name.trim().length > 0 &&
       draft.host.trim().length > 0 &&
-      draft.port > 0 &&
+      !!draft.port &&
       draft.database.trim().length > 0
     )
   })
