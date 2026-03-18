@@ -575,10 +575,19 @@ async function shouldIncludePowerRole(db: Database) {
 async function hasLegacyPowerRole(db: Database) {
   const usersTable = await db.tryGet<Table>(InternalTable.USER_METADATA)
   const inclusion = usersTable?.schema?.roleId?.constraints?.inclusion
-  return (
-    Array.isArray(inclusion) &&
-    inclusion.some(roleId => roleIDsAreEqual(roleId, BUILTIN_IDS.POWER))
+  if (!Array.isArray(inclusion)) {
+    return false
+  }
+
+  const containsPower = inclusion.some(roleId =>
+    roleIDsAreEqual(roleId, BUILTIN_IDS.POWER)
   )
+  if (!containsPower) {
+    return false
+  }
+
+  // Imported workspaces can still carry POWER as part of the legacy custom-role set.
+  return inclusion.some(roleId => !isBuiltin(roleId))
 }
 
 export class AccessController {

@@ -45,7 +45,7 @@ async function updateAppMetadata(
   })
 }
 
-async function addLegacyPowerToUsersTable() {
+async function addUsersTable(roleInclusion: string[]) {
   await workspaceDb.put({
     _id: "ta_users",
     type: "table",
@@ -58,12 +58,7 @@ async function addLegacyPowerToUsersTable() {
         type: "options",
         constraints: {
           type: "string",
-          inclusion: [
-            roles.BUILTIN_ROLE_IDS.ADMIN,
-            roles.BUILTIN_ROLE_IDS.POWER,
-            roles.BUILTIN_ROLE_IDS.BASIC,
-            roles.BUILTIN_ROLE_IDS.PUBLIC,
-          ],
+          inclusion: roleInclusion,
         },
       },
     },
@@ -127,15 +122,39 @@ describe("/api/global/roles", () => {
       }
     )
 
-    it("includes POWER role for v3+ apps when users table still references it", async () => {
+    it("includes POWER role for v3+ apps when users table references POWER with custom roles", async () => {
       await updateAppMetadata({ creationVersion: "3.0.0" })
-      await addLegacyPowerToUsersTable()
+      await addUsersTable([
+        roles.BUILTIN_ROLE_IDS.ADMIN,
+        roles.BUILTIN_ROLE_IDS.POWER,
+        roles.BUILTIN_ROLE_IDS.BASIC,
+        roles.BUILTIN_ROLE_IDS.PUBLIC,
+        ROLE_NAME,
+      ])
       const res = await config.api.roles.get()
 
       expect(res.body[workspaceId].roles.map((r: any) => r._id)).toEqual([
         ROLE_NAME,
         roles.BUILTIN_ROLE_IDS.ADMIN,
         roles.BUILTIN_ROLE_IDS.POWER,
+        roles.BUILTIN_ROLE_IDS.BASIC,
+        roles.BUILTIN_ROLE_IDS.PUBLIC,
+      ])
+    })
+
+    it("does not include POWER for v3+ apps when users table only has builtin roles", async () => {
+      await updateAppMetadata({ creationVersion: "3.0.0" })
+      await addUsersTable([
+        roles.BUILTIN_ROLE_IDS.ADMIN,
+        roles.BUILTIN_ROLE_IDS.POWER,
+        roles.BUILTIN_ROLE_IDS.BASIC,
+        roles.BUILTIN_ROLE_IDS.PUBLIC,
+      ])
+      const res = await config.api.roles.get()
+
+      expect(res.body[workspaceId].roles.map((r: any) => r._id)).toEqual([
+        ROLE_NAME,
+        roles.BUILTIN_ROLE_IDS.ADMIN,
         roles.BUILTIN_ROLE_IDS.BASIC,
         roles.BUILTIN_ROLE_IDS.PUBLIC,
       ])
