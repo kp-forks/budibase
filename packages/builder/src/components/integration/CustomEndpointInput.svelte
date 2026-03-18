@@ -3,8 +3,7 @@
   import { clickOutside, Icon, ActionMenu, MenuItem } from "@budibase/bbui"
   import APIEndpointVerbBadge from "./APIEndpointVerbBadge.svelte"
   import { customQueryIconColor } from "@/helpers/data/utils"
-  import { findHBSBlocks } from "@budibase/string-templates"
-  import { v4 as uuid } from "uuid"
+  import { applyBaseUrl } from "./query"
 
   export let verb: string = "read"
   export let url: string = ""
@@ -28,31 +27,7 @@
   }
 
   const selectBaseUrl = (newBase: string) => {
-    // parse template URLs like http://{{host}}:{{port}}/path?x={{val}}.
-    const nonce = uuid().replace(/-/g, "")
-    const blocks = findHBSBlocks(url)
-    const portBlocks: string[] = []
-    // Substitute the port IF present and make it ':0' so that its valid
-    let parseable = url
-    parseable = parseable.replace(/:(\{\{[^}]+\}\})/g, (_, block) => {
-      portBlocks.push(block)
-      return ":0"
-    })
-    const placeholder = (i: number) => `hbs${nonce}${i}`
-    const pathBlocks: string[] = blocks.filter(b => !portBlocks.includes(b))
-    parseable = pathBlocks.reduce(
-      (s, block, i) => s.replace(block, placeholder(i)),
-      parseable
-    )
-    const restore = (s: string) =>
-      pathBlocks.reduce((r, block, i) => r.replace(placeholder(i), block), s)
-    try {
-      const parsed = new URL(parseable)
-      const path = parsed.pathname === "/" ? "" : parsed.pathname
-      url = newBase + restore(path + parsed.search + parsed.hash)
-    } catch {
-      url = newBase
-    }
+    url = applyBaseUrl(url, newBase)
     dispatch("urlChange", url)
     urlInputEl?.focus()
   }

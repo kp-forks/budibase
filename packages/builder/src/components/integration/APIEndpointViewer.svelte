@@ -938,8 +938,10 @@
               if (editableQuery) {
                 editableQuery = { ...editableQuery, name }
               }
-            }}>{editableQuery.name}</span
+            }}
           >
+            {editableQuery.name}
+          </span>
         {/key}
       {/if}
     </div>
@@ -1036,10 +1038,11 @@
               if (editableQuery) editableQuery.fields.path = base
               if (qs) {
                 customUrl = base
-                queryParams = runtimeToReadableMap(
+                const newParams = runtimeToReadableMap(
                   mergedBindings,
                   restUtils.breakQueryString(qs)
                 )
+                queryParams = { ...(queryParams ?? {}), ...newParams }
               }
             }}
           />
@@ -1445,12 +1448,15 @@
   .side-bar-content {
     flex: 1;
     overflow-y: auto;
-    padding: var(--spacing-m) var(--spacing-xl);
+    padding: var(--spacing-m) var(--spacing-xl) var(--spacing-xl)
+      var(--spacing-xl);
   }
   .side-bar-content > div,
-  .side-bar-content > div :global(> .container) {
+  .side-bar-content > div :global(> .container),
+  .side-bar-content > div :global(> .panel) {
     height: 100%;
   }
+
   .actions .grouped {
     display: flex;
     gap: var(--spacing-m);

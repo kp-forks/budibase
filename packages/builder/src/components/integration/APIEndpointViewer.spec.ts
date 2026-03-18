@@ -1138,6 +1138,38 @@ describe("API Endpoint Viewer", () => {
       })
     })
 
+    it("committing a second URL merges new params with existing ones and overwrites dupes", async () => {
+      const buildUrlSpy = vi.spyOn(queryModule, "buildUrl")
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+      const urlInput = container.querySelector(".url-input") as HTMLInputElement
+
+      // First commit — sets page=1 and limit=10
+      await fireEvent.input(urlInput, {
+        target: { value: "https://api.example.com/users?page=1&limit=10" },
+      })
+      await fireEvent.blur(urlInput)
+
+      // Second commit — page is updated to 2, sort is new; limit should be preserved
+      await fireEvent.input(urlInput, {
+        target: { value: "https://api.example.com/users?page=2&sort=asc" },
+      })
+      await fireEvent.blur(urlInput)
+
+      // buildUrl is called reactively with the merged queryParams — check the last call
+      await waitFor(() => {
+        const calls = buildUrlSpy.mock.calls
+        const lastParams = calls[calls.length - 1]?.[1] as
+          | Record<string, string>
+          | undefined
+        expect(lastParams?.["page"]).toBe("2") // overwritten
+        expect(lastParams?.["limit"]).toBe("10") // preserved
+        expect(lastParams?.["sort"]).toBe("asc") // new
+      })
+    })
+
     it("committing a URL strips the query string from the path field", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() =>
