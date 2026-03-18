@@ -4,6 +4,7 @@
   import CreateEditVariableModal from "./CreateEditVariableModal.svelte"
   import type { CreateEnvironmentVariableRequest } from "@budibase/types"
   import { createEventDispatcher, onMount } from "svelte"
+  import { helpers } from "@budibase/shared-core"
 
   const dispatch = createEventDispatcher()
 
@@ -45,15 +46,12 @@
     modal?.hide()
   }
 
-  function isEnvironmentVariableKey(str: unknown) {
-    return /^{{\s*env\.([^\s]+)\s*}}$/.test(String(str))
-  }
   const onInput = (e: Event) => {
     if (
       e.target &&
       "value" in e.target &&
       ["number", "port"].includes(type) &&
-      !isEnvironmentVariableKey(e.target.value) &&
+      !helpers.isEnvironmentVariableKey(e.target.value) &&
       e.target.value != null
     ) {
       const safeValue = Number(e.target.value)

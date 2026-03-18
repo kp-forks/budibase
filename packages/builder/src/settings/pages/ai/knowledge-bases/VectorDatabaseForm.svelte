@@ -7,6 +7,7 @@
   import { onMount } from "svelte"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import EnvVariableInput from "@/components/portal/environment/EnvVariableInput.svelte"
+  import { helpers } from "@budibase/shared-core"
 
   export interface Props {
     id?: string
@@ -83,7 +84,10 @@
 
   async function saveVectorDb() {
     const normalizedPort = Number(draft.port)
-    if (!Number.isFinite(normalizedPort) || normalizedPort <= 0) {
+    if (
+      !helpers.isEnvironmentVariableKey(draft.port) &&
+      (!Number.isFinite(normalizedPort) || normalizedPort <= 0)
+    ) {
       notifications.error("Port must be a valid positive number")
       return
     }
