@@ -106,21 +106,14 @@ interface RuntimeEnv {
   ragasThreshold?: number
 }
 
-function green(text: string) {
-  return `\x1b[32m${text}\x1b[0m`
+function color(code: number, text: string) {
+  return `\x1b[${code}m${text}\x1b[0m`
 }
 
-function red(text: string) {
-  return `\x1b[31m${text}\x1b[0m`
-}
-
-function yellow(text: string) {
-  return `\x1b[33m${text}\x1b[0m`
-}
-
-function cyan(text: string) {
-  return `\x1b[36m${text}\x1b[0m`
-}
+const green = (text: string) => color(32, text)
+const red = (text: string) => color(31, text)
+const yellow = (text: string) => color(33, text)
+const cyan = (text: string) => color(36, text)
 
 function section(text: string) {
   return `\n=== ${text} ===`
@@ -737,75 +730,59 @@ function evaluateMetricRails(
 
 function runRagas(runtimeEnv: RuntimeEnv, samples: RagasSample[]): RagasOutput {
   const outputDir = tmpdir()
-  const inputPath = join(
-    outputDir,
-    `ragas-input-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
-  )
-  const outputPath = join(
-    outputDir,
-    `ragas-output-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
-  )
+
+  const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+  const inputPath = join(outputDir, `ragas-input-${runId}.json`)
+  const outputPath = join(outputDir, `ragas-output-${runId}.json`)
 
   writeFileSync(inputPath, JSON.stringify({ samples }, null, 2), "utf-8")
   console.log(cyan(`RAGAS input path: ${inputPath}`))
   console.log(cyan(`RAGAS output path: ${outputPath}`))
 
-  try {
-    const executed = spawnSync(
-      "docker",
+  const executed = spawnSync(
+    "docker",
+    [
+      "run",
+      "--rm",
+      "-e",
+      `OPENAI_API_KEY=${runtimeEnv.openAIKey}`,
+      "-e",
+      `OPENAI_BASE_URL=${runtimeEnv.openAIBaseUrl}`,
+      "-e",
+      `OPENAI_API_BASE=${runtimeEnv.openAIBaseUrl}`,
+      "-v",
+      `${outputDir}:/work`,
+      "-v",
+      `${__dirname}:/runner`,
+      runtimeEnv.ragasDockerImage,
+      "sh",
+      "-lc",
       [
-        "run",
-        "--rm",
-        "-e",
-        `OPENAI_API_KEY=${runtimeEnv.openAIKey}`,
-        "-e",
-        `OPENAI_BASE_URL=${runtimeEnv.openAIBaseUrl}`,
-        "-e",
-        `OPENAI_API_BASE=${runtimeEnv.openAIBaseUrl}`,
-        "-v",
-        `${outputDir}:/work`,
-        "-v",
-        `${__dirname}:/runner`,
-        runtimeEnv.ragasDockerImage,
-        "sh",
-        "-lc",
-        [
-          `python /runner/ragas_runner.py /work/${basename(inputPath)} /work/${basename(outputPath)}`,
-        ].join(" && "),
-      ],
-      {
-        encoding: "utf-8",
-      }
-    )
+        `python /runner/ragas_runner.py /work/${basename(inputPath)} /work/${basename(outputPath)}`,
+      ].join(" && "),
+    ],
+    {
+      encoding: "utf-8",
+    }
+  )
 
-    if (executed.error) {
-      throw executed.error
-    }
-    if (executed.status !== 0) {
-      const stderr = executed.stderr?.trim() || "<empty>"
-      const stdout = executed.stdout?.trim() || "<empty>"
-      throw new Error(
-        `RAGAS runner failed with code ${executed.status}\nstdout:\n${stdout}\nstderr:\n${stderr}`
-      )
-    }
-
-    if (!existsSync(outputPath)) {
-      throw new Error("RAGAS runner did not create output file")
-    }
-
-    return JSON.parse(readFileSync(outputPath, "utf-8")) as RagasOutput
-  } finally {
-    try {
-      unlinkSync(inputPath)
-    } catch {
-      //
-    }
-    try {
-      unlinkSync(outputPath)
-    } catch {
-      //
-    }
+  if (executed.error) {
+    throw executed.error
   }
+  if (executed.status !== 0) {
+    const stderr = executed.stderr?.trim() || "<empty>"
+    const stdout = executed.stdout?.trim() || "<empty>"
+    throw new Error(
+      `RAGAS runner failed with code ${executed.status}\nstdout:\n${stdout}\nstderr:\n${stderr}`
+    )
+  }
+
+  if (!existsSync(outputPath)) {
+    throw new Error("RAGAS runner did not create output file")
+  }
+
+  return JSON.parse(readFileSync(outputPath, "utf-8")) as RagasOutput
 }
 
 async function main() {
