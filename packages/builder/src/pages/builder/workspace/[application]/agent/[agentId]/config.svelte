@@ -27,7 +27,7 @@
     queries,
   } from "@/stores/builder"
   import { getRestTemplateIdentifier } from "@/stores/builder/datasources"
-  import { onDestroy, onMount, untrack } from "svelte"
+  import { onDestroy, onMount, tick, untrack } from "svelte"
   import { API } from "@/api"
   import { bb } from "@/stores/bb"
   import CodeEditor from "@/components/common/CodeEditor/CodeEditor.svelte"
@@ -112,6 +112,7 @@ Any constraints the agent must follow.
   // Web search Config
   let webSearchConfigModal = $state<WebSearchConfigModal>()
   let generateInstructionsModal = $state<Modal>()
+  let generateInstructionsPromptField = $state<TextArea>()
   let generateInstructionsPrompt = $state("")
   let generatedInstructions = $state("")
   let generatingInstructions = $state(false)
@@ -917,6 +918,10 @@ Any constraints the agent must follow.
 
 <Modal
   bind:this={generateInstructionsModal}
+  on:show={async () => {
+    await tick()
+    generateInstructionsPromptField?.focus()
+  }}
   on:hide={() => {
     generatedInstructions = ""
   }}
@@ -948,6 +953,7 @@ Any constraints the agent must follow.
     {:else}
       <TextArea
         label="Prompt"
+        bind:this={generateInstructionsPromptField}
         bind:value={generateInstructionsPrompt}
         minHeight={140}
         placeholder="Describe what kind of instructions you want to generate..."
