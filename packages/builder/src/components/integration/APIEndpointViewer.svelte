@@ -66,6 +66,7 @@
     runQuery,
     keyValueArrayToRecord,
     getDefaultRestAuthConfig,
+    isAbsoluteUrl,
   } from "./query"
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
@@ -284,6 +285,17 @@
 
   // Custom Mode Url Parsing
   $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
+
+  // Save button state
+  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(effectivePath ?? "")
+  $: existingQueryUnchanged = !isNewQuery && !queryDirty
+  $: newQueryIncomplete =
+    isNewQuery && (isCustomMode ? !effectivePath : !selectedEndpointOption)
+  $: saveDisabled =
+    savingQuery ||
+    existingQueryUnchanged ||
+    newQueryIncomplete ||
+    !isValidCustomUrl
 
   // Generates a complete runtime-ready version of the query used to monitor the
   // current edit state.
@@ -972,14 +984,7 @@
         {/if}
       </div>
       <div class="save-btn">
-        <Button
-          cta
-          disabled={savingQuery ||
-            (!isNewQuery && !queryDirty) ||
-            (isNewQuery &&
-              (isCustomMode ? !effectivePath : !selectedEndpointOption))}
-          on:click={() => saveQuery()}
-        >
+        <Button cta disabled={saveDisabled} on:click={() => saveQuery()}>
           Save
         </Button>
       </div>

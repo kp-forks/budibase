@@ -56,8 +56,12 @@
     OAuth2GrantType,
   } from "@budibase/types"
 
+  import { tick } from "svelte"
   import KeyValueBuilder from "@/components/integration/KeyValueBuilder.svelte"
-  import { keyValueArrayToRecord } from "@/components/integration/query"
+  import {
+    keyValueArrayToRecord,
+    isAbsoluteUrl,
+  } from "@/components/integration/query"
   import ViewDynamicVariables from "@/pages/builder/workspace/[application]/data/datasource/[datasourceId]/_components/panels/Variables/ViewDynamicVariables.svelte"
   import DeleteDataConfirmationModal from "@/components/backend/modals/DeleteDataConfirmationModal.svelte"
 
@@ -334,7 +338,7 @@
     const ds = await datasources.create({
       integration: restIntegration,
       config: {
-        url: data.baseUrl || "",
+        url: normaliseBaseUrl(data.baseUrl || "") ?? "",
         authConfigs: data.authConfigs || [],
         staticVariables: data.staticVariables || {},
         defaultHeaders: data.defaultHeaders || {},
@@ -360,7 +364,7 @@
       name: data.name!,
       config: {
         ...datasource.config,
-        url: data.baseUrl,
+        url: normaliseBaseUrl(data.baseUrl ?? "") ?? data.baseUrl,
         authConfigs: data.authConfigs,
         staticVariables: data.staticVariables,
         defaultHeaders: data.defaultHeaders,
@@ -372,7 +376,8 @@
 
     const resp = await API.updateDatasource(updatedDatasource)
     datasources.replaceDatasource(resp.datasource._id!, resp.datasource)
-    originalData = cloneDeep(data)
+    await tick()
+    init(false, selected)
     notifications.success("API updated")
   }
 
@@ -402,8 +407,20 @@
     notifications.success("Settings saved")
   }
 
-  const validateName = () => {
-    const newErrors = { ...errors }
+  const normaliseBaseUrl = (url: string) => {
+    if (!isAbsoluteUrl(url)) return null
+    return url.replace(/\/$/, "")
+  }
+
+  const validateBaseUrl = (newErrors: Record<string, string>) => {
+    if (data.baseUrl && normaliseBaseUrl(data.baseUrl) === null) {
+      newErrors.baseUrl = "Must be a valid http or https URL"
+    } else {
+      delete newErrors.baseUrl
+    }
+  }
+
+  const validateName = (newErrors: Record<string, string>) => {
     if (!data.name) {
       newErrors.name = "Name is required"
     } else if (
@@ -415,12 +432,13 @@
     } else {
       delete newErrors.name
     }
-    errors = newErrors
   }
 
   const onSave = async () => {
-    validateName()
-    errors = { ...errors }
+    const newErrors = { ...errors }
+    validateName(newErrors)
+    validateBaseUrl(newErrors)
+    errors = newErrors
     if (Object.keys(errors).length > 0 || !validateAuth()) {
       return
     }
@@ -516,7 +534,12 @@
             Open in API Editor
           </Button>
         {/if}
-        <Button size="M" disabled={!hasChanges || saving} on:click={onSave} cta>
+        <Button
+          size="M"
+          disabled={!hasChanges || saving || Object.keys(errors).length > 0}
+          on:click={onSave}
+          cta
+        >
           Save
         </Button>
       </div>
@@ -530,7 +553,11 @@
           data.name = e.detail
           data = { ...data }
         }}
-        on:blur={validateName}
+        on:blur={() => {
+          const e = { ...errors }
+          validateName(e)
+          errors = e
+        }}
         error={errors.name}
         required
       />
@@ -538,9 +565,15 @@
         label="Base URL"
         value={data.baseUrl ?? ""}
         servers={openApiInfo?.servers ?? []}
+        error={errors.baseUrl}
         on:change={e => {
           data.baseUrl = e.detail
           data = { ...data }
+        }}
+        on:blur={() => {
+          const e = { ...errors }
+          validateBaseUrl(e)
+          errors = e
         }}
       />
     </div>

@@ -1,5 +1,5 @@
 import { it, expect, describe } from "vitest"
-import { applyBaseUrl } from "./query"
+import { applyBaseUrl, isAbsoluteUrl } from "./query"
 
 describe("applyBaseUrl", () => {
   describe("plain URLs", () => {
@@ -45,6 +45,27 @@ describe("applyBaseUrl", () => {
     it("falls back to newBase when currentUrl is empty", () => {
       expect(applyBaseUrl("", "https://new.example.com")).toBe(
         "https://new.example.com"
+      )
+    })
+
+    it("preserves a relative path when currentUrl has no origin", () => {
+      expect(applyBaseUrl("/api/v1/users", "https://new.example.com")).toBe(
+        "https://new.example.com/api/v1/users"
+      )
+    })
+
+    it("strips a trailing slash from newBase to avoid double slashes", () => {
+      expect(
+        applyBaseUrl(
+          "https://old.example.com/api/users",
+          "https://new.example.com/"
+        )
+      ).toBe("https://new.example.com/api/users")
+    })
+
+    it("strips trailing slash from newBase when preserving a relative path", () => {
+      expect(applyBaseUrl("/api/v1/users", "https://new.example.com/")).toBe(
+        "https://new.example.com/api/v1/users"
       )
     })
   })
@@ -94,5 +115,39 @@ describe("applyBaseUrl", () => {
         )
       ).toBe("https://new.example.com/{{org}}/{{repo}}/issues")
     })
+  })
+})
+
+describe("isAbsoluteUrl", () => {
+  it("accepts a valid http URL", () => {
+    expect(isAbsoluteUrl("http://example.com/api")).toBe(true)
+  })
+
+  it("accepts a valid https URL", () => {
+    expect(isAbsoluteUrl("https://example.com/api")).toBe(true)
+  })
+
+  it("rejects a relative path", () => {
+    expect(isAbsoluteUrl("/api/v1/users")).toBe(false)
+  })
+
+  it("rejects an empty string", () => {
+    expect(isAbsoluteUrl("")).toBe(false)
+  })
+
+  it("rejects https:google.com (missing //)", () => {
+    expect(isAbsoluteUrl("https:google.com")).toBe(false)
+  })
+
+  it("rejects a non-http protocol", () => {
+    expect(isAbsoluteUrl("ftp://example.com")).toBe(false)
+  })
+
+  it("rejects a URL with spaces", () => {
+    expect(isAbsoluteUrl("https://some url")).toBe(false)
+  })
+
+  it("rejects a URL with percent-encoded spaces in the hostname", () => {
+    expect(isAbsoluteUrl("https://some%20url")).toBe(false)
   })
 })

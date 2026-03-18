@@ -475,6 +475,20 @@ export function keyValueArrayToRecord(
   )
 }
 
+export function isAbsoluteUrl(url: string): boolean {
+  if (/\s/.test(url)) return false
+  try {
+    const { protocol, hostname } = new URL(url)
+    return (
+      (protocol === "http:" || protocol === "https:") &&
+      url.startsWith(protocol + "//") &&
+      !hostname.includes("%")
+    )
+  } catch {
+    return false
+  }
+}
+
 /**
  * Replaces the origin of `currentUrl` with `newBase`, preserving the path,
  * query string, hash, and any HBS template blocks (including port-position ones).
@@ -501,11 +515,15 @@ export function applyBaseUrl(currentUrl: string, newBase: string): string {
   const restore = (s: string) =>
     pathBlocks.reduce((r, block, i) => r.replace(placeholder(i), block), s)
 
+  const base = newBase.replace(/\/$/, "")
   try {
     const parsed = new URL(parseable)
     const path = parsed.pathname === "/" ? "" : parsed.pathname
-    return newBase + restore(path + parsed.search + parsed.hash)
+    return base + restore(path + parsed.search + parsed.hash)
   } catch {
-    return newBase
+    if (parseable.startsWith("/")) {
+      return base + restore(parseable)
+    }
+    return base
   }
 }
