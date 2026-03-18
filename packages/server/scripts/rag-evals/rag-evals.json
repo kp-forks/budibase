@@ -19,7 +19,7 @@
       "question": "After how many failed login attempts is an account locked?",
       "reference": "5 failed login attempts",
       "expectation": {
-        "containsAny": ["5 failed login attempts", "5"],
+        "containsAny": ["5 failed login attempts"],
         "sourceIncludesAny": ["customer-support-operations-handbook.md"]
       }
     },
