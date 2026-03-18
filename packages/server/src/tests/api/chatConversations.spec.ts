@@ -346,6 +346,106 @@ describe("prepareChatConversationForSave", () => {
     expect(result.createdAt).toEqual(now.toISOString())
     expect(result.updatedAt).toEqual(now.toISOString())
   })
+
+  it("truncates large persisted tool outputs", () => {
+    const largeOutput = "a".repeat(9000)
+    const chat: ChatConversation = {
+      _id: "chat-3",
+      chatAppId: "chat-app-3",
+      agentId: "agent-3",
+      userId: "user-3",
+      title: "tool output chat",
+      messages: [
+        {
+          id: "message-1",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-search",
+              toolCallId: "call-1",
+              state: "output-available",
+              input: { query: "test" },
+              output: largeOutput,
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = prepareChatConversationForSave({
+      chatId: chat._id!,
+      chatAppId: chat.chatAppId,
+      userId: chat.userId!,
+      title: chat.title,
+      messages: chat.messages,
+      chat,
+    })
+
+    const toolPart = result.messages[0].parts[0]
+    expect(toolPart).toMatchObject({
+      type: "tool-search",
+      state: "output-available",
+    })
+    expect("output" in toolPart && typeof toolPart.output).toBe("string")
+    if ("output" in toolPart && typeof toolPart.output === "string") {
+      expect(toolPart.output.length).toBeLessThan(8100)
+      expect(toolPart.output).toContain("...[truncated]")
+    }
+  })
+
+  it("replaces oversized structured tool outputs with a compact preview", () => {
+    const largeObjectOutput = {
+      rows: Array.from({ length: 100 }, (_, index) => ({
+        id: index,
+        value: "b".repeat(200),
+      })),
+    }
+    const chat: ChatConversation = {
+      _id: "chat-4",
+      chatAppId: "chat-app-4",
+      agentId: "agent-4",
+      userId: "user-4",
+      title: "structured tool output chat",
+      messages: [
+        {
+          id: "message-1",
+          role: "assistant",
+          parts: [
+            {
+              type: "tool-search",
+              toolCallId: "call-1",
+              state: "output-available",
+              input: { query: "test" },
+              output: largeObjectOutput,
+            },
+          ],
+        },
+      ],
+    }
+
+    const result = prepareChatConversationForSave({
+      chatId: chat._id!,
+      chatAppId: chat.chatAppId,
+      userId: chat.userId!,
+      title: chat.title,
+      messages: chat.messages,
+      chat,
+    })
+
+    const toolPart = result.messages[0].parts[0]
+    expect(toolPart).toMatchObject({
+      type: "tool-search",
+      state: "output-available",
+    })
+    if ("output" in toolPart && toolPart.output && typeof toolPart.output === "object") {
+      expect(toolPart.output).toMatchObject({
+        truncated: true,
+        originalType: "object",
+      })
+    } else {
+      throw new Error("Expected structured tool output to be compacted")
+    }
+  })
 })
 
 describe("chat conversation transient behavior", () => {
