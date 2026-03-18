@@ -388,10 +388,12 @@ export class ChatboxController {
   }
 
   async deleteCurrentChat() {
-    await this.deleteConversation(
-      this.state.chat?._id,
-      this.state.chat?.agentId
-    )
+    const { chat, deletingChat, chatAppId } = this.state
+    if (!chat?._id || deletingChat || !chatAppId) {
+      return
+    }
+
+    await this.deleteConversation(chat._id, chat.agentId)
   }
 
   async deleteConversation(
