@@ -65,7 +65,13 @@
       !helpers.isEnvironmentVariableKey(value) &&
       typeof value !== "number"
     ) {
-      value = Number(value)
+      const numericValue = Number(value)
+      value =
+        typeof value === "string" && value.trim() === ""
+          ? value
+          : Number.isFinite(numericValue)
+            ? numericValue
+            : value
     }
   })
 
