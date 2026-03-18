@@ -81,7 +81,7 @@ const defaultViewsState: ViewsState = {}
 const defaultViewsV2State: ViewsV2State = {}
 
 export const canCreateDatasourceQuery = (
-  datasource?: Pick<NavigatorDatasource, "_id" | "source">
+  datasource?: { _id?: string; source?: string }
 ) => {
   return (
     datasource?._id !== INTERNAL_TABLE_SOURCE_ID &&
