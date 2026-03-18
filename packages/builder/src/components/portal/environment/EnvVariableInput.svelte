@@ -59,6 +59,16 @@
     }
   }
 
+  $effect(() => {
+    if (
+      ["number", "port"].includes(type) &&
+      !helpers.isEnvironmentVariableKey(value) &&
+      typeof value !== "number"
+    ) {
+      value = Number(value)
+    }
+  })
+
   onMount(async () => {
     try {
       // load the environment variables
