@@ -1,0 +1,70 @@
+{
+  "embedding": {
+    "provider": "openai",
+    "model": "text-embedding-3-small"
+  },
+  "documents": ["files/spongebob-trivia.md"],
+  "cases": [
+    {
+      "id": "spongebob-address",
+      "question": "What is SpongeBob's address?",
+      "reference": "124 Conch Street",
+      "expectation": {
+        "containsAny": ["124 Conch Street"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "patrick-address",
+      "question": "Where does Patrick Star live?",
+      "reference": "under a rock at 120 Conch Street",
+      "expectation": {
+        "containsAny": ["120 Conch Street", "under a rock"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "squidward-home",
+      "question": "What kind of house does Squidward live in?",
+      "reference": "an Easter Island head",
+      "expectation": {
+        "containsAny": ["Easter Island head"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "creator-name",
+      "question": "Who created SpongeBob SquarePants?",
+      "reference": "Stephen Hillenburg",
+      "expectation": {
+        "containsAny": ["Stephen Hillenburg"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "first-movie-year",
+      "question": "When was the first SpongeBob movie released?",
+      "reference": "2004",
+      "expectation": {
+        "containsAny": ["2004"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "mr-krabs-first-name",
+      "question": "What is Mr. Krabs' first name?",
+      "reference": "Eugene H. Krabs",
+      "expectation": {
+        "containsAny": ["Eugene H. Krabs", "Eugene"],
+        "sourceIncludesAny": ["spongebob-trivia.md"]
+      }
+    },
+    {
+      "id": "greeting-should-not-retrieve",
+      "question": "Good morning",
+      "expectation": {
+        "expectNoContext": true
+      }
+    }
+  ]
+}
