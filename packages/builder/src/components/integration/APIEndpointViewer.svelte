@@ -127,20 +127,10 @@
   let restBindings: EnrichedBinding[] = []
   let mergedBindings: EnrichedBinding[] = []
   let bindingPreviewContext: Record<string, any> = {}
+  let baseUrlOptions: { label: string; url: string }[] = []
 
   // Custom query mode state
   let customUrl: string = ""
-
-  $: baseUrlOptions = (() => {
-    const opts: { label: string; url: string }[] = []
-    const connUrl = (datasource as Datasource)?.config?.url as
-      | string
-      | undefined
-    if (connUrl) {
-      opts.push({ label: "Connection default", url: connUrl })
-    }
-    return opts
-  })()
 
   $: selectedDatasourceId = datasourceId || _pickedDatasourceId
 
@@ -199,9 +189,19 @@
   }
 
   $: datasourceLookupId = selectedDatasourceId || storeQuery?.datasourceId
-  $: datasource = structuredClone(
-    $datasources.list.find(d => d._id === datasourceLookupId)
-  )
+  $: {
+    datasource = structuredClone(
+      $datasources.list.find(d => d._id === datasourceLookupId)
+    )
+    const connUrl = getDatasourceBaseUrl(datasource)
+    baseUrlOptions = connUrl
+      ? [{ label: "Connection base url", url: connUrl }]
+      : []
+  }
+
+  $: if (!hasRestTemplate(datasource) && isNewQuery) {
+    customUrl = getDatasourceBaseUrl(datasource) || ""
+  }
 
   $: if (editableQuery && datasource && isNewQuery && !selectedAuth) {
     const withAuth = applyDefaultAuth(editableQuery, datasource)
@@ -283,9 +283,7 @@
   )
 
   // Custom Mode Url Parsing
-  $: effectivePath = isCustomMode
-    ? customUrl
-    : editableQuery?.fields?.path
+  $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
 
   // Generates a complete runtime-ready version of the query used to monitor the
   // current edit state.
@@ -372,8 +370,12 @@
   }
 
   const initCustomUrlFields = (fullPath: string | undefined) => {
-    customUrl = fullPath || (datasource as Datasource)?.config?.url || ""
+    customUrl = fullPath || getDatasourceBaseUrl(datasource) || ""
   }
+
+  const getDatasourceBaseUrl = (
+    ds: Datasource | UIInternalDatasource | undefined
+  ): string | undefined => (ds as Datasource)?.config?.url as string | undefined
 
   const resolveStoreQuery = (
     list: Query[] | undefined,
@@ -970,10 +972,10 @@
       <div class="save-btn">
         <Button
           cta
-          disabled={!queryDirty ||
-            savingQuery ||
-            (isNewQuery && !isCustomMode && !selectedEndpointOption) ||
-            (isNewQuery && isCustomMode && !customUrl)}
+          disabled={savingQuery ||
+            (!isNewQuery && !queryDirty) ||
+            (isNewQuery &&
+              (isCustomMode ? !effectivePath : !selectedEndpointOption))}
           on:click={() => saveQuery()}
         >
           Save
@@ -1026,9 +1028,19 @@
             }}
             on:urlChange={e => {
               customUrl = e.detail
+              if (editableQuery)
+                editableQuery.fields.path = (e.detail ?? "").split("?")[0]
+            }}
+            on:urlCommit={e => {
               const [base, qs] = (e.detail ?? "").split("?")
               if (editableQuery) editableQuery.fields.path = base
-              if (qs) queryParams = restUtils.breakQueryString(qs)
+              if (qs) {
+                customUrl = base
+                queryParams = runtimeToReadableMap(
+                  mergedBindings,
+                  restUtils.breakQueryString(qs)
+                )
+              }
             }}
           />
         </div>
