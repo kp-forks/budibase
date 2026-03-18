@@ -229,7 +229,7 @@
   }
 
   const deleteConversation = async (conversationId?: string) => {
-    if (!selectedAgentId || !conversationId || deletingChat) {
+    if (!conversationId || deletingChat) {
       return
     }
 
