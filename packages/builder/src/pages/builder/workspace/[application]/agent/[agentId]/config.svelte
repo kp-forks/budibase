@@ -11,6 +11,7 @@
   } from "@budibase/bbui"
   import {
     AIConfigType,
+    FeatureFlag,
     ToolType,
     WebSearchProvider,
     type Agent,
@@ -19,7 +20,12 @@
     type InsertAtPositionFn,
     type CaretPositionFn,
   } from "@budibase/types"
-  import { agentsStore, aiConfigsStore, selectedAgent } from "@/stores/portal"
+  import {
+    agentsStore,
+    aiConfigsStore,
+    featureFlags,
+    selectedAgent,
+  } from "@/stores/portal"
   import {
     datasources,
     restTemplates,
@@ -125,6 +131,9 @@ Any constraints the agent must follow.
   )
   let webSearchConfigured = $derived(
     !!webSearchConfig?.apiKey && !!webSearchConfig.provider
+  )
+  let generateInstructionsEnabled = $derived(
+    !!$featureFlags[FeatureFlag.AI_AGENT_INSTRUCTIONS]
   )
   let toolsLoaded = $derived(!!$agentsStore.tools)
 
@@ -917,14 +926,16 @@ Any constraints the agent must follow.
       <span class="bindings-bar-text"
         >Use <code>{`{{`}</code> to add to tools & knowledge sources</span
       >
-      <Button
-        secondary
-        size="S"
-        icon="sparkle"
-        on:click={() => generateInstructionsModal?.show()}
-      >
-        Generate
-      </Button>
+      {#if generateInstructionsEnabled}
+        <Button
+          secondary
+          size="S"
+          icon="sparkle"
+          on:click={() => generateInstructionsModal?.show()}
+        >
+          Generate
+        </Button>
+      {/if}
     </div>
   </div>
 </div>
