@@ -1,17 +1,7 @@
 <script lang="ts">
-  import {
-    Body,
-    notifications,
-    Select,
-    Button,
-    Icon,
-    Modal,
-    ModalContent,
-    TextArea,
-  } from "@budibase/bbui"
+  import { Body, notifications, Select, Button, Icon } from "@budibase/bbui"
   import {
     AIConfigType,
-    FeatureFlag,
     ToolType,
     WebSearchProvider,
     type Agent,
@@ -20,12 +10,7 @@
     type InsertAtPositionFn,
     type CaretPositionFn,
   } from "@budibase/types"
-  import {
-    agentsStore,
-    aiConfigsStore,
-    featureFlags,
-    selectedAgent,
-  } from "@/stores/portal"
+  import { agentsStore, aiConfigsStore, selectedAgent } from "@/stores/portal"
   import {
     datasources,
     restTemplates,
@@ -33,13 +18,13 @@
     queries,
   } from "@/stores/builder"
   import { getRestTemplateIdentifier } from "@/stores/builder/datasources"
-  import { onDestroy, onMount, tick, untrack } from "svelte"
-  import { API } from "@/api"
+  import { onDestroy, onMount, untrack } from "svelte"
   import { bb } from "@/stores/bb"
   import CodeEditor from "@/components/common/CodeEditor/CodeEditor.svelte"
   import { getIntegrationIcon, type IconInfo } from "@/helpers/integrationIcons"
   import ToolsDropdown from "./ToolsDropdown.svelte"
   import ToolIcon from "./ToolIcon.svelte"
+  import GenerateInstructionsControl from "./GenerateInstructionsControl.svelte"
   import type { AgentTool } from "./toolTypes"
   import WebSearchConfigModal from "./WebSearchConfigModal.svelte"
   import {
@@ -117,12 +102,6 @@ Any constraints the agent must follow.
 
   // Web search Config
   let webSearchConfigModal = $state<WebSearchConfigModal>()
-  let generateInstructionsModal = $state<Modal>()
-  let generateInstructionsPromptField = $state<TextArea>()
-  let generateInstructionsPrompt = $state("")
-  let generatedInstructions = $state("")
-  let generatingInstructions = $state(false)
-  let generateInstructionsRequestToken = $state(0)
   let lastWebSearchConfigId: string | undefined = $state()
   let pendingWebSearchInsert = $state(false)
   let webSearchConfig = $derived(
@@ -131,9 +110,6 @@ Any constraints the agent must follow.
   )
   let webSearchConfigured = $derived(
     !!webSearchConfig?.apiKey && !!webSearchConfig.provider
-  )
-  let generateInstructionsEnabled = $derived(
-    !!$featureFlags[FeatureFlag.AI_AGENT_INSTRUCTIONS]
   )
   let toolsLoaded = $derived(!!$agentsStore.tools)
 
@@ -647,63 +623,6 @@ Any constraints the agent must follow.
     webSearchConfigModal?.show()
   }
 
-  function resetGenerateInstructionsState() {
-    generateInstructionsRequestToken += 1
-    generateInstructionsPrompt = ""
-    generatedInstructions = ""
-    generatingInstructions = false
-  }
-
-  function hideGenerateInstructionsModal() {
-    generateInstructionsModal?.hide()
-  }
-
-  function applyGeneratedInstructions() {
-    draft.promptInstructions = generatedInstructions
-    hideGenerateInstructionsModal()
-    notifications.success("Instructions updated successfully")
-  }
-
-  async function generateInstructions() {
-    if (generatingInstructions) {
-      return
-    }
-
-    const requestToken = ++generateInstructionsRequestToken
-
-    generatingInstructions = true
-
-    try {
-      const { instructions } = await API.generateAgentInstructions({
-        aiconfigId: draft.aiconfig,
-        prompt: generateInstructionsPrompt,
-        agentName: draft.name,
-        goal: draft.goal,
-        toolReferences: enabledToolReferences,
-      })
-
-      if (requestToken !== generateInstructionsRequestToken) {
-        return
-      }
-
-      notifications.success("Instructions generated successfully")
-      generatedInstructions = instructions
-    } catch (error: any) {
-      if (requestToken !== generateInstructionsRequestToken) {
-        return
-      }
-      notifications.error(
-        error?.message ||
-          error?.json?.message ||
-          "Error generating instructions"
-      )
-    } finally {
-      if (requestToken === generateInstructionsRequestToken) {
-        generatingInstructions = false
-      }
-    }
-  }
-
   async function saveAgent({
     showNotifications = true,
   }: {
@@ -926,16 +845,17 @@ Any constraints the agent must follow.
       <span class="bindings-bar-text"
         >Use <code>{`{{`}</code> to add to tools & knowledge sources</span
       >
-      {#if generateInstructionsEnabled}
-        <Button
-          secondary
-          size="S"
-          icon="sparkle"
-          on:click={() => generateInstructionsModal?.show()}
-        >
-          Generate
-        </Button>
-      {/if}
+      <GenerateInstructionsControl
+        aiconfigId={draft.aiconfig}
+        agentName={draft.name}
+        goal={draft.goal}
+        toolReferences={enabledToolReferences}
+        {promptBindings}
+        bindingIcons={readableToIcon}
+        onApplyInstructions={instructions => {
+          draft.promptInstructions = instructions
+        }}
+      />
     </div>
   </div>
 </div>
@@ -944,77 +864,6 @@ Any constraints the agent must follow.
   bind:this={webSearchConfigModal}
   aiconfigId={draft.aiconfig}
 />
-
-<Modal
-  bind:this={generateInstructionsModal}
-  on:show={async () => {
-    await tick()
-    generateInstructionsPromptField?.focus()
-  }}
-  on:hide={resetGenerateInstructionsState}
->
-  <ModalContent
-    title={generatedInstructions
-      ? "Review Generated Instructions"
-      : "Generate Instructions"}
-    size="M"
-    showCloseIcon
-    showConfirmButton={false}
-    showCancelButton={false}
-  >
-    {#if generatedInstructions}
-      <div class="generated-instructions-preview">
-        <CodeEditor
-          value={generatedInstructions}
-          bindings={promptBindings}
-          bindingIcons={readableToIcon}
-          mode={EditorModes.Handlebars}
-          renderBindingsAsTags={true}
-          renderMarkdownDecorations={true}
-          placeholder=""
-          on:change={event => {
-            generatedInstructions = event.detail || ""
-          }}
-        />
-      </div>
-      <div class="generate-instructions-actions">
-        <Button secondary on:click={hideGenerateInstructionsModal}
-          >Cancel</Button
-        >
-        <Button cta on:click={applyGeneratedInstructions}
-          >Replace current</Button
-        >
-      </div>
-    {:else}
-      <TextArea
-        label="Prompt"
-        bind:this={generateInstructionsPromptField}
-        bind:value={generateInstructionsPrompt}
-        minHeight={140}
-        disabled={generatingInstructions}
-        placeholder="Describe what kind of instructions you want to generate..."
-      />
-      <div class="generate-instructions-actions">
-        <Button
-          secondary
-          disabled={generatingInstructions}
-          on:click={hideGenerateInstructionsModal}
-        >
-          Cancel
-        </Button>
-        <Button
-          cta
-          icon="sparkle"
-          disabled={generatingInstructions ||
-            !generateInstructionsPrompt.trim()}
-          on:click={generateInstructions}
-        >
-          {generatingInstructions ? "Generating..." : "Generate"}
-        </Button>
-      </div>
-    {/if}
-  </ModalContent>
-</Modal>
 
 <style>
   :global(.tools-popover-container .spectrum-Popover) {
@@ -1228,20 +1077,6 @@ Any constraints the agent must follow.
     flex-direction: column;
     gap: 2px;
     max-width: 600px;
-  }
-
-  .generate-instructions-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--spacing-s);
-    margin-top: var(--spacing-m);
-  }
-
-  .generated-instructions-preview {
-    border: 1px solid var(--spectrum-global-color-gray-200);
-    border-radius: 8px;
-    overflow: hidden;
-    min-height: 220px;
   }
 
   .llm-header > :global(.spectrum-Body):first-child {
