@@ -1,4 +1,4 @@
-import { findHBSBlocks, processStringSync } from "@budibase/string-templates"
+import { findHBSBlocks } from "@budibase/string-templates"
 import { v4 as uuid } from "uuid"
 import restUtils from "@/helpers/data/utils"
 import {
