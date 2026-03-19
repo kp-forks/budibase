@@ -87,7 +87,8 @@
   {#if fieldState}
     <CoreDropzone
       value={fieldApiMapper.get(fieldState.value)}
-      disabled={fieldState.disabled || fieldState.readonly}
+      disabled={fieldState.disabled}
+      readonly={fieldState.readonly}
       error={fieldState.error}
       on:change={handleChange}
       {processFiles}

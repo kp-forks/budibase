@@ -95,6 +95,7 @@
     {label}
     {error}
     {value}
+    {readonly}
     on:change={e => {
       value = e.detail
     }}
@@ -103,6 +104,7 @@
   <Dropzone
     {label}
     {error}
+    {readonly}
     value={value ? [value] : []}
     on:change={e => {
       value = e.detail?.[0]
