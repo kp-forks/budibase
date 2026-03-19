@@ -65,7 +65,9 @@
   const getStatusColor = (status: string) =>
     status === "Live"
       ? "#8CA171"
-      : "var(--spectrum-global-color-gray-600)"
+      : status === "Not Deployed"
+        ? "var(--color-orange-400)"
+        : "var(--spectrum-global-color-gray-600)"
 
   export let highlightedRowId: string | null = null
 
