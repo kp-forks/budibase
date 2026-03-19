@@ -8,16 +8,7 @@ const LIVE_LABEL = "Live"
 const STOPPED_LABEL = "Stopped"
 const NOT_DEPLOYED_LABEL = "Not Deployed"
 
-const hasAgentDeploymentHistory = (agent: Agent) =>
-  !!(
-    agent.publishedAt ||
-    agent.discordIntegration?.chatAppId ||
-    agent.discordIntegration?.interactionsEndpointUrl ||
-    agent.MSTeamsIntegration?.chatAppId ||
-    agent.MSTeamsIntegration?.messagingEndpointUrl ||
-    agent.slackIntegration?.chatAppId ||
-    agent.slackIntegration?.messagingEndpointUrl
-  )
+const hasAgentDeploymentHistory = (agent: Agent) => !!agent.publishedAt
 
 export const getPublishResourceStatusLabel = (
   publishStatus: Pick<PublishStatusResource, "state" | "deployedAt">

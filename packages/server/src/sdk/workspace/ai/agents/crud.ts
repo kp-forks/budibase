@@ -99,16 +99,6 @@ const decodeSlackIntegrationSecrets = (
   }
 }
 
-const hasDeploymentChannelConfig = (agent?: Agent) =>
-  !!(
-    agent?.discordIntegration?.chatAppId ||
-    agent?.discordIntegration?.interactionsEndpointUrl ||
-    agent?.MSTeamsIntegration?.chatAppId ||
-    agent?.MSTeamsIntegration?.messagingEndpointUrl ||
-    agent?.slackIntegration?.chatAppId ||
-    agent?.slackIntegration?.messagingEndpointUrl
-  )
-
 const withAgentDefaults = (agent: Agent): Agent => ({
   ...agent,
   live: agent.live ?? false,
@@ -336,10 +326,7 @@ export async function update(agent: UpdateAgentRequest): Promise<Agent> {
   }
 
   const hasBeenPublished =
-    !!existing?.publishedAt ||
-    existing?.live === true ||
-    updated.live === true ||
-    hasDeploymentChannelConfig(updated)
+    !!existing?.publishedAt || existing?.live === true || updated.live === true
   updated.publishedAt = hasBeenPublished
     ? existing?.publishedAt || now
     : undefined
