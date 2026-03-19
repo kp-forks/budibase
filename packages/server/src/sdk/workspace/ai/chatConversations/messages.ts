@@ -12,19 +12,23 @@ const truncatePersistedText = (value: string) => {
 }
 
 const truncatePersistedToolValue = (value: unknown) => {
-  if (typeof value === "string") {
-    return truncatePersistedText(value)
-  }
+  try {
+    if (typeof value === "string") {
+      return truncatePersistedText(value)
+    }
 
-  const serialized = JSON.stringify(value)
-  if (!serialized || serialized.length <= MAX_PERSISTED_TOOL_TEXT_LENGTH) {
+    const serialized = JSON.stringify(value)
+    if (!serialized || serialized.length <= MAX_PERSISTED_TOOL_TEXT_LENGTH) {
+      return value
+    }
+
+    return {
+      truncated: true,
+      originalType: Array.isArray(value) ? "array" : typeof value,
+      preview: truncatePersistedText(serialized),
+    }
+  } catch (error) {
     return value
-  }
-
-  return {
-    truncated: true,
-    originalType: Array.isArray(value) ? "array" : typeof value,
-    preview: truncatePersistedText(serialized),
   }
 }
 

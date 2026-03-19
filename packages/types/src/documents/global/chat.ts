@@ -67,16 +67,6 @@ export interface ChatConversationRequest extends Document {
   channel?: ChatConversationChannel
 }
 
-export interface PrepareChatConversationForSaveParams {
-  chatId: string
-  chatAppId: string
-  userId: string
-  title?: string
-  messages: ChatConversation["messages"]
-  chat: Partial<ChatConversationRequest>
-  existingChat?: ChatConversation | null
-}
-
 export interface WebhookChatCompleteResult {
   messages: ChatConversation["messages"]
   assistantText: string
