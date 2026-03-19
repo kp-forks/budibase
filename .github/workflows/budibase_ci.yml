@@ -33,19 +33,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
 
       - name: Restore hoisted node_modules cache
         id: hoisted-modules-cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -58,7 +57,7 @@ jobs:
 
       - name: Save hoisted node_modules cache
         if: steps.hoisted-modules-cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             node_modules
@@ -70,17 +69,16 @@ jobs:
     needs: install-deps
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -94,7 +92,7 @@ jobs:
     needs: install-deps
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
           fetch-depth: 2
@@ -104,12 +102,11 @@ jobs:
         run: git fetch --no-tags --depth=1 origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -133,9 +130,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+        uses: actions/checkout@v6
 
       - name: Use Node.js 22.x
         uses: azure/setup-helm@v3
@@ -146,7 +141,7 @@ jobs:
     needs: install-deps
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
           fetch-depth: 2
@@ -156,10 +151,9 @@ jobs:
         run: git fetch --no-tags --depth=1 origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Pull testcontainers images
         run: |
           docker pull testcontainers/ryuk:0.5.1 &
@@ -169,7 +163,7 @@ jobs:
           wait $(jobs -p)
 
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -196,7 +190,7 @@ jobs:
       run_server_tests: ${{ steps.affected.outputs.run_server_tests }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
           fetch-depth: 2
@@ -206,12 +200,11 @@ jobs:
         run: git fetch --no-tags --depth=1 origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -256,19 +249,18 @@ jobs:
 
       - name: Checkout repo
         if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
         if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
         if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -349,20 +341,19 @@ jobs:
 
       - name: Checkout repo
         if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
         if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
 
       - name: Restore hoisted node_modules cache
         if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -454,17 +445,16 @@ jobs:
     if: inputs.run_as_oss != true  && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'Budibase/budibase')
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -486,17 +476,16 @@ jobs:
     needs: install-deps
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
@@ -522,7 +511,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -542,17 +531,16 @@ jobs:
     needs: install-deps
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.x
-          cache: yarn
       - name: Restore hoisted node_modules cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             node_modules
