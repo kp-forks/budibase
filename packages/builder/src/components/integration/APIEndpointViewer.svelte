@@ -1137,8 +1137,9 @@
                     ]}
                     context={bindingPreviewContext}
                     on:change={onUpdateBindings}
-                    actionButtonDisabled={!isCustomMode &&
-                      !selectedEndpointOption}
+                    actionButtonDisabled={isCustomMode
+                      ? !datasource
+                      : !selectedEndpointOption}
                   />
                 </Tab>
                 <Tab title="Params">
