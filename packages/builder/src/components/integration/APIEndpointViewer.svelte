@@ -67,6 +67,7 @@
     keyValueArrayToRecord,
     getDefaultRestAuthConfig,
     isAbsoluteUrl,
+    resolveUrlBindings,
   } from "./query"
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
@@ -286,8 +287,13 @@
   // Custom Mode Url Parsing
   $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
 
-  // Save button state
-  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(effectivePath ?? "")
+  // Save button state — resolve bindings before validating the URL so that
+  // e.g. {{baseUrl}} or {{Connection.Static.foo}} evaluate to their actual values.
+  $: resolvedEffectivePath = effectivePath
+    ? resolveUrlBindings(effectivePath, mergedBindings, bindingPreviewContext)
+    : ""
+
+  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(resolvedEffectivePath)
   $: existingQueryUnchanged = !isNewQuery && !queryDirty
   $: newQueryIncomplete =
     isNewQuery && (isCustomMode ? !effectivePath : !selectedEndpointOption)

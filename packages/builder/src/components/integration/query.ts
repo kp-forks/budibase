@@ -1,4 +1,4 @@
-import { findHBSBlocks } from "@budibase/string-templates"
+import { findHBSBlocks, processStringSync } from "@budibase/string-templates"
 import { v4 as uuid } from "uuid"
 import restUtils from "@/helpers/data/utils"
 import {
@@ -473,6 +473,22 @@ export function keyValueArrayToRecord(
     },
     {} as Record<string, any>
   )
+}
+
+/**
+ * Resolves an effective URL path. Two passes are needed to
+ * handle chained bindings where a context value itself contains a binding
+ * (e.g. {{tester}} -> "{{someStatic}}" -> "http://localhost:5001").
+ */
+export function resolveUrlBindings(
+  url: string,
+  mergedBindings: EnrichedBinding[],
+  bindingPreviewContext: Record<string, any>
+): string {
+  const runtimeUrl = readableToRuntimeBinding(mergedBindings, url)
+  const firstPass = processStringSync(runtimeUrl, bindingPreviewContext)
+  // We do something similar in the query processor
+  return processStringSync(firstPass, bindingPreviewContext)
 }
 
 export function isAbsoluteUrl(url: string): boolean {

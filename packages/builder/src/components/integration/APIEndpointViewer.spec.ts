@@ -188,6 +188,25 @@ const REST_DS_WITH_URL: Datasource = {
   config: { ...REST_DS.config, url: "https://api.example.com" },
 }
 
+const REST_DS_WITH_STATIC_VAR: Datasource = {
+  ...REST_DS,
+  config: {
+    ...REST_DS.config,
+    staticVariables: { serverUrl: "https://api.example.com" },
+  },
+}
+
+const REST_DS_WITH_CHAINED_STATIC_VAR: Datasource = {
+  ...REST_DS,
+  config: {
+    ...REST_DS.config,
+    staticVariables: {
+      target: "{{ serverUrl }}",
+      serverUrl: "https://api.example.com",
+    },
+  },
+}
+
 const REST_DS_2_WITH_URL: Datasource = {
   _id: REST_DS_ID_2,
   _rev: "1-abcdef0123456789abcdef0123456789",
@@ -1042,6 +1061,40 @@ describe("API Endpoint Viewer", () => {
         // does not add .is-disabled on the wrapper when enabled
         const tabsWrapper = container.querySelector(".spectrum-Tabs")
         expect(tabsWrapper?.classList.contains("is-disabled")).toBeFalsy()
+      })
+    })
+
+    it("Save button is enabled when URL contains a binding that resolves to a valid URL", async () => {
+      await setupDatasources(REST_DS_WITH_STATIC_VAR)
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+      const urlInput = container.querySelector(".url-input") as HTMLInputElement
+      await fireEvent.input(urlInput, {
+        target: { value: "{{Connection.Static.serverUrl}}/api/health" },
+      })
+      await waitFor(() => {
+        expect(
+          getSaveButton(container)?.classList.contains("is-disabled")
+        ).toBe(false)
+      })
+    })
+
+    it("Save button is enabled when URL contains a chained binding that resolves to a valid URL", async () => {
+      await setupDatasources(REST_DS_WITH_CHAINED_STATIC_VAR)
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+      const urlInput = container.querySelector(".url-input") as HTMLInputElement
+      await fireEvent.input(urlInput, {
+        target: { value: "{{Connection.Static.target}}/api/health" },
+      })
+      await waitFor(() => {
+        expect(
+          getSaveButton(container)?.classList.contains("is-disabled")
+        ).toBe(false)
       })
     })
 
