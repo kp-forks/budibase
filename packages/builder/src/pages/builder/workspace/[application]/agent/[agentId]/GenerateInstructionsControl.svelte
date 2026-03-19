@@ -13,13 +13,25 @@
   import CodeEditor from "@/components/common/CodeEditor/CodeEditor.svelte"
   import { EditorModes } from "@/components/common/CodeEditor"
 
-  export let aiconfigId = ""
-  export let agentName = ""
-  export let goal = ""
-  export let toolReferences: string[] = []
-  export let promptBindings: EnrichedBinding[] = []
-  export let bindingIcons: Record<string, string | undefined> = {}
-  export let onApplyInstructions: (_instructions: string) => void = () => {}
+  interface Props {
+    aiconfigId?: string
+    agentName?: string
+    goal?: string
+    toolReferences?: string[]
+    promptBindings?: EnrichedBinding[]
+    bindingIcons?: Record<string, string | undefined>
+    onApplyInstructions?: (_instructions: string) => void
+  }
+
+  let {
+    aiconfigId = "",
+    agentName = "",
+    goal = "",
+    toolReferences = [],
+    promptBindings = [],
+    bindingIcons = {},
+    onApplyInstructions = () => {},
+  }: Props = $props()
 
   let enabled = $derived(!!$featureFlags[FeatureFlag.AI_AGENT_INSTRUCTIONS])
   let modal = $state<Modal>()
