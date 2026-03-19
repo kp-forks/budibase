@@ -1586,7 +1586,7 @@
   }
   .query-name-input:empty::before {
     content: attr(data-placeholder);
-    color: var(--spectrum-global-color-gray-900);
+    color: var(--spectrum-global-color-gray-500);
   }
   .query-name-input:focus {
     outline: none;
