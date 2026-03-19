@@ -255,7 +255,9 @@
   const handleToggleLive = async () => {
     try {
       changingStatus = true
-      await automationStore.actions.toggleDisabled(automation._id!)
+      await automationStore.actions.toggleDisabled(automation._id!, {
+        publish: true,
+      })
     } finally {
       changingStatus = false
     }
