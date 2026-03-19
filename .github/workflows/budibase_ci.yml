@@ -89,7 +89,10 @@ jobs:
 
   build:
     runs-on: ubuntu-24.04
-    needs: install-deps
+    needs:
+      - install-deps
+      - compute-affected-jobs
+    if: needs.compute-affected-jobs.outputs.run_build == 'true'
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
@@ -138,7 +141,10 @@ jobs:
 
   test-libraries:
     runs-on: ubuntu-24.04
-    needs: install-deps
+    needs:
+      - install-deps
+      - compute-affected-jobs
+    if: needs.compute-affected-jobs.outputs.run_test_libraries == 'true'
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
@@ -181,11 +187,13 @@ jobs:
             yarn test -- --scope=@budibase/builder --scope=@budibase/client --scope=@budibase/frontend-core --no-prefix
           fi
 
-  check-affected-tests-to-run:
-    name: Check affected tests to run
+  compute-affected-jobs:
+    name: Compute affected jobs
     runs-on: ubuntu-24.04
     needs: install-deps
     outputs:
+      run_build: ${{ steps.affected.outputs.run_build }}
+      run_test_libraries: ${{ steps.affected.outputs.run_test_libraries }}
       run_worker_tests: ${{ steps.affected.outputs.run_worker_tests }}
       run_server_tests: ${{ steps.affected.outputs.run_server_tests }}
     steps:
@@ -215,12 +223,26 @@ jobs:
       - name: Check affected tests
         id: affected
         run: |
+          # Defaults for non-PR workflows.
+          RUN_BUILD="true"
+          RUN_TEST_LIBRARIES="true"
           # This gates whole package test jobs (worker/server) based on Nx affected projects.
           # Example: if a PR changes only FE projects, server/worker test jobs are skipped.
           RUN_WORKER_TESTS="true"
           RUN_SERVER_TESTS="true"
 
           if ${{ env.ONLY_AFFECTED_TASKS }}; then
+            AFFECTED_BUILD=$(yarn --silent nx show projects --affected -t build --base=${{ env.NX_BASE_BRANCH }})
+            if [ -z "$AFFECTED_BUILD" ]; then
+              RUN_BUILD="false"
+            fi
+
+            # test-libraries excludes dedicated server and worker test jobs
+            AFFECTED_LIBRARY_TESTS=$(yarn --silent nx show projects --affected -t test --base=${{ env.NX_BASE_BRANCH }} | grep -Ev '^(@budibase/server|@budibase/worker|server-.+-tests)$' || true)
+            if [ -z "$AFFECTED_LIBRARY_TESTS" ]; then
+              RUN_TEST_LIBRARIES="false"
+            fi
+
             AFFECTED_WORKER=$(yarn --silent nx show projects --affected -t test --base=${{ env.NX_BASE_BRANCH }} -p @budibase/worker)
             if [ -z "$AFFECTED_WORKER" ]; then
               RUN_WORKER_TESTS="false"
@@ -232,8 +254,12 @@ jobs:
             fi
           fi
 
+          echo "run_build=$RUN_BUILD" >> $GITHUB_OUTPUT
+          echo "run_test_libraries=$RUN_TEST_LIBRARIES" >> $GITHUB_OUTPUT
           echo "run_worker_tests=$RUN_WORKER_TESTS" >> $GITHUB_OUTPUT
           echo "run_server_tests=$RUN_SERVER_TESTS" >> $GITHUB_OUTPUT
+          echo "run_build=$RUN_BUILD"
+          echo "run_test_libraries=$RUN_TEST_LIBRARIES"
           echo "run_worker_tests=$RUN_WORKER_TESTS"
           echo "run_server_tests=$RUN_SERVER_TESTS"
 
@@ -241,25 +267,25 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - install-deps
-      - check-affected-tests-to-run
+      - compute-affected-jobs
     steps:
       - name: Skip worker tests
-        if: needs.check-affected-tests-to-run.outputs.run_worker_tests != 'true'
+        if: needs.compute-affected-jobs.outputs.run_worker_tests != 'true'
         run: echo "Skipping worker tests because @budibase/worker is not affected."
 
       - name: Checkout repo
-        if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
       - name: Restore hoisted node_modules cache
-        if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
         uses: actions/cache/restore@v5
         with:
           path: |
@@ -268,7 +294,7 @@ jobs:
           key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
           fail-on-cache-miss: true
       - name: Test worker
-        if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
         run: |
           cd packages/worker
           yarn test --reporters=default --reporters=github-actions
@@ -277,7 +303,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - install-deps
-      - check-affected-tests-to-run
+      - compute-affected-jobs
     strategy:
       matrix:
         include:
@@ -336,23 +362,23 @@ jobs:
             shard_total: 4
     steps:
       - name: Skip server tests
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests != 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests != 'true'
         run: echo "Skipping server tests because @budibase/server is not affected."
 
       - name: Checkout repo
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
 
       - name: Use Node.js 22.x
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
 
       - name: Restore hoisted node_modules cache
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         uses: actions/cache/restore@v5
         with:
           path: |
@@ -362,14 +388,14 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Load dotenv
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         id: dotenv
         uses: falti/dotenv-action@v1.2.0
         with:
           path: ./packages/server/images-sha.env
 
       - name: Pull testcontainers images
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         run: |
           if [ "${{ matrix.datasource }}" == "mssql" ]; then
             docker pull mcr.microsoft.com/mssql/server@${{ steps.dotenv.outputs.MSSQL_SHA }}
@@ -400,11 +426,11 @@ jobs:
           wait $(jobs -p)
 
       - name: Build client library - necessary for component tests
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true' && matrix.datasource == 'none'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true' && matrix.datasource == 'none'
         run: yarn build:client
 
       - name: Test server
-        if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
+        if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         env:
           DATASOURCE: ${{ matrix.datasource }}
           JEST_SHARD_INDEX: ${{ matrix.shard_index }}
