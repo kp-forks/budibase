@@ -936,12 +936,20 @@ Any constraints the agent must follow.
     showCancelButton={false}
   >
     {#if generatedInstructions}
-      <TextArea
-        label="Generated instructions"
-        value={generatedInstructions}
-        minHeight={220}
-        readonly
-      />
+      <div class="generated-instructions-preview">
+        <CodeEditor
+          value={generatedInstructions}
+          bindings={promptBindings}
+          bindingIcons={readableToIcon}
+          mode={EditorModes.Handlebars}
+          renderBindingsAsTags={true}
+          renderMarkdownDecorations={true}
+          placeholder=""
+          on:change={event => {
+            generatedInstructions = event.detail || ""
+          }}
+        />
+      </div>
       <div class="generate-instructions-actions">
         <Button secondary on:click={hideGenerateInstructionsModal}
           >Cancel</Button
@@ -1200,6 +1208,13 @@ Any constraints the agent must follow.
     justify-content: flex-end;
     gap: var(--spacing-s);
     margin-top: var(--spacing-m);
+  }
+
+  .generated-instructions-preview {
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 220px;
   }
 
   .llm-header > :global(.spectrum-Body):first-child {
