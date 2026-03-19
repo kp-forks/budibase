@@ -40,6 +40,9 @@
     if ($isActive("./deployment")) {
       return "Deployment"
     }
+    if ($isActive("./logs")) {
+      return "Logs"
+    }
     return "Configuration"
   })
   let currentAgent = $derived($selectedAgent)
@@ -85,7 +88,7 @@
 <div class="config-wrapper">
   <TopBar
     breadcrumbs={[
-      { text: "Agents", url: "../" },
+      { text: "Agents", url: "../", tag: "Beta" },
       { text: currentAgent?.name || "Agent" },
     ]}
     icon="Effect"
@@ -115,13 +118,23 @@
       >
         Deployment
       </ActionButton>
+      <ActionButton
+        quiet
+        selected={activeTab === "Logs"}
+        on:click={() => $goto("./logs")}
+      >
+        Logs
+      </ActionButton>
     </div>
     <div class="start-pause-row">
       <div class="status-icons">
         <Icon
           tooltip="Documentation"
           on:click={() =>
-            window.open("https://docs.budibase.com/docs/agents", "_blank")}
+            window.open(
+              "https://docs.budibase.com/docs/agent-building-101",
+              "_blank"
+            )}
           name="info"
           size="M"
           color="var(--spectrum-global-color-gray-600)"
@@ -139,21 +152,32 @@
       >
     </div>
   </div>
-  <div class="config-page">
-    <div class=" config-content">
+  <div class="config-page" class:full-width={activeTab === "Logs"}>
+    <div
+      class="config-content"
+      class:full-width={activeTab === "Logs"}
+      class:logs-tab={activeTab === "Logs"}
+    >
       <div class="config-form">
-        <!-- svelte-ignore slot_element_deprecated -->
-        <Layout gap="L">
+        {#if activeTab === "Logs"}
+          <!-- svelte-ignore slot_element_deprecated -->
           <slot />
-        </Layout>
+        {:else}
+          <!-- svelte-ignore slot_element_deprecated -->
+          <Layout gap="L">
+            <slot />
+          </Layout>
+        {/if}
       </div>
     </div>
-    <div class="config-preview">
-      <AgentChatPanel
-        agentId={currentAgent?._id}
-        workspaceId={$params.application || ""}
-      />
-    </div>
+    {#if activeTab !== "Logs"}
+      <div class="config-preview">
+        <AgentChatPanel
+          agentId={currentAgent?._id}
+          workspaceId={$params.application || ""}
+        />
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -182,6 +206,23 @@
     min-width: 0;
     overflow-y: auto;
     scrollbar-width: thin;
+  }
+
+  .config-page.full-width {
+    grid-template-columns: 1fr;
+  }
+
+  .config-content.full-width {
+    grid-column: 1 / -1;
+    padding: var(--spacing-xl) var(--spacing-xl) 20px;
+  }
+
+  .config-content.full-width.logs-tab {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   .config-content::-webkit-scrollbar {
@@ -302,7 +343,6 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    gap: var(--spectrum-alias-grid-gutter-medium);
   }
 
   :global(.section) {

@@ -1,14 +1,14 @@
 import { VectorDbProvider } from "@budibase/types"
-import { buildPgVectorDbConfig } from "./pgVectorDb"
+import { buildPgVectorDbConfig, resolvePgVectorDbConfig } from "./pgVectorDb"
 import type { VectorDb as VectorDbClient } from "./types"
 import { utils } from "@budibase/shared-core"
 import sdk from "../../.."
 
 export const createVectorDb = async ({
-  agentId,
+  namespaceId,
   vectorDbId,
 }: {
-  agentId: string
+  namespaceId: string
   vectorDbId: string | undefined
 }): Promise<VectorDbClient> => {
   if (!vectorDbId) {
@@ -21,8 +21,8 @@ export const createVectorDb = async ({
   }
   switch (vectorDb.provider) {
     case VectorDbProvider.PGVECTOR:
-      return buildPgVectorDbConfig(vectorDb, {
-        agentId,
+      return buildPgVectorDbConfig(await resolvePgVectorDbConfig(vectorDb), {
+        namespaceId,
       })
 
     default:

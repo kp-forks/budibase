@@ -1,7 +1,16 @@
 import { VectorDbProvider, type VectorDb as VectorDbDoc } from "@budibase/types"
 import * as crypto from "crypto"
 import { Client } from "pg"
-import { context, db as dbCore, tenancy } from "@budibase/backend-core"
+import {
+  context,
+  db as dbCore,
+  HTTPError,
+  tenancy,
+} from "@budibase/backend-core"
+import {
+  isEnvironmentVariableKey,
+  processEnvironmentVariable,
+} from "../../../utils"
 import type {
   ChunkInput,
   PgVectorDbConfig,
@@ -12,11 +21,11 @@ import type {
 const vectorLiteral = (values: number[]) =>
   `[${values.map(value => Number(value) || 0).join(",")}]`
 
-const TABLE_PREFIX = "bb_agent_chunks_"
+const TABLE_PREFIX = "bb_chunks_"
 const TABLE_HASH_LENGTH = 10
 
-const buildAgentTableName = (agentId: string) => {
-  const normalized = agentId
+const buildAgentTableName = (namespaceId: string) => {
+  const normalized = namespaceId
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
@@ -24,7 +33,7 @@ const buildAgentTableName = (agentId: string) => {
   const prodWorkspaceId = dbCore.getProdWorkspaceID(currentWorkspaceId)
   const hash = crypto
     .createHash("sha256")
-    .update(`${tenancy.getTenantId()}:${prodWorkspaceId}:${agentId}`)
+    .update(`${tenancy.getTenantId()}:${prodWorkspaceId}:${namespaceId}`)
     .digest("hex")
     .slice(0, TABLE_HASH_LENGTH)
   const maxBaseLength = 63 - TABLE_PREFIX.length - 1 - TABLE_HASH_LENGTH
@@ -41,14 +50,74 @@ const buildPgConnectionString = (config: VectorDbDoc) => {
   return `postgresql://${auth}${config.host}:${config.port}/${config.database}`
 }
 
+const resolvePort = async (portConfig: string | number): Promise<number> => {
+  if (typeof portConfig === "number") {
+    return portConfig
+  }
+
+  if (!isEnvironmentVariableKey(portConfig)) {
+    return Number(portConfig)
+  }
+
+  const envVariableValue = await processEnvironmentVariable(portConfig)
+  return Number(envVariableValue)
+}
+
+export const resolvePgVectorDbConfig = async (config: VectorDbDoc) => {
+  return {
+    ...config,
+    host: await processEnvironmentVariable(config.host),
+    port: await resolvePort(config.port),
+    database: await processEnvironmentVariable(config.database),
+    user: config.user
+      ? await processEnvironmentVariable(config.user)
+      : config.user,
+    password: config.password
+      ? await processEnvironmentVariable(config.password)
+      : config.password,
+  }
+}
+
+export const validatePgVectorDbConfig = async (config: VectorDbDoc) => {
+  const client = new Client({
+    connectionString: buildPgConnectionString(config),
+  })
+
+  try {
+    await client.connect()
+    await client.query("SELECT 1")
+    const result = await client.query(
+      "SELECT 1 FROM pg_extension WHERE extname = 'vector' LIMIT 1"
+    )
+
+    if (!result.rowCount) {
+      throw new HTTPError(
+        "The target PostgreSQL database does not have the pgvector extension installed",
+        400
+      )
+    }
+  } catch (err: any) {
+    if (err instanceof HTTPError) {
+      throw err
+    }
+    throw new HTTPError(
+      "Could not validate the configuration: " +
+        (err?.message || "Failed to connect to the vector database"),
+      400
+    )
+  } finally {
+    await client.end()
+  }
+}
+
 export const buildPgVectorDbConfig = (
   config: VectorDbDoc,
-  options: { agentId: string }
+  options: { namespaceId: string }
 ) => {
   return new PgVectorDb({
     provider: VectorDbProvider.PGVECTOR,
     databaseUrl: buildPgConnectionString(config),
-    tableName: buildAgentTableName(options.agentId),
+    tableName: buildAgentTableName(options.namespaceId),
   })
 }
 

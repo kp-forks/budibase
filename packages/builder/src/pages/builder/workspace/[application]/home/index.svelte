@@ -17,7 +17,8 @@
     workspaceFavouriteStore,
   } from "@/stores/builder"
   import { API } from "@/api"
-  import { agentsStore, auth, featureFlags } from "@/stores/portal"
+  import { agentsStore, auth, featureFlags, licensing } from "@/stores/portal"
+  import EnterpriseBasicTrialBanner from "@/components/portal/licensing/EnterpriseBasicTrialBanner.svelte"
   import { buildLiveUrl } from "@/helpers/urls"
   import {
     ActionMenu,
@@ -33,7 +34,6 @@
     Tag,
   } from "@budibase/bbui"
   import {
-    FeatureFlag,
     type GetWorkspaceHomeMetricsResponse,
     type UIAutomation,
     type UIWorkspaceApp,
@@ -49,11 +49,7 @@
   } from "@budibase/types"
   import CreateTableModal from "@/components/backend/TableNavigator/modals/CreateTableModal.svelte"
   import { getHomeTypeIcon, getHomeTypeIconColor } from "./_components/rows"
-  import {
-    beforeUrlChange,
-    goto as gotoStore,
-    url as urlStore,
-  } from "@roxi/routify"
+  import { goto as gotoStore, url as urlStore } from "@roxi/routify"
   import { onMount } from "svelte"
   import {
     buildHomeRows,
@@ -62,10 +58,6 @@
   } from "./_components/rows"
 
   import UpdateAgentModal from "../_components/UpdateAgentModal.svelte"
-
-  type HomeCreate = "app" | "automation" | "agent"
-
-  $beforeUrlChange
 
   $: goto = $gotoStore
   $: url = $urlStore
@@ -137,47 +129,6 @@
     return null
   }
 
-  const normaliseCreate = (value: string | null): HomeCreate | null => {
-    if (!value) {
-      return null
-    }
-    if (value === "app" || value === "automation") {
-      return value
-    }
-    if (value === "agent" && $featureFlags.AI_AGENTS) {
-      return value
-    }
-    return null
-  }
-
-  const consumeCreateParam = (urlString?: string) => {
-    if (typeof window === "undefined") {
-      return
-    }
-
-    const parsed = new URL(urlString ?? window.location.href)
-    const create = normaliseCreate(parsed.searchParams.get("create"))
-    if (!create) {
-      return
-    }
-
-    if (create === "automation") {
-      createAutomation()
-    } else if (create === "app") {
-      createApp()
-    } else if (create === "agent") {
-      createAgent()
-    }
-
-    parsed.searchParams.delete("create")
-    const query = parsed.searchParams.toString()
-    history.replaceState(
-      {},
-      "",
-      `${parsed.pathname}${query ? `?${query}` : ""}`
-    )
-  }
-
   const normaliseSortColumn = (value: string | null): HomeSortColumn | null => {
     if (!value) {
       return null
@@ -208,7 +159,6 @@
       return {
         q: "",
         type: null as HomeType | null,
-        create: null as HomeCreate | null,
         sort: null as HomeSortColumn | null,
         order: null as HomeSortOrder | null,
       }
@@ -218,8 +168,7 @@
     const type = normaliseType(params.get("type"))
     const sort = normaliseSortColumn(params.get("sort"))
     const order = normaliseSortOrder(params.get("order"))
-    const create = normaliseCreate(params.get("create"))
-    return { q, type, sort, order, create }
+    return { q, type, sort, order }
   }
 
   const writeUrlState = () => {
@@ -230,7 +179,6 @@
     const params = new URLSearchParams(window.location.search)
 
     params.delete("create")
-
     const q = searchTerm.trim()
     if (!q) {
       params.delete("q")
@@ -260,31 +208,6 @@
     const next = `${window.location.pathname}${query ? `?${query}` : ""}`
     history.replaceState({}, "", next)
   }
-
-  $beforeUrlChange((event: { url?: string } | undefined) => {
-    if (typeof window === "undefined") {
-      return true
-    }
-
-    const nextUrl = typeof event?.url === "string" ? event.url : ""
-    if (!nextUrl) {
-      return true
-    }
-
-    const parsed = new URL(nextUrl, window.location.origin)
-    if (!parsed.pathname.endsWith("/home")) {
-      return true
-    }
-
-    if (!parsed.searchParams.get("create")) {
-      return true
-    }
-
-    setTimeout(() => {
-      consumeCreateParam(parsed.toString())
-    }, 0)
-    return true
-  })
 
   const setTypeFilter = (value: string) => {
     const normalised = normaliseType(value)
@@ -625,16 +548,17 @@
 
   $: filteredRows = filterHomeRows({ rows: allRows, typeFilter, searchTerm })
 
+  $: showHeaderActions = $licensing.showTrialBanner
+  $: budibaseAICreditLimit =
+    $licensing.license?.quotas?.usage.monthly.budibaseAICredits?.value
+  $: showBudibaseAIMetric =
+    budibaseAICreditLimit != null && budibaseAICreditLimit !== 0
+
   $: if (hasMounted) writeUrlState()
 
   onMount(async () => {
     const workspaceId = $appStore.appId
     if (!workspaceId) {
-      return
-    }
-
-    if (!$featureFlags[FeatureFlag.WORKSPACE_HOME]) {
-      goto(url("../design"))
       return
     }
 
@@ -653,7 +577,6 @@
     }
 
     hasMounted = true
-    consumeCreateParam()
     writeUrlState()
 
     await Promise.all([
@@ -675,23 +598,14 @@
         >
       </div>
 
-      {#if $featureFlags.AI_AGENTS && $featureFlags.AI_CHAT}
+      {#if showHeaderActions}
         <div class="header-actions">
-          <a href={url("../chat")} class="header-link header-link--with-icons">
-            <Icon name="chat-circle" size="XS" color="#8CA171" weight="fill" />
-            <Body size="S">Agent chat</Body>
-            <Icon
-              name="arrow-up-right"
-              size="XS"
-              color="var(--spectrum-global-color-gray-600)"
-              weight="regular"
-            />
-          </a>
+          <EnterpriseBasicTrialBanner show={$licensing.showTrialBanner} />
         </div>
       {/if}
     </div>
 
-    <HomeMetrics {metrics} agentsEnabled={$featureFlags.AI_AGENTS} />
+    <HomeMetrics {metrics} {showBudibaseAIMetric} />
 
     <div class="controls-row">
       <HomeControls
@@ -764,6 +678,7 @@
     <HomeTable
       rows={filteredRows}
       allRowsCount={allRows.length}
+      agentsEnabled={$featureFlags.AI_AGENTS}
       {typeFilter}
       {searchTerm}
       {sortColumn}
@@ -774,6 +689,9 @@
       on:clearSearch={() => (searchTerm = "")}
       on:resetFilters={() => (typeFilter = "all")}
       on:sortChange={({ detail }) => setSort(detail)}
+      on:createAgent={createAgent}
+      on:createAutomation={createAutomation}
+      on:createApp={createApp}
     />
   </div>
 </div>
