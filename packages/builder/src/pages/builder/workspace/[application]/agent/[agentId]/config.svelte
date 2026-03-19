@@ -116,6 +116,7 @@ Any constraints the agent must follow.
   let generateInstructionsPrompt = $state("")
   let generatedInstructions = $state("")
   let generatingInstructions = $state(false)
+  let generateInstructionsRequestToken = $state(0)
   let lastWebSearchConfigId: string | undefined = $state()
   let pendingWebSearchInsert = $state(false)
   let webSearchConfig = $derived(
@@ -637,9 +638,15 @@ Any constraints the agent must follow.
     webSearchConfigModal?.show()
   }
 
+  function resetGenerateInstructionsState() {
+    generateInstructionsRequestToken += 1
+    generateInstructionsPrompt = ""
+    generatedInstructions = ""
+    generatingInstructions = false
+  }
+
   function hideGenerateInstructionsModal() {
     generateInstructionsModal?.hide()
-    generatedInstructions = ""
   }
 
   function applyGeneratedInstructions() {
@@ -653,6 +660,8 @@ Any constraints the agent must follow.
       return
     }
 
+    const requestToken = ++generateInstructionsRequestToken
+
     generatingInstructions = true
 
     try {
@@ -664,16 +673,25 @@ Any constraints the agent must follow.
         toolReferences: enabledToolReferences,
       })
 
+      if (requestToken !== generateInstructionsRequestToken) {
+        return
+      }
+
       notifications.success("Instructions generated successfully")
       generatedInstructions = instructions
     } catch (error: any) {
+      if (requestToken !== generateInstructionsRequestToken) {
+        return
+      }
       notifications.error(
         error?.message ||
           error?.json?.message ||
           "Error generating instructions"
       )
     } finally {
-      generatingInstructions = false
+      if (requestToken === generateInstructionsRequestToken) {
+        generatingInstructions = false
+      }
     }
   }
 
@@ -922,9 +940,7 @@ Any constraints the agent must follow.
     await tick()
     generateInstructionsPromptField?.focus()
   }}
-  on:hide={() => {
-    generatedInstructions = ""
-  }}
+  on:hide={resetGenerateInstructionsState}
 >
   <ModalContent
     title={generatedInstructions
