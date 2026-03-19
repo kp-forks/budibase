@@ -107,7 +107,7 @@ vi.mock("@/stores/builder/integrations", async () => {
 
 vi.mock("@/stores/builder/restTemplates", async () => {
   const { writable } = await import("svelte/store")
-  return { restTemplates: writable({}) }
+  return { restTemplates: { ...writable({}), get: vi.fn().mockReturnValue(undefined) } }
 })
 
 vi.mock("@/stores/builder/tables", async () => {
@@ -157,7 +157,7 @@ vi.mock("@/stores/builder", async () => {
 })
 
 // ---- Imports: use sub-module mocks directly so tests share the same instances ----
-import { datasources } from "@/stores/builder/datasources"
+import { datasources, hasRestTemplate } from "@/stores/builder/datasources"
 import { queries } from "@/stores/builder/queries"
 import { oauth2 } from "@/stores/builder/oauth2"
 import { screenStore } from "@/stores/builder"
@@ -853,6 +853,29 @@ describe("API Endpoint Viewer", () => {
     })
   })
 
+  describe("Bindings tab add button", () => {
+    const getAddBindingButton = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll("button")).find(b =>
+        b.textContent?.trim().includes("Add binding")
+      )
+
+    it("is disabled in custom mode when no datasource is selected", async () => {
+      const { container } = setupDOM()
+      await waitFor(() =>
+        expect(getAddBindingButton(container)).not.toBeUndefined()
+      )
+      expect(getAddBindingButton(container)).toBeDisabled()
+    })
+
+    it("is enabled in custom mode when a datasource is selected", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() => {
+        expect(getAddBindingButton(container)).not.toBeDisabled()
+      })
+    })
+
+  })
+
   describe("Response sidebar", () => {
     it("renders the sidebar", async () => {
       const { container } = setupDOM()
@@ -1000,6 +1023,24 @@ describe("API Endpoint Viewer", () => {
       })
     })
 
+    it("CustomEndpointInput is disabled when no datasource is selected", async () => {
+      const { container } = setupDOM()
+      await waitFor(() => {
+        expect(
+          container.querySelector(".input-wrap")?.classList.contains("is-disabled")
+        ).toBe(true)
+      })
+    })
+
+    it("CustomEndpointInput is enabled when a datasource is selected", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() => {
+        expect(
+          container.querySelector(".input-wrap")?.classList.contains("is-disabled")
+        ).toBe(false)
+      })
+    })
+
     it("Send button is disabled when no path is entered", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() => {
@@ -1113,6 +1154,149 @@ describe("API Endpoint Viewer", () => {
           | undefined
         // effectivePath = customBaseUrl + customPath = full original URL
         expect(saved?.fields?.path).toBe("https://api.example.com/api/users")
+      })
+    })
+  })
+
+  describe("Template mode", () => {
+    const TEMPLATE_QUERY: Query = {
+      ...SAVED_QUERY,
+      restTemplateMetadata: {
+        operationId: "getUsers",
+        originalPath: "/api/users",
+        description: "Get all users",
+      },
+    }
+
+    const TEMPLATE_QUERY_NO_ENDPOINT: Query = {
+      ...SAVED_QUERY,
+    }
+
+    beforeEach(() => {
+      vi.mocked(hasRestTemplate).mockReturnValue(true)
+      queries.store.update(s => ({ ...s, list: [TEMPLATE_QUERY] }))
+    })
+
+    afterEach(() => {
+      vi.mocked(hasRestTemplate).mockReturnValue(false)
+    })
+
+    it("renders endpoint Select instead of CustomEndpointInput", async () => {
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() => {
+        expect(container.querySelector(".url-input")).toBeNull()
+        expect(container.querySelector(".picker-button")).not.toBeNull()
+      })
+    })
+
+    it("Send button is disabled when no endpoint is selected", async () => {
+      queries.store.update(s => ({
+        ...s,
+        list: [TEMPLATE_QUERY_NO_ENDPOINT],
+      }))
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() => {
+        expect(
+          getSendButton(container)?.classList.contains("is-disabled")
+        ).toBe(true)
+      })
+    })
+
+    it("Send button is enabled when an endpoint is selected", async () => {
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() => {
+        expect(
+          getSendButton(container)?.classList.contains("is-disabled")
+        ).toBe(false)
+      })
+    })
+
+    it("Add binding button is disabled when no endpoint is selected", async () => {
+      queries.store.update(s => ({
+        ...s,
+        list: [TEMPLATE_QUERY_NO_ENDPOINT],
+      }))
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      const getAddBindingButton = () =>
+        Array.from(container.querySelectorAll("button")).find(b =>
+          b.textContent?.trim().includes("Add binding")
+        )
+      await waitFor(() => expect(getAddBindingButton()).not.toBeUndefined())
+      expect(getAddBindingButton()).toBeDisabled()
+    })
+
+    it("Add binding button is enabled when an endpoint is selected", async () => {
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      const getAddBindingButton = () =>
+        Array.from(container.querySelectorAll("button")).find(b =>
+          b.textContent?.trim().includes("Add binding")
+        )
+      await waitFor(() => {
+        expect(getAddBindingButton()).not.toBeDisabled()
+      })
+    })
+
+    it("Pagination tab is not shown", async () => {
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() =>
+        expect(
+          Array.from(container.querySelectorAll(".spectrum-Tabs-item")).find(t =>
+            t.textContent?.trim().includes("Bindings")
+          )
+        ).not.toBeUndefined()
+      )
+      expect(
+        Array.from(container.querySelectorAll(".spectrum-Tabs-item")).find(t =>
+          t.textContent?.trim().includes("Pagination")
+        )
+      ).toBeUndefined()
+    })
+
+    it("shows endpoint details when an endpoint is selected", async () => {
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() => {
+        expect(container.querySelector(".details")).not.toBeNull()
+      })
+    })
+
+    it("hides endpoint details when no endpoint is selected", async () => {
+      queries.store.update(s => ({
+        ...s,
+        list: [TEMPLATE_QUERY_NO_ENDPOINT],
+      }))
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      await waitFor(() =>
+        expect(container.querySelector(".picker-button")).not.toBeNull()
+      )
+      expect(container.querySelector(".details")).toBeNull()
+    })
+
+    it("isValidCustomUrl is always true — Save is not blocked by URL validation", async () => {
+      queries.store.update(s => ({
+        ...s,
+        list: [TEMPLATE_QUERY_NO_ENDPOINT],
+      }))
+      vi.mocked(API).saveQuery.mockResolvedValue({
+        ...TEMPLATE_QUERY_NO_ENDPOINT,
+        _rev: "2-updated",
+      })
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      // Dirty the query by changing the name
+      await waitFor(() =>
+        expect(container.querySelector(".query-name-input")).not.toBeNull()
+      )
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "New name" } })
+      await fireEvent.blur(nameEl)
+      // Save should not be blocked by URL validation even with no endpoint
+      // (it will be blocked by newQueryIncomplete for a new query, but this is
+      // an existing query so existingQueryUnchanged gates it instead)
+      await waitFor(() => {
+        expect(
+          getSaveButton(container)?.classList.contains("is-disabled")
+        ).toBe(false)
       })
     })
   })

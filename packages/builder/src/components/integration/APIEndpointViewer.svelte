@@ -1017,6 +1017,7 @@
       {#if isCustomMode}
         <div class="picker">
           <CustomEndpointInput
+            disabled={!datasource}
             verb={editableQuery?.queryVerb ?? "read"}
             url={customUrl}
             {baseUrlOptions}
@@ -1048,6 +1049,18 @@
           <Select
             on:change={e => {
               selectedEndpointOption = e.detail
+              if (!e.detail) {
+                endpoints = undefined
+                endpointLoadError = undefined
+                queryParams = undefined
+                originalBuiltQuery = undefined
+                if (editableQuery) {
+                  editableQuery = getSelectedQuery(
+                    "",
+                    editableQuery.datasourceId
+                  ) as Query
+                }
+              }
             }}
             value={selectedEndpointOption}
             options={endpointOptions}
@@ -1099,7 +1112,7 @@
   <div class="wrap">
     <div class="main">
       <Layout noPadding>
-        {#if !isCustomMode}
+        {#if !isCustomMode && selectedEndpointOption}
           <div class="details">
             <Layout noPadding gap="XS">
               <Heading size="XS">{selectedEndpointOption?.name || ""}</Heading>
