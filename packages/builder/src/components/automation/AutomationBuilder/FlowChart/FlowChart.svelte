@@ -104,8 +104,7 @@
 
   $: $automationStore.showTestModal === true && testDataModal.show()
 
-  $: isLive =
-    automation.publishStatus.state === PublishResourceState.PUBLISHED
+  $: isLive = automation.publishStatus.state === PublishResourceState.PUBLISHED
 
   // Memo auto - selectedAutomation
   $: memoAutomation.set($selectedAutomation.data || automation)

@@ -195,10 +195,7 @@
           </div>
 
           <div class="cell">
-            <Body
-              size="S"
-              color={getStatusColor(getRowStatusLabel(row))}
-            >
+            <Body size="S" color={getStatusColor(getRowStatusLabel(row))}>
               {getRowStatusLabel(row)}
             </Body>
           </div>

@@ -41,10 +41,7 @@
     try {
       changingStatus = true
 
-      await workspaceAppStore.toggleDisabled(
-        selectedWorkspaceApp._id!,
-        isLive
-      )
+      await workspaceAppStore.toggleDisabled(selectedWorkspaceApp._id!, isLive)
     } finally {
       changingStatus = false
     }

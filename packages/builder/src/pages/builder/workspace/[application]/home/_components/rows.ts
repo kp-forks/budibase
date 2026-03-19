@@ -90,7 +90,9 @@ const getUpdatedTimestamp = (row: HomeRow) => {
 
 const getStatusSortValue = (row: HomeRow) => {
   if (row.type === "app" || row.type === "automation") {
-    return getPublishResourceStatusLabel(row.resource.publishStatus).toLowerCase()
+    return getPublishResourceStatusLabel(
+      row.resource.publishStatus
+    ).toLowerCase()
   }
   return getAgentStatusLabel(row.resource).toLowerCase()
 }

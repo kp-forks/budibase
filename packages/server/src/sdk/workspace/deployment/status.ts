@@ -118,7 +118,8 @@ export async function status() {
   for (const workspaceApp of developmentState.workspaceApps) {
     const resourcePublishedAt =
       metadata?.resourcesPublishedAt?.[workspaceApp._id!]
-    const resourceDeployedAt = metadata?.resourcesDeployedAt?.[workspaceApp._id!]
+    const resourceDeployedAt =
+      metadata?.resourcesDeployedAt?.[workspaceApp._id!]
     const workspaceScreens = developmentState.screens.filter(
       screen => screen.workspaceAppId === workspaceApp._id
     )
