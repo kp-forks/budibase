@@ -89,12 +89,14 @@ export async function status() {
   ) => {
     const id = resource._id!
     const resourcePublishedAt = metadata?.resourcesPublishedAt?.[id]
+    const resourceDeployedAt = metadata?.resourcesDeployedAt?.[id]
     const isPublished = prodIds.has(id) || !!resourcePublishedAt
 
     map[id] = {
       published: isPublished,
       name: resource.name,
       publishedAt: resourcePublishedAt,
+      deployedAt: resourceDeployedAt,
       unpublishedChanges:
         !resourcePublishedAt || resource.updatedAt! > resourcePublishedAt,
       state: getPublishedState(resource, resourcePublishedAt),
@@ -116,6 +118,7 @@ export async function status() {
   for (const workspaceApp of developmentState.workspaceApps) {
     const resourcePublishedAt =
       metadata?.resourcesPublishedAt?.[workspaceApp._id!]
+    const resourceDeployedAt = metadata?.resourcesDeployedAt?.[workspaceApp._id!]
     const workspaceScreens = developmentState.screens.filter(
       screen => screen.workspaceAppId === workspaceApp._id
     )
@@ -123,6 +126,7 @@ export async function status() {
       published: prodWorkspaceAppIds.has(workspaceApp._id!),
       name: workspaceApp.name,
       publishedAt: resourcePublishedAt,
+      deployedAt: resourceDeployedAt,
       unpublishedChanges:
         !resourcePublishedAt ||
         !!workspaceScreens.find(
