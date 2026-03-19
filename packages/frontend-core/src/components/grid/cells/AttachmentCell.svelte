@@ -23,7 +23,8 @@
   let isOpen = false
   let anchor
 
-  $: openable = focused || readonly
+  $: hasAttachments = Array.isArray(value) && value.length > 0
+  $: openable = readonly ? hasAttachments : focused
   $: {
     if (!focused) {
       close()
@@ -35,6 +36,9 @@
   }
 
   const open = () => {
+    if (!openable) {
+      return
+    }
     isOpen = true
   }
 
