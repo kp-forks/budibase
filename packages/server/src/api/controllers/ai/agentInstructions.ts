@@ -21,8 +21,6 @@ export async function generateAgentInstructions(
     ctx.throw(400, "Missing required field: prompt")
   }
 
-  console.log("Generate agent instructions prompt:", prompt)
-
   const instructions = await sdk.ai.generateAgentInstructions({
     aiconfigId,
     prompt,
