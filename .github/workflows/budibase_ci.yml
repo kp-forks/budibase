@@ -43,18 +43,27 @@ jobs:
           node-version: 22.x
           cache: yarn
 
-      - name: Install dependencies
-        run: yarn --frozen-lockfile
-
-      - name: Upload node_modules artifact
-        uses: actions/upload-artifact@v4
+      - name: Restore hoisted node_modules cache
+        id: hoisted-modules-cache-restore
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
           path: |
             node_modules
             packages/*/node_modules
-          if-no-files-found: warn
-          retention-days: 1
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+
+      - name: Install dependencies
+        if: steps.hoisted-modules-cache-restore.outputs.cache-hit != 'true'
+        run: yarn --frozen-lockfile
+
+      - name: Save hoisted node_modules cache
+        if: steps.hoisted-modules-cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
 
   lint:
     runs-on: ubuntu-24.04
@@ -70,10 +79,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - run: yarn lint
 
   build:
@@ -95,10 +108,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       # Run build all the projects
       - name: Build
@@ -151,10 +168,14 @@ jobs:
 
           wait $(jobs -p)
 
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       - name: Test
         run: |
@@ -189,10 +210,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       - name: Check affected tests
         id: affected
@@ -241,11 +266,15 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
+      - name: Restore hoisted node_modules cache
         if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - name: Test worker
         if: needs.check-affected-tests-to-run.outputs.run_worker_tests == 'true'
         run: |
@@ -331,11 +360,15 @@ jobs:
           node-version: 22.x
           cache: yarn
 
-      - name: Download node_modules artifact
+      - name: Restore hoisted node_modules cache
         if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       - name: Load dotenv
         if: needs.check-affected-tests-to-run.outputs.run_server_tests == 'true'
@@ -430,10 +463,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
       - run: yarn install
       - name: Check for yarn.lock changes
         run: |
@@ -458,10 +495,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       - name: Generate OpenAPI specs
         run: yarn build:specs
@@ -510,10 +551,14 @@ jobs:
         with:
           node-version: 22.x
           cache: yarn
-      - name: Download node_modules artifact
-        uses: actions/download-artifact@v4
+      - name: Restore hoisted node_modules cache
+        uses: actions/cache/restore@v4
         with:
-          name: node-modules
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-node22-hoisted-node-modules-${{ hashFiles('yarn.lock') }}
+          fail-on-cache-miss: true
 
       - name: Build client library
         run: yarn build:client
