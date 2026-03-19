@@ -79,7 +79,6 @@
     "@types/maildev": "^0.0.7",
     "@types/node-fetch": "2.6.4",
     "@types/nodemailer": "^6.4.17",
-    "@types/server-destroy": "1.0.1",
     "@types/supertest": "2.0.14",
     "@types/uuid": "8.3.4",
     "cheerio": "^1.0.0",
