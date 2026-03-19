@@ -23,7 +23,7 @@
   let isOpen = false
   let anchor
 
-  $: openable = focused
+  $: openable = focused || readonly
   $: {
     if (!focused) {
       close()

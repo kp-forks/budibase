@@ -8,7 +8,6 @@
   export let label: string | undefined = undefined
   export let labelPosition: "above" = "above"
   export let disabled: boolean = false
-  export let readonly: boolean = false
   export let error: string | undefined | false = undefined
   export let fileSizeLimit: number | undefined = undefined
   export let processFiles:
@@ -38,7 +37,6 @@
 <Field {helpText} {label} {labelPosition} {error}>
   <CoreDropzone
     {disabled}
-    {readonly}
     {value}
     {fileSizeLimit}
     {processFiles}

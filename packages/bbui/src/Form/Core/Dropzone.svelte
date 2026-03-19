@@ -17,7 +17,6 @@
   export let value: Value[] = []
   export let id: string | null = null
   export let disabled: boolean = false
-  export let readonly: boolean = false
   export let compact: boolean = false
   export let fileSizeLimit: number = BYTES_IN_MB * 20
   export let processFiles: ((_files: FileList) => Promise<Value[]>) | null =
@@ -57,7 +56,6 @@
   let fileInput: HTMLInputElement
   let loading = false
 
-  $: mutationDisabled = disabled || readonly
   $: selectedImage = value?.[selectedImageIdx] ?? null
   $: fileCount = value?.length ?? 0
   $: isImage =
@@ -83,8 +81,7 @@
   }
 
   $: showDropzone =
-    (!maximum || (maximum && (value?.length || 0) < maximum)) &&
-    !mutationDisabled
+    (!maximum || (maximum && (value?.length || 0) < maximum)) && !disabled
 
   async function processFileList(fileList: FileList) {
     if (
@@ -118,9 +115,6 @@
   }
 
   async function removeFile() {
-    if (mutationDisabled) {
-      return
-    }
     dispatch(
       "change",
       value.filter((_x, idx) => idx !== selectedImageIdx)
@@ -145,9 +139,6 @@
   }
 
   function handleFile(evt: Event) {
-    if (mutationDisabled) {
-      return
-    }
     const target = evt.target as HTMLInputElement
 
     if (target?.files) {
@@ -166,9 +157,6 @@
   }
 
   function handleDrop(evt: DragEvent) {
-    if (mutationDisabled) {
-      return
-    }
     evt.preventDefault()
     if (evt.dataTransfer?.files) {
       processFileList(evt.dataTransfer.files)
@@ -207,7 +195,7 @@
                 )} MB`}{/if}
             </div>
           {/if}
-          {#if !mutationDisabled}
+          {#if !disabled}
             <div class="delete-button" on:click={removeFile}>
               <Icon name="trash" />
             </div>
@@ -253,7 +241,7 @@
                 {:else}{`${(file.size / BYTES_IN_MB).toFixed(1)} MB`}{/if}
               </div>
             {/if}
-            {#if !mutationDisabled}
+            {#if !disabled}
               <div class="delete-button" on:click={removeFile}>
                 <Icon name="trash" />
               </div>
@@ -351,7 +339,7 @@
             {titleText || "Drag and drop your file"}
           </h2>
         {/if}
-        {#if !mutationDisabled}
+        {#if !disabled}
           <p
             class="spectrum-Body spectrum-Body--sizeS spectrum-IllustratedMessage-description"
           >
