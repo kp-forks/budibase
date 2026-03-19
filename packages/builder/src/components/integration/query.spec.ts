@@ -164,7 +164,11 @@ describe("resolveUrlBindings", () => {
     const mergedBindings = [binding("Binding.baseUrl", "baseUrl")]
     const context = { baseUrl: "https://api.example.com" }
     expect(
-      resolveUrlBindings("{{Binding.baseUrl}}/api/health", mergedBindings, context)
+      resolveUrlBindings(
+        "{{Binding.baseUrl}}/api/health",
+        mergedBindings,
+        context
+      )
     ).toBe("https://api.example.com/api/health")
   })
 
@@ -190,13 +194,17 @@ describe("resolveUrlBindings", () => {
       serverUrl: "http://localhost:5001",
     }
     expect(
-      resolveUrlBindings("{{Binding.target}}/api/health", mergedBindings, context)
+      resolveUrlBindings(
+        "{{Binding.target}}/api/health",
+        mergedBindings,
+        context
+      )
     ).toBe("http://localhost:5001/api/health")
   })
 
   it("returns the URL unchanged when there are no bindings", () => {
-    expect(
-      resolveUrlBindings("https://api.example.com/health", [], {})
-    ).toBe("https://api.example.com/health")
+    expect(resolveUrlBindings("https://api.example.com/health", [], {})).toBe(
+      "https://api.example.com/health"
+    )
   })
 })
