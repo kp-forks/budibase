@@ -240,11 +240,7 @@
   )
   let isRequestPending = $derived(isPreparingResponse || isBusy)
   let showPendingAssistantState = $derived(
-    isPreparingResponse ||
-      (isBusy &&
-        (lastMessage?.role === "user" ||
-          (lastAssistantMessage != null &&
-            !hasVisibleAssistantContent(lastAssistantMessage))))
+    isPreparingResponse || (isBusy && lastMessage?.role === "user")
   )
   let canStart = $derived(inputValue.trim().length > 0)
   let hasMessages = $derived(messages.length > 0)
