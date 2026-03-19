@@ -67,7 +67,6 @@
     keyValueArrayToRecord,
     getDefaultRestAuthConfig,
     isAbsoluteUrl,
-    resolveUrlBindings,
   } from "./query"
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
@@ -287,13 +286,7 @@
   // Custom Mode Url Parsing
   $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
 
-  // Save button state — resolve bindings before validating the URL so that
-  // e.g. {{baseUrl}} or {{Connection.Static.foo}} evaluate to their actual values.
-  $: resolvedEffectivePath = effectivePath
-    ? resolveUrlBindings(effectivePath, mergedBindings, bindingPreviewContext)
-    : ""
-
-  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(resolvedEffectivePath)
+  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(effectivePath)
   $: existingQueryUnchanged = !isNewQuery && !queryDirty
   $: newQueryIncomplete =
     isNewQuery && (isCustomMode ? !effectivePath : !selectedEndpointOption)
@@ -937,30 +930,22 @@
   <div class="heading">
     <div class="api-details">
       {#if editableQuery}
-        {#key builtQuery?.name}
-          <!-- svelte-ignore a11y-interactive-supports-focus -->
-          <span
-            class="query-name-input"
-            role="textbox"
-            contenteditable="plaintext-only"
-            data-placeholder="Untitled request"
-            on:keydown={e => {
-              if (e.key === "Enter") {
-                e.preventDefault()
-                e.currentTarget.blur()
-              }
-            }}
-            on:blur={e => {
-              const name = e.currentTarget.textContent || ""
-              e.currentTarget.textContent = name
-              if (editableQuery) {
-                editableQuery = { ...editableQuery, name }
-              }
-            }}
-          >
-            {editableQuery.name}
-          </span>
-        {/key}
+        <input
+          class="query-name-input"
+          placeholder="Untitled request"
+          value={editableQuery.name}
+          on:keydown={e => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              e.currentTarget.blur()
+            }
+          }}
+          on:blur={e => {
+            if (editableQuery) {
+              editableQuery = { ...editableQuery, name: e.currentTarget.value }
+            }
+          }}
+        />
       {/if}
     </div>
     <div class="actions">
@@ -1543,15 +1528,17 @@
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    gap: var(--spacing-xl);
   }
   .api-details {
+    flex: 1;
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--spacing-m);
   }
   .query-name-input {
-    min-width: 300px;
+    flex: 1;
     color: var(--spectrum-global-color-gray-900);
     font-family: inherit;
     font-size: 18px;
@@ -1564,20 +1551,22 @@
     padding: 4px 6px;
     margin-left: -6px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: text;
     transition:
       background-color 150ms,
       border-color 150ms;
   }
-  .query-name-input:empty::before {
-    content: attr(data-placeholder);
-    color: var(--spectrum-global-color-gray-900);
+  .query-name-input::placeholder {
+    color: var(--spectrum-global-color-gray-600);
   }
   .query-name-input:focus {
     outline: none;
     margin-left: 0;
     background-color: var(--spectrum-global-color-gray-50);
     border-color: var(--spectrum-global-color-gray-400);
+    text-overflow: clip;
   }
   .actions {
     display: flex;

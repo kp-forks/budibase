@@ -188,25 +188,6 @@ const REST_DS_WITH_URL: Datasource = {
   config: { ...REST_DS.config, url: "https://api.example.com" },
 }
 
-const REST_DS_WITH_STATIC_VAR: Datasource = {
-  ...REST_DS,
-  config: {
-    ...REST_DS.config,
-    staticVariables: { serverUrl: "https://api.example.com" },
-  },
-}
-
-const REST_DS_WITH_CHAINED_STATIC_VAR: Datasource = {
-  ...REST_DS,
-  config: {
-    ...REST_DS.config,
-    staticVariables: {
-      target: "{{ serverUrl }}",
-      serverUrl: "https://api.example.com",
-    },
-  },
-}
-
 const REST_DS_2_WITH_URL: Datasource = {
   _id: REST_DS_ID_2,
   _rev: "1-abcdef0123456789abcdef0123456789",
@@ -393,9 +374,10 @@ describe("API Endpoint Viewer", () => {
     it("shows the query name in the heading", async () => {
       const { container } = setupDOM({ queryId: QUERY_ID })
       await waitFor(() => {
-        expect(container.querySelector(".query-name-input")?.textContent).toBe(
-          "My saved request"
-        )
+        expect(
+          (container.querySelector(".query-name-input") as HTMLInputElement)
+            ?.value
+        ).toBe("My saved request")
       })
     })
 
@@ -488,8 +470,10 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "Updated name"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "Updated name" } })
       await fireEvent.blur(nameEl)
       // The Save button becomes enabled when queryDirty — a name change makes it dirty
       await waitFor(() => {
@@ -504,7 +488,9 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
       const blurSpy = vi.spyOn(nameEl, "blur")
       await fireEvent.keyDown(nameEl, { key: "Enter" })
       expect(blurSpy).toHaveBeenCalled()
@@ -666,8 +652,10 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "New name"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "New name" } })
       await fireEvent.blur(nameEl)
       const saveBtn = await waitFor(() => {
         const btn = getSaveButton(container)
@@ -691,8 +679,10 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "New name"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "New name" } })
       await fireEvent.blur(nameEl)
       const saveBtn = await waitFor(() => {
         const btn = getSaveButton(container)
@@ -713,8 +703,10 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "New name"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "New name" } })
       await fireEvent.blur(nameEl)
       const saveBtn = await waitFor(() => {
         const btn = getSaveButton(container)
@@ -738,10 +730,12 @@ describe("API Endpoint Viewer", () => {
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
       // Change the name to something first to make the query dirty, then clear it
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "temp"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "temp" } })
       await fireEvent.blur(nameEl)
-      nameEl.textContent = ""
+      await fireEvent.input(nameEl, { target: { value: "" } })
       await fireEvent.blur(nameEl)
       const saveBtn = await waitFor(() => {
         const btn = getSaveButton(container)
@@ -1064,32 +1058,14 @@ describe("API Endpoint Viewer", () => {
       })
     })
 
-    it("Save button is enabled when URL contains a binding that resolves to a valid URL", async () => {
-      await setupDatasources(REST_DS_WITH_STATIC_VAR)
+    it("Save button is enabled when the URL contains an HBS binding", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() =>
         expect(container.querySelector(".url-input")).not.toBeNull()
       )
       const urlInput = container.querySelector(".url-input") as HTMLInputElement
       await fireEvent.input(urlInput, {
-        target: { value: "{{Connection.Static.serverUrl}}/api/health" },
-      })
-      await waitFor(() => {
-        expect(
-          getSaveButton(container)?.classList.contains("is-disabled")
-        ).toBe(false)
-      })
-    })
-
-    it("Save button is enabled when URL contains a chained binding that resolves to a valid URL", async () => {
-      await setupDatasources(REST_DS_WITH_CHAINED_STATIC_VAR)
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
-      await waitFor(() =>
-        expect(container.querySelector(".url-input")).not.toBeNull()
-      )
-      const urlInput = container.querySelector(".url-input") as HTMLInputElement
-      await fireEvent.input(urlInput, {
-        target: { value: "{{Connection.Static.target}}/api/health" },
+        target: { value: "{{env.API_URL}}/api/health" },
       })
       await waitFor(() => {
         expect(
@@ -1120,8 +1096,10 @@ describe("API Endpoint Viewer", () => {
       await waitFor(() =>
         expect(container.querySelector(".query-name-input")).not.toBeNull()
       )
-      const nameEl = container.querySelector(".query-name-input") as HTMLElement
-      nameEl.textContent = "Updated name"
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "Updated name" } })
       await fireEvent.blur(nameEl)
       const saveBtn = await waitFor(() => {
         const btn = getSaveButton(container)

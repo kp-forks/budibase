@@ -1,5 +1,5 @@
 import { it, expect, describe } from "vitest"
-import { applyBaseUrl, isAbsoluteUrl, resolveUrlBindings } from "./query"
+import { applyBaseUrl, isAbsoluteUrl } from "./query"
 
 describe("applyBaseUrl", () => {
   describe("plain URLs", () => {
@@ -152,59 +152,24 @@ describe("isAbsoluteUrl", () => {
   })
 })
 
-describe("resolveUrlBindings", () => {
-  const binding = (readable: string, runtime: string) => ({
-    type: "context" as const,
-    readableBinding: readable,
-    runtimeBinding: runtime,
-    category: "test",
+describe("isAbsoluteUrl - HBS bindings", () => {
+  it("accepts a URL that is entirely an HBS binding", () => {
+    expect(isAbsoluteUrl("{{env.API_URL}}")).toBe(true)
   })
 
-  it("resolves a runtime binding in the URL", () => {
-    const mergedBindings = [binding("Binding.baseUrl", "baseUrl")]
-    const context = { baseUrl: "https://api.example.com" }
-    expect(
-      resolveUrlBindings(
-        "{{Binding.baseUrl}}/api/health",
-        mergedBindings,
-        context
-      )
-    ).toBe("https://api.example.com/api/health")
-  })
-
-  it("resolves a Connection.Static binding in the URL", () => {
-    const mergedBindings = [binding("Connection.Static.serverUrl", "serverUrl")]
-    const context = { serverUrl: "http://localhost:5001" }
-    expect(
-      resolveUrlBindings(
-        "{{Connection.Static.serverUrl}}/api/health",
-        mergedBindings,
-        context
-      )
-    ).toBe("http://localhost:5001/api/health")
-  })
-
-  it("resolves a chained binding where a context value references another binding", () => {
-    const mergedBindings = [
-      binding("Binding.target", "target"),
-      binding("Connection.Static.serverUrl", "serverUrl"),
-    ]
-    const context = {
-      target: "{{ serverUrl }}",
-      serverUrl: "http://localhost:5001",
-    }
-    expect(
-      resolveUrlBindings(
-        "{{Binding.target}}/api/health",
-        mergedBindings,
-        context
-      )
-    ).toBe("http://localhost:5001/api/health")
-  })
-
-  it("returns the URL unchanged when there are no bindings", () => {
-    expect(resolveUrlBindings("https://api.example.com/health", [], {})).toBe(
-      "https://api.example.com/health"
+  it("accepts a URL that starts with an HBS binding followed by a path", () => {
+    expect(isAbsoluteUrl("{{Connection.Static.serverUrl}}/api/health")).toBe(
+      true
     )
+  })
+
+  it("accepts a URL with an HBS binding in the path", () => {
+    expect(isAbsoluteUrl("https://api.example.com/{{version}}/users")).toBe(
+      true
+    )
+  })
+
+  it("rejects ftp://{{something}} since ftp is not a valid protocol", () => {
+    expect(isAbsoluteUrl("ftp://{{env.HOST}}")).toBe(false)
   })
 })

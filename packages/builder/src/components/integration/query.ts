@@ -475,33 +475,18 @@ export function keyValueArrayToRecord(
   )
 }
 
-/**
- * Resolves an effective URL path. Two passes are needed to
- * handle chained bindings where a context value itself contains a binding
- * (e.g. {{tester}} -> "{{someStatic}}" -> "http://localhost:5001").
- */
-export function resolveUrlBindings(
-  url: string,
-  mergedBindings: EnrichedBinding[],
-  bindingPreviewContext: Record<string, any>
-): string {
-  const runtimeUrl = readableToRuntimeBinding(mergedBindings, url)
-  const firstPass = processStringSync(runtimeUrl, bindingPreviewContext)
-  // We do something similar in the query processor
-  return processStringSync(firstPass, bindingPreviewContext)
-}
-
-export function isAbsoluteUrl(url: string): boolean {
-  if (/\s/.test(url)) return false
+export function isAbsoluteUrl(url: string | undefined): boolean {
+  if (!url || /\s/.test(url)) return false
   try {
-    const { protocol, hostname } = new URL(url)
+    const { protocol } = new URL(url)
     return (
       (protocol === "http:" || protocol === "https:") &&
-      url.startsWith(protocol + "//") &&
-      !hostname.includes("%")
+      url.startsWith(protocol + "//")
     )
   } catch {
-    return false
+    // URL couldn't be parsed — allow it if it contains HBS bindings that may
+    // resolve to a valid URL at runtime.
+    return findHBSBlocks(url).length > 0
   }
 }
 
