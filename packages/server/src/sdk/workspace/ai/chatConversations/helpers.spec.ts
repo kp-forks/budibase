@@ -1,9 +1,6 @@
 import { HTTPError } from "@budibase/backend-core"
 import { isToolUIPart, type ModelMessage } from "ai"
-import {
-  AgentChannelProvider,
-  type ChatConversation,
-} from "@budibase/types"
+import { AgentChannelProvider, type ChatConversation } from "@budibase/types"
 import {
   addRetrievedContextToMessages,
   extractUserText,
@@ -152,7 +149,8 @@ describe("extractUserText", () => {
       extractUserText({
         id: "1",
         role: "user",
-        parts: undefined as unknown as ChatConversation["messages"][number]["parts"],
+        parts:
+          undefined as unknown as ChatConversation["messages"][number]["parts"],
       })
     ).toBe("")
   })

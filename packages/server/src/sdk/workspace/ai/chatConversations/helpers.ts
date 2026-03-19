@@ -1,8 +1,5 @@
 import { HTTPError } from "@budibase/backend-core"
-import type {
-  ChatConversation,
-  ChatConversationRequest,
-} from "@budibase/types"
+import type { ChatConversation, ChatConversationRequest } from "@budibase/types"
 import {
   convertToModelMessages,
   isTextUIPart,
@@ -31,6 +28,7 @@ export const prepareChatConversationForSave = ({
   existingChat,
 }: PrepareChatConversationForSaveParams): ChatConversation => {
   const now = new Date().toISOString()
+  const createdAt = existingChat?.createdAt || chat.createdAt || now
   const updatedAt = now
   const rev = existingChat?._rev || chat._rev
   const agentId = existingChat?.agentId || chat.agentId
@@ -49,6 +47,7 @@ export const prepareChatConversationForSave = ({
     title: title ?? chat.title,
     messages: truncateToolPartsForSave(messages),
     updatedAt,
+    ...(createdAt && { createdAt }),
     ...(channel && { channel }),
   }
 }

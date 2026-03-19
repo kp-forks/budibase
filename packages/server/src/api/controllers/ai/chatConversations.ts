@@ -41,16 +41,9 @@ import {
 } from "./chatApps"
 import {
   addRetrievedContextToMessages,
-  extractUserText,
   findLatestUserQuestion,
   prepareChatConversationForSave,
   prepareModelMessages,
-  truncateTitle,
-} from "../../../sdk/workspace/ai/chatConversations"
-export {
-  extractUserText,
-  findLatestUserQuestion,
-  prepareChatConversationForSave,
   truncateTitle,
 } from "../../../sdk/workspace/ai/chatConversations"
 
@@ -186,6 +179,7 @@ const getChatConversation = async (
   if (
     !chat ||
     chat.chatAppId !== chatAppId ||
+    !!chat.channel ||
     (requestedAgentId && chat.agentId !== requestedAgentId)
   ) {
     throw new HTTPError("chat not found", 404)
@@ -645,6 +639,7 @@ export async function fetchChatHistory(
     .filter(
       chat =>
         chat.chatAppId === chatAppId &&
+        !chat.channel &&
         (!chat.userId || chat.userId === userId) &&
         (!requestedAgentId || chat.agentId === requestedAgentId)
     )

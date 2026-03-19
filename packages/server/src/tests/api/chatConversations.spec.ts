@@ -19,16 +19,10 @@ import {
 } from "ai"
 import { quotas } from "@budibase/pro"
 import TestConfiguration from "../utilities/TestConfiguration"
-import {
-  findLatestUserQuestion,
-  prepareChatConversationForSave,
-  truncateTitle,
-  webhookChat,
-} from "../../api/controllers/ai"
 import sdk from "../../sdk"
 import * as agentLogs from "../../sdk/workspace/ai/agentLogs"
 import type { LanguageModelV3, EmbeddingModelV3 } from "@ai-sdk/provider"
-
+import { webhookChat } from "../../api/controllers/ai/chatConversations"
 jest.mock("@budibase/pro", () => {
   const actual = jest.requireActual("@budibase/pro")
   return {
@@ -366,7 +360,7 @@ describe("prepareChatConversationForSave", () => {
       updatedAt: "2023-12-31T12:00:00.000Z",
     }
 
-    const result = prepareChatConversationForSave({
+    const result = sdk.ai.chatConversations.prepareChatConversationForSave({
       chatId: existingChat._id!,
       chatAppId: existingChat.chatAppId,
       userId: existingChat.userId!,
@@ -391,7 +385,7 @@ describe("prepareChatConversationForSave", () => {
       messages: [],
     }
 
-    const result = prepareChatConversationForSave({
+    const result = sdk.ai.chatConversations.prepareChatConversationForSave({
       chatId: chat._id!,
       chatAppId: chat.chatAppId,
       userId: chat.userId!,
@@ -447,7 +441,7 @@ describe("prepareChatConversationForSave", () => {
       ],
     }
 
-    const result = prepareChatConversationForSave({
+    const result = sdk.ai.chatConversations.prepareChatConversationForSave({
       chatId: chat._id!,
       chatAppId: chat.chatAppId,
       userId: chat.userId!,
@@ -534,7 +528,7 @@ describe("prepareChatConversationForSave", () => {
       ],
     }
 
-    const result = prepareChatConversationForSave({
+    const result = sdk.ai.chatConversations.prepareChatConversationForSave({
       chatId: chat._id!,
       chatAppId: chat.chatAppId,
       userId: chat.userId!,
@@ -900,13 +894,17 @@ describe("chat conversation title helpers", () => {
       ],
     }
 
-    expect(findLatestUserQuestion(chat)).toBe("latest question")
+    expect(sdk.ai.chatConversations.findLatestUserQuestion(chat)).toBe(
+      "latest question"
+    )
   })
 
   it("truncates titles with an ellipsis", () => {
     const longMessage = "a".repeat(130)
 
-    expect(truncateTitle(longMessage)).toBe(`${"a".repeat(117)}...`)
+    expect(sdk.ai.chatConversations.truncateTitle(longMessage)).toBe(
+      `${"a".repeat(117)}...`
+    )
   })
 })
 
