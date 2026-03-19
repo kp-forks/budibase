@@ -19,7 +19,7 @@
   export let toolReferences: string[] = []
   export let promptBindings: EnrichedBinding[] = []
   export let bindingIcons: Record<string, string | undefined> = {}
-  export let onApplyInstructions: (instructions: string) => void = () => {}
+  export let onApplyInstructions: (_instructions: string) => void = () => {}
 
   let enabled = $derived(!!$featureFlags[FeatureFlag.AI_AGENT_INSTRUCTIONS])
   let modal = $state<Modal>()
