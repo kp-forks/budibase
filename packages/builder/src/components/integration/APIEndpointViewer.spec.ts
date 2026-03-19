@@ -107,7 +107,9 @@ vi.mock("@/stores/builder/integrations", async () => {
 
 vi.mock("@/stores/builder/restTemplates", async () => {
   const { writable } = await import("svelte/store")
-  return { restTemplates: { ...writable({}), get: vi.fn().mockReturnValue(undefined) } }
+  return {
+    restTemplates: { ...writable({}), get: vi.fn().mockReturnValue(undefined) },
+  }
 })
 
 vi.mock("@/stores/builder/tables", async () => {
@@ -873,7 +875,6 @@ describe("API Endpoint Viewer", () => {
         expect(getAddBindingButton(container)).not.toBeDisabled()
       })
     })
-
   })
 
   describe("Response sidebar", () => {
@@ -1027,7 +1028,9 @@ describe("API Endpoint Viewer", () => {
       const { container } = setupDOM()
       await waitFor(() => {
         expect(
-          container.querySelector(".input-wrap")?.classList.contains("is-disabled")
+          container
+            .querySelector(".input-wrap")
+            ?.classList.contains("is-disabled")
         ).toBe(true)
       })
     })
@@ -1036,7 +1039,9 @@ describe("API Endpoint Viewer", () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() => {
         expect(
-          container.querySelector(".input-wrap")?.classList.contains("is-disabled")
+          container
+            .querySelector(".input-wrap")
+            ?.classList.contains("is-disabled")
         ).toBe(false)
       })
     })
@@ -1240,8 +1245,8 @@ describe("API Endpoint Viewer", () => {
       const { container } = setupDOM({ queryId: QUERY_ID })
       await waitFor(() =>
         expect(
-          Array.from(container.querySelectorAll(".spectrum-Tabs-item")).find(t =>
-            t.textContent?.trim().includes("Bindings")
+          Array.from(container.querySelectorAll(".spectrum-Tabs-item")).find(
+            t => t.textContent?.trim().includes("Bindings")
           )
         ).not.toBeUndefined()
       )
