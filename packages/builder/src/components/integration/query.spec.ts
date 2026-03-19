@@ -166,15 +166,15 @@ describe("isValidEndpointUrl - HBS bindings", () => {
   })
 
   it("accepts a URL that starts with an HBS binding followed by a path", () => {
-    expect(isValidEndpointUrl("{{Connection.Static.serverUrl}}/api/health")).toBe(
-      true
-    )
+    expect(
+      isValidEndpointUrl("{{Connection.Static.serverUrl}}/api/health")
+    ).toBe(true)
   })
 
   it("accepts a URL with an HBS binding in the path", () => {
-    expect(isValidEndpointUrl("https://api.example.com/{{version}}/users")).toBe(
-      true
-    )
+    expect(
+      isValidEndpointUrl("https://api.example.com/{{version}}/users")
+    ).toBe(true)
   })
 
   it("rejects ftp://{{something}} since ftp is not a valid protocol", () => {
