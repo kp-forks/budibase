@@ -956,6 +956,7 @@ Any constraints the agent must follow.
         bind:this={generateInstructionsPromptField}
         bind:value={generateInstructionsPrompt}
         minHeight={140}
+        disabled={generatingInstructions}
         placeholder="Describe what kind of instructions you want to generate..."
       />
       <div class="generate-instructions-actions">
