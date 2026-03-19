@@ -60,7 +60,7 @@
   import KeyValueBuilder from "@/components/integration/KeyValueBuilder.svelte"
   import {
     keyValueArrayToRecord,
-    isAbsoluteUrl,
+    isValidEndpointUrl,
   } from "@/components/integration/query"
   import ViewDynamicVariables from "@/pages/builder/workspace/[application]/data/datasource/[datasourceId]/_components/panels/Variables/ViewDynamicVariables.svelte"
   import DeleteDataConfirmationModal from "@/components/backend/modals/DeleteDataConfirmationModal.svelte"
@@ -408,7 +408,7 @@
   }
 
   const normaliseBaseUrl = (url: string) => {
-    if (!isAbsoluteUrl(url)) return null
+    if (!isValidEndpointUrl(url)) return null
     return url.replace(/\/$/, "")
   }
 

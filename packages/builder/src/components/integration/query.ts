@@ -475,18 +475,15 @@ export function keyValueArrayToRecord(
   )
 }
 
-export function isAbsoluteUrl(url: string | undefined): boolean {
+export function isValidEndpointUrl(url: string | undefined): boolean {
   if (!url || /\s/.test(url)) return false
+  if (!/^(https?:\/\/|\{\{)/.test(url)) return false
+  if (findHBSBlocks(url).length > 0) return true
   try {
-    const { protocol } = new URL(url)
-    return (
-      (protocol === "http:" || protocol === "https:") &&
-      url.startsWith(protocol + "//")
-    )
+    new URL(url)
+    return true
   } catch {
-    // URL couldn't be parsed — allow it if it contains HBS bindings that may
-    // resolve to a valid URL at runtime.
-    return findHBSBlocks(url).length > 0
+    return false
   }
 }
 

@@ -66,7 +66,7 @@
     runQuery,
     keyValueArrayToRecord,
     getDefaultRestAuthConfig,
-    isAbsoluteUrl,
+    isValidEndpointUrl,
   } from "./query"
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
@@ -286,7 +286,7 @@
   // Custom Mode Url Parsing
   $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
 
-  $: isValidCustomUrl = !isCustomMode || isAbsoluteUrl(effectivePath)
+  $: isValidCustomUrl = !isCustomMode || isValidEndpointUrl(effectivePath)
   $: existingQueryUnchanged = !isNewQuery && !queryDirty
   $: newQueryIncomplete =
     isNewQuery && (isCustomMode ? !effectivePath : !selectedEndpointOption)

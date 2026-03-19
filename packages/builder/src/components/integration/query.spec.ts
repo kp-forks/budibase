@@ -1,5 +1,5 @@
 import { it, expect, describe } from "vitest"
-import { applyBaseUrl, isAbsoluteUrl } from "./query"
+import { applyBaseUrl, isValidEndpointUrl } from "./query"
 
 describe("applyBaseUrl", () => {
   describe("plain URLs", () => {
@@ -118,58 +118,74 @@ describe("applyBaseUrl", () => {
   })
 })
 
-describe("isAbsoluteUrl", () => {
+describe("isValidEndpointUrl", () => {
   it("accepts a valid http URL", () => {
-    expect(isAbsoluteUrl("http://example.com/api")).toBe(true)
+    expect(isValidEndpointUrl("http://example.com/api")).toBe(true)
   })
 
   it("accepts a valid https URL", () => {
-    expect(isAbsoluteUrl("https://example.com/api")).toBe(true)
+    expect(isValidEndpointUrl("https://example.com/api")).toBe(true)
+  })
+
+  it("accepts a single-label hostname", () => {
+    expect(isValidEndpointUrl("https://someurl")).toBe(true)
+  })
+
+  it("accepts localhost with a port", () => {
+    expect(isValidEndpointUrl("http://localhost:4001")).toBe(true)
   })
 
   it("rejects a relative path", () => {
-    expect(isAbsoluteUrl("/api/v1/users")).toBe(false)
+    expect(isValidEndpointUrl("/api/v1/users")).toBe(false)
   })
 
   it("rejects an empty string", () => {
-    expect(isAbsoluteUrl("")).toBe(false)
+    expect(isValidEndpointUrl("")).toBe(false)
   })
 
   it("rejects https:google.com (missing //)", () => {
-    expect(isAbsoluteUrl("https:google.com")).toBe(false)
+    expect(isValidEndpointUrl("https:google.com")).toBe(false)
   })
 
   it("rejects a non-http protocol", () => {
-    expect(isAbsoluteUrl("ftp://example.com")).toBe(false)
+    expect(isValidEndpointUrl("ftp://example.com")).toBe(false)
   })
 
   it("rejects a URL with spaces", () => {
-    expect(isAbsoluteUrl("https://some url")).toBe(false)
+    expect(isValidEndpointUrl("https://some url")).toBe(false)
   })
 
   it("rejects a URL with percent-encoded spaces in the hostname", () => {
-    expect(isAbsoluteUrl("https://some%20url")).toBe(false)
+    expect(isValidEndpointUrl("https://some%20url")).toBe(false)
   })
 })
 
-describe("isAbsoluteUrl - HBS bindings", () => {
+describe("isValidEndpointUrl - HBS bindings", () => {
   it("accepts a URL that is entirely an HBS binding", () => {
-    expect(isAbsoluteUrl("{{env.API_URL}}")).toBe(true)
+    expect(isValidEndpointUrl("{{env.API_URL}}")).toBe(true)
   })
 
   it("accepts a URL that starts with an HBS binding followed by a path", () => {
-    expect(isAbsoluteUrl("{{Connection.Static.serverUrl}}/api/health")).toBe(
+    expect(isValidEndpointUrl("{{Connection.Static.serverUrl}}/api/health")).toBe(
       true
     )
   })
 
   it("accepts a URL with an HBS binding in the path", () => {
-    expect(isAbsoluteUrl("https://api.example.com/{{version}}/users")).toBe(
+    expect(isValidEndpointUrl("https://api.example.com/{{version}}/users")).toBe(
       true
     )
   })
 
   it("rejects ftp://{{something}} since ftp is not a valid protocol", () => {
-    expect(isAbsoluteUrl("ftp://{{env.HOST}}")).toBe(false)
+    expect(isValidEndpointUrl("ftp://{{env.HOST}}")).toBe(false)
+  })
+
+  it("rejects a relative path with a binding", () => {
+    expect(isValidEndpointUrl("/api/{{version}}/users")).toBe(false)
+  })
+
+  it("rejects a malformed binding with no closing braces", () => {
+    expect(isValidEndpointUrl("{{derp")).toBe(false)
   })
 })
