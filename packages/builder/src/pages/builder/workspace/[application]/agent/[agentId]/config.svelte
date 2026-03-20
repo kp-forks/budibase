@@ -44,6 +44,7 @@
   import { goto } from "@roxi/routify"
   import BudibaseLogoSvg from "assets/bb-emblem.svg"
   import { shouldAutoSelectAgentModel } from "./configUtils"
+  import { getIncludedToolRuntimeBindings } from "./toolBindingUtils"
 
   $goto
   // Code editor tag icons must be URL strings (see `hbsTags.ts`).
@@ -558,28 +559,6 @@ Any constraints the agent must follow.
       return
     }
     insertToolBinding(tool.readableBinding)
-  }
-
-  function normaliseBinding(binding: string) {
-    return binding
-      .replace(/^\s*\{\{\s*/, "")
-      .replace(/\s*\}\}\s*$/, "")
-      .trim()
-  }
-
-  function getIncludedToolRuntimeBindings(
-    prompt: string | undefined | null,
-    bindingsMap: Record<string, string>
-  ) {
-    const matches = (prompt || "").match(/\{\{[^}]+\}\}/g) || []
-    return Array.from(
-      new Set(
-        matches
-          .map(normaliseBinding)
-          .map(binding => bindingsMap[binding])
-          .filter(Boolean)
-      )
-    )
   }
 
   function getWebSearchRuntimeBinding(

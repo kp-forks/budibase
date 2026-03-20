@@ -16,6 +16,7 @@
   import { tick } from "svelte"
   import CodeEditor from "@/components/common/CodeEditor/CodeEditor.svelte"
   import { EditorModes } from "@/components/common/CodeEditor"
+  import { getIncludedToolRuntimeBindings } from "./toolBindingUtils"
 
   const AI_AGENT_INSTRUCTIONS_FLAG = "AI_AGENT_INSTRUCTIONS"
 
@@ -38,27 +39,6 @@
     bindingIcons = {},
     onApplyInstructions = () => {},
   }: Props = $props()
-
-  const normaliseBinding = (binding: string) =>
-    binding
-      .replace(/^\s*\{\{\s*/, "")
-      .replace(/\s*\}\}\s*$/, "")
-      .trim()
-
-  const getIncludedToolRuntimeBindings = (
-    prompt: string | undefined,
-    bindingsMap: Record<string, string>
-  ) => {
-    const matches = (prompt || "").match(/\{\{[^}]+\}\}/g) || []
-    return Array.from(
-      new Set(
-        matches
-          .map(normaliseBinding)
-          .map(binding => bindingsMap[binding])
-          .filter(Boolean)
-      )
-    )
-  }
 
   let readableToRuntimeBinding = $derived.by(() => {
     return promptBindings.reduce<Record<string, string>>((acc, binding) => {
