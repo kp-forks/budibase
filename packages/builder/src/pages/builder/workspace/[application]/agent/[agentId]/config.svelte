@@ -854,6 +854,7 @@ Any constraints the agent must follow.
         bindingIcons={readableToIcon}
         onApplyInstructions={instructions => {
           draft.promptInstructions = instructions
+          scheduleSave(true)
         }}
       />
     </div>
