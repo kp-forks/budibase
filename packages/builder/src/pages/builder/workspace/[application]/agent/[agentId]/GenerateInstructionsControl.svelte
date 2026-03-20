@@ -6,11 +6,7 @@
     TextArea,
     notifications,
   } from "@budibase/bbui"
-  import {
-    type EnrichedBinding,
-    type GenerateAgentInstructionsRequest,
-    type GenerateAgentInstructionsResponse,
-  } from "@budibase/types"
+  import { type EnrichedBinding } from "@budibase/types"
   import { featureFlags } from "@/stores/portal"
   import { API } from "@/api"
   import { tick } from "svelte"
@@ -106,18 +102,12 @@
     generating = true
 
     try {
-      const { instructions } = await API.post<
-        GenerateAgentInstructionsRequest,
-        GenerateAgentInstructionsResponse
-      >({
-        url: "/api/ai/agent-instructions",
-        body: {
-          aiconfigId,
-          prompt,
-          agentName,
-          goal,
-          toolReferences: enabledToolReferences,
-        },
+      const { instructions } = await API.generateAgentInstructions({
+        aiconfigId,
+        prompt,
+        agentName,
+        goal,
+        toolReferences: enabledToolReferences,
       })
 
       if (currentRequestToken !== requestToken) {
