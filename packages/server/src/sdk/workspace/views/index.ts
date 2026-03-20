@@ -37,32 +37,6 @@ function pickApi(tableId: any) {
   return internal
 }
 
-function isRecoverableMissingRelationError(err: unknown): err is {
-  reason?: string
-  status?: number
-  statusCode?: number
-  message?: string
-} {
-  if (!err || typeof err !== "object") {
-    return false
-  }
-
-  const recoverableError = err as {
-    reason?: string
-    status?: number
-    statusCode?: number
-    message?: string
-  }
-
-  return (
-    recoverableError.reason === "deleted" ||
-    recoverableError.status === 404 ||
-    recoverableError.statusCode === 404 ||
-    recoverableError.message === "Cannot enrich relationship, table not found" ||
-    !!recoverableError.message?.startsWith("Unable to find table named")
-  )
-}
-
 export async function get(viewId: string): Promise<ViewV2> {
   const tableId = getTableIdFromViewId(viewId)
   return pickApi(tableId).get(viewId)
@@ -414,7 +388,20 @@ export async function enrichSchema(
         throw new Error("Cannot enrich relationship, table not found")
       }
     } catch (err) {
-      if (!isRecoverableMissingRelationError(err)) {
+      const recoverableError = err as {
+        reason?: string
+        status?: number
+        statusCode?: number
+        message?: string
+      }
+
+      if (
+        recoverableError.reason !== "deleted" &&
+        recoverableError.status !== 404 &&
+        recoverableError.statusCode !== 404 &&
+        recoverableError.message !== "Cannot enrich relationship, table not found" &&
+        !recoverableError.message?.startsWith("Unable to find table named")
+      ) {
         throw err
       }
 
