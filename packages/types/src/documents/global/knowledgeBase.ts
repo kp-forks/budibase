@@ -1,9 +1,15 @@
 import { Document } from "../.."
 
+export enum KnowledgeBaseType {
+  LOCAL = "local",
+  GOOGLE = "google",
+}
+
 export interface KnowledgeBase extends Document {
   name: string
-  embeddingModel: string
-  vectorDb: string
+  type: KnowledgeBaseType
+  embeddingModel?: string
+  vectorDb?: string
 }
 
 export enum KnowledgeBaseFileStatus {

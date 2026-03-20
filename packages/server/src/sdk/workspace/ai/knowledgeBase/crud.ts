@@ -1,5 +1,10 @@
 import { context, docIds, HTTPError } from "@budibase/backend-core"
-import { AIConfigType, DocumentType, KnowledgeBase } from "@budibase/types"
+import {
+  AIConfigType,
+  DocumentType,
+  KnowledgeBase,
+  KnowledgeBaseType,
+} from "@budibase/types"
 import * as configSdk from "../configs"
 import * as knowledgeBaseFileSdk from "./files"
 import * as vectorDbSdk from "../vectorDb"
@@ -8,9 +13,27 @@ const normalizeKnowledgeBaseName = (name: string | undefined) =>
   name?.trim().toLowerCase() || ""
 
 const validateReferences = async ({
+  type,
   embeddingModel,
   vectorDb,
-}: Pick<KnowledgeBase, "embeddingModel" | "vectorDb">) => {
+}: Pick<KnowledgeBase, "type" | "embeddingModel" | "vectorDb">) => {
+  if (type === KnowledgeBaseType.GOOGLE) {
+    return
+  }
+
+  if (!embeddingModel) {
+    throw new HTTPError(
+      "Embedding model is required for local knowledge bases",
+      400
+    )
+  }
+  if (!vectorDb) {
+    throw new HTTPError(
+      "Vector store is required for local knowledge bases",
+      400
+    )
+  }
+
   const embeddingConfig = await configSdk.find(embeddingModel)
   if (!embeddingConfig) {
     throw new HTTPError("Embedding model not found", 404)
@@ -43,7 +66,9 @@ export async function findByEmbeddingModel(
 ): Promise<KnowledgeBase[]> {
   const knowledgeBases = await fetch()
   return knowledgeBases.filter(
-    knowledgeBase => knowledgeBase.embeddingModel === embeddingModelId
+    knowledgeBase =>
+      knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+      knowledgeBase.embeddingModel === embeddingModelId
   )
 }
 
@@ -52,7 +77,9 @@ export async function findByVectorDb(
 ): Promise<KnowledgeBase[]> {
   const knowledgeBases = await fetch()
   return knowledgeBases.filter(
-    knowledgeBase => knowledgeBase.vectorDb === vectorDbId
+    knowledgeBase =>
+      knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+      knowledgeBase.vectorDb === vectorDbId
   )
 }
 
@@ -84,12 +111,17 @@ const ensureUniqueName = async (
 
 export async function create(config: KnowledgeBase): Promise<KnowledgeBase> {
   const db = context.getWorkspaceDB()
-  await validateReferences(config)
+  const knowledgeBaseType = config.type || KnowledgeBaseType.LOCAL
+  await validateReferences({
+    ...config,
+    type: knowledgeBaseType,
+  })
   await ensureUniqueName(config.name)
 
   const newConfig: KnowledgeBase = {
     _id: docIds.generateKnowledgeBaseID(),
     name: config.name.trim(),
+    type: knowledgeBaseType,
     embeddingModel: config.embeddingModel,
     vectorDb: config.vectorDb,
   }
@@ -113,10 +145,12 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
 
   const updated: KnowledgeBase = {
     ...existing,
+    type: existing.type || KnowledgeBaseType.LOCAL,
     ...config,
   }
 
   const referencesChanged =
+    existing.type !== updated.type ||
     existing.embeddingModel !== updated.embeddingModel ||
     existing.vectorDb !== updated.vectorDb
 

@@ -29,7 +29,10 @@ interface DerivedKnowledgeBaseState {
 }
 
 type KnowledgeBaseFormDraft = Partial<
-  Pick<KnowledgeBase, "_id" | "_rev" | "name" | "embeddingModel" | "vectorDb">
+  Pick<
+    KnowledgeBase,
+    "_id" | "_rev" | "name" | "type" | "embeddingModel" | "vectorDb"
+  >
 >
 
 export class KnowledgeBaseStore extends DerivedBudiStore<

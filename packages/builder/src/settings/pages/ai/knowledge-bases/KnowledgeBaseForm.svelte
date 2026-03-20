@@ -14,6 +14,7 @@
     notifications,
     Select,
   } from "@budibase/bbui"
+  import { KnowledgeBaseType } from "@budibase/types"
   import { onMount } from "svelte"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeBaseFilesPanel from "./files-panel/index.svelte"
@@ -34,6 +35,7 @@
           _id: config._id,
           _rev: config._rev,
           name: config.name,
+          type: config.type || KnowledgeBaseType.LOCAL,
           embeddingModel: config.embeddingModel,
           vectorDb: config.vectorDb,
         }
@@ -41,6 +43,7 @@
           _id: undefined as string | undefined,
           _rev: undefined as string | undefined,
           name: "",
+          type: KnowledgeBaseType.LOCAL,
           embeddingModel: "",
           vectorDb: "",
         }
@@ -93,13 +96,18 @@
     if (isSaving || !isModified) {
       return false
     }
+    const isLocal = draft.type === KnowledgeBaseType.LOCAL
     return (
       !!draft.name?.trim() &&
       !duplicateNameError &&
-      !!draft.embeddingModel?.trim() &&
-      !!draft.vectorDb?.trim()
+      (!isLocal || (!!draft.embeddingModel?.trim() && !!draft.vectorDb?.trim()))
     )
   })
+
+  let knowledgeBaseTypeOptions = $derived([
+    { label: "Local", value: KnowledgeBaseType.LOCAL },
+    { label: "Google", value: KnowledgeBaseType.GOOGLE },
+  ])
 
   let embeddingModelSelectOptions = $derived(
     embeddingModelOptions.map(option => ({
@@ -159,6 +167,7 @@
           _id: draft._id,
           _rev: draft._rev,
           name: draft.name || "",
+          type: draft.type,
           embeddingModel: draft.embeddingModel || "",
           vectorDb: draft.vectorDb || "",
         })
@@ -169,6 +178,7 @@
       } else {
         const created = await knowledgeBaseStore.create({
           name: draft.name || "",
+          type: draft.type,
           embeddingModel: draft.embeddingModel || "",
           vectorDb: draft.vectorDb || "",
         })
@@ -249,6 +259,22 @@
 
   <div class="select">
     <Select
+      label="Knowledge base type"
+      description="Choose where retrieval is handled."
+      required
+      bind:value={draft.type}
+      options={knowledgeBaseTypeOptions}
+      getOptionValue={option => option.value}
+      getOptionLabel={option => option.label}
+      disabled={!canEditReferences}
+      tooltip={!canEditReferences
+        ? "Remove all files to change the knowledge base type."
+        : ""}
+    />
+  </div>
+
+  <div class="select">
+    <Select
       label="Embedding model"
       description="Models used to convert text into vector embeddings for search and retrieval."
       required
@@ -256,15 +282,17 @@
       options={embeddingModelSelectOptions}
       getOptionValue={option => option.value}
       getOptionLabel={option => option.label}
-      disabled={!canEditReferences}
+      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
       tooltip={!canEditReferences
         ? "Remove all files to change the embedding model."
-        : ""}
+        : draft.type !== KnowledgeBaseType.LOCAL
+          ? "Embedding model is only used for local knowledge bases."
+          : ""}
     />
     <ActionButton
       icon={"Add"}
       size="M"
-      disabled={!canEditReferences}
+      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
       on:click={createNewEmbeddingModel}
     />
   </div>
@@ -278,15 +306,17 @@
       options={vectorDbSelectOptions}
       getOptionValue={option => option.value}
       getOptionLabel={option => option.label}
-      disabled={!canEditReferences}
+      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
       tooltip={!canEditReferences
         ? "Remove all files to change the vector database."
-        : ""}
+        : draft.type !== KnowledgeBaseType.LOCAL
+          ? "Vector database is only used for local knowledge bases."
+          : ""}
     />
     <ActionButton
       icon={"Add"}
       size="M"
-      disabled={!canEditReferences}
+      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
       on:click={createNewVectorDb}
     />
   </div>

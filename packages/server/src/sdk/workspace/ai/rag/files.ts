@@ -8,6 +8,7 @@ import {
   type KnowledgeBase,
   type KnowledgeBaseFile,
   KnowledgeBaseFileStatus,
+  KnowledgeBaseType,
 } from "@budibase/types"
 import { createVectorDb, type ChunkInput } from "../vectorDb/utils"
 import { knowledgeBase as knowledgeBaseSdk } from ".."
@@ -216,6 +217,24 @@ const resolveKnowledgeBasesForAgent = async (
   return knowledgeBases
 }
 
+const getLocalKnowledgeBaseRefs = (knowledgeBase: KnowledgeBase) => {
+  if (
+    (knowledgeBase.type || KnowledgeBaseType.LOCAL) !== KnowledgeBaseType.LOCAL
+  ) {
+    throw new Error("Google knowledge base retrieval is not implemented yet")
+  }
+  if (!knowledgeBase.embeddingModel) {
+    throw new Error("Embedding model is required for local knowledge bases")
+  }
+  if (!knowledgeBase.vectorDb) {
+    throw new Error("Vector database is required for local knowledge bases")
+  }
+  return {
+    embeddingModel: knowledgeBase.embeddingModel,
+    vectorDb: knowledgeBase.vectorDb,
+  }
+}
+
 const embedChunks = async (
   configId: string,
   chunks: string[],
@@ -283,10 +302,11 @@ export const ingestKnowledgeBaseFile = async (
 
   const content = await getTextFromBuffer(fileBuffer, knowledgeBaseFile)
   const chunks = createChunksFromContent(content, knowledgeBaseFile.filename)
+  const refs = getLocalKnowledgeBaseRefs(knowledgeBase)
 
   const vectorDb = await createVectorDb({
     namespaceId: knowledgeBaseId,
-    vectorDbId: knowledgeBase.vectorDb,
+    vectorDbId: refs.vectorDb,
   })
 
   if (chunks.length === 0) {
@@ -295,7 +315,7 @@ export const ingestKnowledgeBaseFile = async (
     return { inserted: 0, total: 0 }
   }
 
-  const embeddings = await embedChunks(knowledgeBase.embeddingModel, chunks)
+  const embeddings = await embedChunks(refs.embeddingModel, chunks)
   if (embeddings.length !== chunks.length) {
     throw new Error("Embedding response size mismatch")
   }
@@ -323,10 +343,11 @@ export const deleteKnowledgeBaseFileChunks = async (
   if (!knowledgeBaseId) {
     throw new Error("Knowledge base id not set")
   }
+  const refs = getLocalKnowledgeBaseRefs(knowledgeBase)
 
   const vectorDb = await createVectorDb({
     namespaceId: knowledgeBaseId,
-    vectorDbId: knowledgeBase.vectorDb,
+    vectorDbId: refs.vectorDb,
   })
   await vectorDb.deleteBySourceIds(sourceIds)
 }
@@ -376,9 +397,10 @@ export const retrieveContextForAgent = async (
     if (readyFileSources.length === 0) {
       continue
     }
+    const refs = getLocalKnowledgeBaseRefs(knowledgeBase)
 
     const [queryEmbedding] = await embedChunks(
-      knowledgeBase.embeddingModel,
+      refs.embeddingModel,
       [question],
       1
     )
@@ -388,7 +410,7 @@ export const retrieveContextForAgent = async (
 
     const vectorDb = await createVectorDb({
       namespaceId: knowledgeBaseId,
-      vectorDbId: knowledgeBase.vectorDb,
+      vectorDbId: refs.vectorDb,
     })
     const rows = await vectorDb.queryNearest(
       queryEmbedding,
