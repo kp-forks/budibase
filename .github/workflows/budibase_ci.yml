@@ -237,8 +237,7 @@ jobs:
               RUN_BUILD="false"
             fi
 
-            # test-libraries excludes dedicated server and worker test jobs
-            AFFECTED_LIBRARY_TESTS=$(yarn --silent nx show projects --affected -t test --base=${{ env.NX_BASE_BRANCH }} | grep -Ev '^(@budibase/server|@budibase/worker|server-.+-tests)$' || true)
+            AFFECTED_LIBRARY_TESTS=$(yarn --silent nx show projects --affected -t test --base=${{ env.NX_BASE_BRANCH }} --exclude='@budibase/server,@budibase/worker,@budibase/upgrade-tests')
             if [ -z "$AFFECTED_LIBRARY_TESTS" ]; then
               RUN_TEST_LIBRARIES="false"
             fi
