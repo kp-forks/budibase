@@ -1,3 +1,4 @@
+import "./ddApm"
 // need to load environment first
 import {
   auth,
@@ -22,7 +23,6 @@ import api from "./api"
 import { loadTemplateConfig } from "./constants/templates"
 import * as db from "./db"
 import env from "./environment"
-import "./ddApm"
 
 db.init()
 

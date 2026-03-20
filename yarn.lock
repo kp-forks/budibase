@@ -9058,11 +9058,6 @@
   resolved "https://registry.yarnpkg.com/@yr/monotone-cubic-spline/-/monotone-cubic-spline-1.0.3.tgz#7272d89f8e4f6fb7a1600c28c378cc18d3b577b9"
   integrity sha512-FQXkOta0XBSUPHndIKON2Y9JeQz5ZeMqLYZVVK93FliNBFm7LNMIZmY6FrMEB9XPcDbE2bekMbZD6kzDkxwYjA==
 
-"@zerodevx/svelte-json-view@^1.0.7":
-  version "1.0.11"
-  resolved "https://registry.yarnpkg.com/@zerodevx/svelte-json-view/-/svelte-json-view-1.0.11.tgz#39d33dd066f5442ad58b5dffcf8f958a6b80e4ea"
-  integrity sha512-mIjj0H1al/P4FPlbeDoiey93lNEUqBEAe5LIdD5GttZfEYt3awexD2lHwKNfUeY4jHizOJkoWTPN/2iO0GBqpw==
-
 "@zkochan/js-yaml@0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@zkochan/js-yaml/-/js-yaml-0.0.7.tgz#4b0cb785220d7c28ce0ec4d0804deb5d821eae89"
