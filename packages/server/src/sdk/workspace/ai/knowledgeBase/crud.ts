@@ -8,6 +8,7 @@ import {
 import * as configSdk from "../configs"
 import * as knowledgeBaseFileSdk from "./files"
 import * as vectorDbSdk from "../vectorDb"
+import { createGoogleFileStore } from "./googleFileStore"
 
 const normalizeKnowledgeBaseName = (name: string | undefined) =>
   name?.trim().toLowerCase() || ""
@@ -118,10 +119,16 @@ export async function create(config: KnowledgeBase): Promise<KnowledgeBase> {
   })
   await ensureUniqueName(config.name)
 
+  const googleFileStoreId =
+    knowledgeBaseType === KnowledgeBaseType.GOOGLE
+      ? await createGoogleFileStore(config.name.trim())
+      : undefined
+
   const newConfig: KnowledgeBase = {
     _id: docIds.generateKnowledgeBaseID(),
     name: config.name.trim(),
     type: knowledgeBaseType,
+    googleFileStoreId,
     embeddingModel: config.embeddingModel,
     vectorDb: config.vectorDb,
   }
@@ -145,7 +152,6 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
 
   const updated: KnowledgeBase = {
     ...existing,
-    type: existing.type || KnowledgeBaseType.LOCAL,
     ...config,
   }
 

@@ -8,6 +8,7 @@ export enum KnowledgeBaseType {
 export interface KnowledgeBase extends Document {
   name: string
   type: KnowledgeBaseType
+  googleFileStoreId?: string
   embeddingModel?: string
   vectorDb?: string
 }

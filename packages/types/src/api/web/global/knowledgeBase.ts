@@ -7,11 +7,14 @@ import {
 export type KnowledgeBaseListResponse = KnowledgeBase[]
 export type CreateKnowledgeBaseRequest = Omit<
   KnowledgeBase,
-  "_id" | "_rev" | "_deleted" | "type"
+  "_id" | "_rev" | "_deleted" | "type" | "googleFileStoreId"
 > & {
   type?: KnowledgeBaseType
 }
-export type UpdateKnowledgeBaseRequest = Omit<KnowledgeBase, "type"> & {
+export type UpdateKnowledgeBaseRequest = Omit<
+  KnowledgeBase,
+  "type" | "googleFileStoreId"
+> & {
   type?: KnowledgeBaseType
 }
 
