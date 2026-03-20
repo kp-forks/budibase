@@ -10,6 +10,7 @@
   import { helpers } from "@budibase/shared-core"
   import {
     AIConfigType,
+    KnowledgeBaseType,
     KnowledgeBaseFileStatus,
     type KnowledgeBaseFile,
   } from "@budibase/types"
@@ -67,6 +68,9 @@
     ($aiConfigsStore.customConfigs || []).some(
       config => config.configType === AIConfigType.EMBEDDINGS
     )
+  )
+  let selectedKnowledgeBaseType = $derived(
+    $knowledgeBaseStore.selectedKnowledgeBase?.type || KnowledgeBaseType.LOCAL
   )
   let shouldPoll = $derived(
     !!knowledgeBaseId &&
@@ -160,7 +164,10 @@
       )
       return
     }
-    if (!hasEmbeddingConfig) {
+    if (
+      selectedKnowledgeBaseType === KnowledgeBaseType.LOCAL &&
+      !hasEmbeddingConfig
+    ) {
       notifications.info("Add an embeddings configuration to enable uploads")
       return
     }

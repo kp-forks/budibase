@@ -1,8 +1,14 @@
 import { context, docIds, objectStore } from "@budibase/backend-core"
-import { KnowledgeBaseFile, KnowledgeBaseFileStatus } from "@budibase/types"
+import {
+  KnowledgeBaseFile,
+  KnowledgeBaseFileStatus,
+  KnowledgeBaseType,
+} from "@budibase/types"
 import { ObjectStoreBuckets } from "../../../../constants"
 import { enqueueRagFileIngestion } from "../rag/queue"
 import { createKnowledgeBaseFile, updateKnowledgeBaseFile } from "./files"
+import { find as findKnowledgeBase } from "./crud"
+import { ingestGoogleFile } from "./googleFileStore"
 
 interface UploadKnowledgeBaseFileInput {
   knowledgeBaseId: string
@@ -25,6 +31,10 @@ export const uploadKnowledgeBaseFile = async (
   input: UploadKnowledgeBaseFileInput
 ): Promise<KnowledgeBaseFile> => {
   const workspaceId = context.getOrThrowWorkspaceId()
+  const knowledgeBase = await findKnowledgeBase(input.knowledgeBaseId)
+  if (!knowledgeBase) {
+    throw new Error("Knowledge base not found")
+  }
 
   const fileId = docIds.generateKnowledgeBaseFileID(input.knowledgeBaseId)
   const objectStoreKey = buildKnowledgeBaseFileObjectStoreKey(
@@ -53,6 +63,31 @@ export const uploadKnowledgeBaseFile = async (
     })
 
     try {
+      if (
+        (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
+        KnowledgeBaseType.GOOGLE
+      ) {
+        if (!knowledgeBase.googleFileStoreId) {
+          throw new Error(
+            "Google file store is not configured for this knowledge base"
+          )
+        }
+        const ingested = await ingestGoogleFile({
+          vectorStoreId: knowledgeBase.googleFileStoreId,
+          filename: input.filename,
+          mimetype: input.mimetype,
+          buffer: input.buffer,
+        })
+
+        knowledgeBaseFile.status = KnowledgeBaseFileStatus.READY
+        knowledgeBaseFile.ragSourceId =
+          ingested.fileId || knowledgeBaseFile.ragSourceId
+        knowledgeBaseFile.chunkCount = ingested.chunkCount
+        knowledgeBaseFile.processedAt = new Date().toISOString()
+        knowledgeBaseFile.errorMessage = undefined
+        return await updateKnowledgeBaseFile(knowledgeBaseFile)
+      }
+
       await enqueueRagFileIngestion({
         workspaceId,
         knowledgeBaseId: input.knowledgeBaseId,
