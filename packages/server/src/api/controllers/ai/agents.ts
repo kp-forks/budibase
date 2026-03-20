@@ -230,7 +230,7 @@ export async function createAgent(
   const createdBy = ctx.user?._id!
   const globalId = db.getGlobalIDFromUserMetadataID(createdBy)
 
-  const createRequest: RequiredKeys<CreateAgentRequest> = {
+  const createRequest: CreateAgentRequest = {
     name: body.name,
     description: body.description,
     aiconfig: body.aiconfig,
@@ -239,7 +239,6 @@ export async function createAgent(
     icon: body.icon,
     iconColor: body.iconColor,
     live: body.live,
-    publishedAt: undefined,
     _deleted: false,
     createdBy: globalId,
     enabledTools: body.enabledTools,
