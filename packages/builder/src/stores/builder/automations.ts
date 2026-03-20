@@ -2205,7 +2205,6 @@ const automationActions = (store: AutomationStore) => ({
         store.actions.replace(response.automation._id!, response.automation)
         store.actions.select(response.automation._id!)
         await deploymentStore.publishApp()
-        await workspaceDeploymentStore.fetch()
       } else {
         await store.actions.save(updatedAutomation)
       }
