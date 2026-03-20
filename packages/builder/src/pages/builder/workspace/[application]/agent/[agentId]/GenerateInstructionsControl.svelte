@@ -6,14 +6,20 @@
     TextArea,
     notifications,
   } from "@budibase/bbui"
-  import { FeatureFlag, type EnrichedBinding } from "@budibase/types"
+  import {
+    type EnrichedBinding,
+    type GenerateAgentInstructionsRequest,
+    type GenerateAgentInstructionsResponse,
+  } from "@budibase/types"
   import { featureFlags } from "@/stores/portal"
   import { API } from "@/api"
   import { tick } from "svelte"
   import CodeEditor from "@/components/common/CodeEditor/CodeEditor.svelte"
   import { EditorModes } from "@/components/common/CodeEditor"
 
-  interface Props {
+  const AI_AGENT_INSTRUCTIONS_FLAG = "AI_AGENT_INSTRUCTIONS"
+
+  export interface Props {
     aiconfigId?: string
     agentName?: string
     goal?: string
@@ -33,7 +39,9 @@
     onApplyInstructions = () => {},
   }: Props = $props()
 
-  let enabled = $derived(!!$featureFlags[FeatureFlag.AI_AGENT_INSTRUCTIONS])
+  let enabled = $derived(
+    !!($featureFlags as Record<string, boolean>)[AI_AGENT_INSTRUCTIONS_FLAG]
+  )
   let modal = $state<Modal>()
   let promptField = $state<TextArea>()
   let prompt = $state("")
@@ -67,12 +75,18 @@
     generating = true
 
     try {
-      const { instructions } = await API.generateAgentInstructions({
-        aiconfigId,
-        prompt,
-        agentName,
-        goal,
-        toolReferences,
+      const { instructions } = await API.post<
+        GenerateAgentInstructionsRequest,
+        GenerateAgentInstructionsResponse
+      >({
+        url: "/api/ai/agent-instructions",
+        body: {
+          aiconfigId,
+          prompt,
+          agentName,
+          goal,
+          toolReferences,
+        },
       })
 
       if (currentRequestToken !== requestToken) {
