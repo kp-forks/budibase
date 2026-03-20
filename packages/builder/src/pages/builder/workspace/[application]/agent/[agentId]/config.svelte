@@ -224,13 +224,6 @@ Any constraints the agent must follow.
       )
       .filter((tool): tool is AgentTool => !!tool)
   )
-  let enabledToolReferences = $derived(
-    includedToolsWithDetails
-      .map(tool => tool.readableBinding)
-      .filter((binding): binding is string => !!binding)
-      .map(binding => `{{ ${binding} }}`)
-  )
-
   let filteredTools = $derived.by(() => {
     return availableTools.filter(tool => {
       const query = toolSearch.toLowerCase()
@@ -849,7 +842,7 @@ Any constraints the agent must follow.
         aiconfigId={draft.aiconfig}
         agentName={draft.name}
         goal={draft.goal}
-        toolReferences={enabledToolReferences}
+        promptInstructions={draft.promptInstructions}
         {promptBindings}
         bindingIcons={readableToIcon}
         onApplyInstructions={instructions => {

@@ -23,7 +23,7 @@
     aiconfigId?: string
     agentName?: string
     goal?: string
-    toolReferences?: string[]
+    promptInstructions?: string
     promptBindings?: EnrichedBinding[]
     bindingIcons?: Record<string, string | undefined>
     onApplyInstructions?: (_instructions: string) => void
@@ -33,11 +33,62 @@
     aiconfigId = "",
     agentName = "",
     goal = "",
-    toolReferences = [],
+    promptInstructions = "",
     promptBindings = [],
     bindingIcons = {},
     onApplyInstructions = () => {},
   }: Props = $props()
+
+  const normaliseBinding = (binding: string) =>
+    binding
+      .replace(/^\s*\{\{\s*/, "")
+      .replace(/\s*\}\}\s*$/, "")
+      .trim()
+
+  const getIncludedToolRuntimeBindings = (
+    prompt: string | undefined,
+    bindingsMap: Record<string, string>
+  ) => {
+    const matches = (prompt || "").match(/\{\{[^}]+\}\}/g) || []
+    return Array.from(
+      new Set(
+        matches
+          .map(normaliseBinding)
+          .map(binding => bindingsMap[binding])
+          .filter(Boolean)
+      )
+    )
+  }
+
+  let readableToRuntimeBinding = $derived.by(() => {
+    return promptBindings.reduce<Record<string, string>>((acc, binding) => {
+      if (binding.readableBinding && binding.runtimeBinding) {
+        acc[binding.readableBinding] = binding.runtimeBinding
+      }
+      return acc
+    }, {})
+  })
+
+  let includedToolRuntimeBindings = $derived(
+    getIncludedToolRuntimeBindings(promptInstructions, readableToRuntimeBinding)
+  )
+
+  let includedToolsWithDetails = $derived(
+    includedToolRuntimeBindings
+      .map(runtimeBinding =>
+        promptBindings.find(
+          binding => binding.runtimeBinding === runtimeBinding
+        )
+      )
+      .filter((binding): binding is EnrichedBinding => !!binding)
+  )
+
+  let enabledToolReferences = $derived(
+    includedToolsWithDetails
+      .map(tool => tool.readableBinding)
+      .filter((binding): binding is string => !!binding)
+      .map(binding => `{{ ${binding} }}`)
+  )
 
   let enabled = $derived(
     !!($featureFlags as Record<string, boolean>)[AI_AGENT_INSTRUCTIONS_FLAG]
@@ -85,7 +136,7 @@
           prompt,
           agentName,
           goal,
-          toolReferences,
+          toolReferences: enabledToolReferences,
         },
       })
 
