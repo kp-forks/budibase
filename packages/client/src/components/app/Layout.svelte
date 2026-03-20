@@ -73,7 +73,8 @@
 
   // When a developer uses devtools to "view as public", hide the user menu and
   // show the login button instead so it accurately previews the public UX.
-  $: isPublicPreview = $authStore != null && $currentRole === Constants.Roles.PUBLIC
+  $: isPublicPreview =
+    $authStore != null && $currentRole === Constants.Roles.PUBLIC
 
   // Set some layout context. This isn't used in bindings but can be used
   // determine things about the current app layout.
@@ -385,7 +386,11 @@
 
               {#if !embedded}
                 <div class="user left" class:collapsed={navCollapsed}>
-                  <UserMenu collapsed={navCollapsed} {showLoginButton} {isPublicPreview} />
+                  <UserMenu
+                    collapsed={navCollapsed}
+                    {showLoginButton}
+                    {isPublicPreview}
+                  />
                   {#if logoPosition === "bottom"}
                     <div>
                       <Logo
