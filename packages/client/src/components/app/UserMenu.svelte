@@ -19,6 +19,7 @@
   export let compact: boolean = false
   export let collapsed: boolean = false
   export let showLoginButton: boolean = true
+  export let isPublicPreview: boolean = false
 
   const { authStore, environmentStore, notificationStore, appStore } =
     getContext("sdk")
@@ -77,7 +78,7 @@
   $: user = $authStore as User
 </script>
 
-{#if $authStore}
+{#if $authStore && !isPublicPreview}
   <ActionMenu align={compact ? "right" : "left"}>
     <svelte:fragment slot="control">
       <div class="container">

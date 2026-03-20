@@ -10,6 +10,8 @@
     getActiveConditions,
     reduceConditionActions,
   } from "@/utils/conditions"
+  import { authStore } from "@/stores/auth"
+  import { currentRole } from "@/stores/derived/currentRole.js"
 
   const sdk = getContext("sdk")
   const {
@@ -68,6 +70,10 @@
 
   let mobileOpen = false
   let navCollapsed = false
+
+  // When a developer uses devtools to "view as public", hide the user menu and
+  // show the login button instead so it accurately previews the public UX.
+  $: isPublicPreview = $authStore != null && $currentRole === Constants.Roles.PUBLIC
 
   // Set some layout context. This isn't used in bindings but can be used
   // determine things about the current app layout.
@@ -344,7 +350,7 @@
                 {/if}
                 {#if !embedded}
                   <div class="user top">
-                    <UserMenu compact {showLoginButton} />
+                    <UserMenu compact {showLoginButton} {isPublicPreview} />
                   </div>
                 {/if}
               </div>
@@ -379,7 +385,7 @@
 
               {#if !embedded}
                 <div class="user left" class:collapsed={navCollapsed}>
-                  <UserMenu collapsed={navCollapsed} {showLoginButton} />
+                  <UserMenu collapsed={navCollapsed} {showLoginButton} {isPublicPreview} />
                   {#if logoPosition === "bottom"}
                     <div>
                       <Logo
