@@ -392,7 +392,8 @@ export async function enrichSchema(
         err?.reason !== "deleted" &&
         err?.status !== 404 &&
         err?.statusCode !== 404 &&
-        err?.message !== "Cannot enrich relationship, table not found"
+        err?.message !== "Cannot enrich relationship, table not found" &&
+        !err?.message?.startsWith("Unable to find table named")
       ) {
         throw err
       }
@@ -401,7 +402,7 @@ export async function enrichSchema(
         `Skipping broken relationship during view enrichment for view "${view.name}" (${view.id}) and related table "${tableId}"`,
         err
       )
-      return {}
+      return { ...viewFields }
     }
 
     const result: Record<string, ViewV2ColumnEnriched> = {}
