@@ -11,12 +11,12 @@ export interface BackupInitOpts {
 }
 
 export interface ImportWorkspaceConfig {
-  file: {
-    type: string
+  file?: {
+    type?: string
     path: string
     password?: string
   }
-  key: string
+  key?: string
 }
 
 export interface ImportWorkspaceOpts {
