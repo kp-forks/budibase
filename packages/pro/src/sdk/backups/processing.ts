@@ -321,7 +321,7 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
           key: path,
         },
         {
-          objectStoreId: tempWorkspaceId,
+          objectStoreAppId: tempWorkspaceId,
         }
       )
       // Copy files before database cutover. We only add/overwrite desired keys
