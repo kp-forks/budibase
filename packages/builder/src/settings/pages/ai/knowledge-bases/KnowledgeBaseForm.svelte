@@ -103,6 +103,7 @@
       (!isLocal || (!!draft.embeddingModel?.trim() && !!draft.vectorDb?.trim()))
     )
   })
+  let isLocalKnowledgeBase = $derived(draft.type === KnowledgeBaseType.LOCAL)
 
   let knowledgeBaseTypeOptions = $derived([
     { label: "Local", value: KnowledgeBaseType.LOCAL },
@@ -273,53 +274,55 @@
     />
   </div>
 
-  <div class="select">
-    <Select
-      label="Embedding model"
-      description="Models used to convert text into vector embeddings for search and retrieval."
-      required
-      bind:value={draft.embeddingModel}
-      options={embeddingModelSelectOptions}
-      getOptionValue={option => option.value}
-      getOptionLabel={option => option.label}
-      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
-      tooltip={!canEditReferences
-        ? "Remove all files to change the embedding model."
-        : draft.type !== KnowledgeBaseType.LOCAL
-          ? "Embedding model is only used for local knowledge bases."
-          : ""}
-    />
-    <ActionButton
-      icon={"Add"}
-      size="M"
-      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
-      on:click={createNewEmbeddingModel}
-    />
-  </div>
+  {#if isLocalKnowledgeBase}
+    <div class="select">
+      <Select
+        label="Embedding model"
+        description="Models used to convert text into vector embeddings for search and retrieval."
+        required
+        bind:value={draft.embeddingModel}
+        options={embeddingModelSelectOptions}
+        getOptionValue={option => option.value}
+        getOptionLabel={option => option.label}
+        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        tooltip={!canEditReferences
+          ? "Remove all files to change the embedding model."
+          : draft.type !== KnowledgeBaseType.LOCAL
+            ? "Embedding model is only used for local knowledge bases."
+            : ""}
+      />
+      <ActionButton
+        icon={"Add"}
+        size="M"
+        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        on:click={createNewEmbeddingModel}
+      />
+    </div>
 
-  <div class="select">
-    <Select
-      label="Vector database"
-      description="Databases optimized for storing and querying vector embeddings. We support PGVector."
-      required
-      bind:value={draft.vectorDb}
-      options={vectorDbSelectOptions}
-      getOptionValue={option => option.value}
-      getOptionLabel={option => option.label}
-      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
-      tooltip={!canEditReferences
-        ? "Remove all files to change the vector database."
-        : draft.type !== KnowledgeBaseType.LOCAL
-          ? "Vector database is only used for local knowledge bases."
-          : ""}
-    />
-    <ActionButton
-      icon={"Add"}
-      size="M"
-      disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
-      on:click={createNewVectorDb}
-    />
-  </div>
+    <div class="select">
+      <Select
+        label="Vector database"
+        description="Databases optimized for storing and querying vector embeddings. We support PGVector."
+        required
+        bind:value={draft.vectorDb}
+        options={vectorDbSelectOptions}
+        getOptionValue={option => option.value}
+        getOptionLabel={option => option.label}
+        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        tooltip={!canEditReferences
+          ? "Remove all files to change the vector database."
+          : draft.type !== KnowledgeBaseType.LOCAL
+            ? "Vector database is only used for local knowledge bases."
+            : ""}
+      />
+      <ActionButton
+        icon={"Add"}
+        size="M"
+        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        on:click={createNewVectorDb}
+      />
+    </div>
+  {/if}
 
   <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} {hasReferenceChanges} />
 </div>

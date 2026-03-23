@@ -3,9 +3,7 @@ import { KnowledgeBaseType } from "@budibase/types"
 import Joi from "joi"
 
 const REQUIRED_STRING = Joi.string().required()
-const KB_TYPE = Joi.string()
-  .valid(...Object.values(KnowledgeBaseType))
-  .default(KnowledgeBaseType.LOCAL)
+const KB_TYPE = Joi.string().valid(...Object.values(KnowledgeBaseType))
 
 export function createKnowledgeBaseValidator() {
   return auth.joiValidator.body(
