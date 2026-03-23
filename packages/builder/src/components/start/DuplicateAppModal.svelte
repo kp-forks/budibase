@@ -1,6 +1,5 @@
 <script lang="ts">
   import { API } from "@/api"
-  import { getErrorMessage } from "@/helpers/errors"
   import { appsStore, auth } from "@/stores/portal"
   import {
     Input,
