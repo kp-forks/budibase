@@ -1573,6 +1573,24 @@ describe("/applications", () => {
 
       migrationsModule.MIGRATIONS.pop()
     })
+
+    it("should reject delete when APP_ID header conflicts with path appId", async () => {
+      const secondWorkspace = await config.api.workspace.create({
+        name: generateAppName(),
+      })
+
+      await config.withHeaders(
+        { [Header.APP_ID]: workspace.appId },
+        async () => {
+          await config.api.workspace.delete(secondWorkspace.appId, {
+            status: 403,
+            body: { message: "App id conflict" },
+          })
+        }
+      )
+
+      expect(events.app.deleted).not.toHaveBeenCalled()
+    })
   })
 
   describe("POST /api/applications/:appId/duplicate", () => {
