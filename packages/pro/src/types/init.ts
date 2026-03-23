@@ -14,6 +14,7 @@ export interface ImportWorkspaceConfig {
   file: {
     type: string
     path: string
+    password: string
   }
   key: string
 }
@@ -24,11 +25,17 @@ export interface ImportWorkspaceOpts {
   objectStoreAppId?: string
 }
 
-type ExportWorkspaceFn = (
+export type ExportWorkspaceFn = (
   devWorkspaceId: string,
-  opts: { tar: boolean }
+  opts: {
+    tar: boolean
+    excludeRows: boolean
+    encryptPassword?: string
+    exportPath?: string
+    filter?: string
+  }
 ) => Promise<string>
-type ImportWorkspaceFn = (
+export type ImportWorkspaceFn = (
   targetWorkspaceId: string,
   destinationDb: Database,
   config: ImportWorkspaceConfig,

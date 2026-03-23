@@ -1,4 +1,5 @@
 import { db as dbCore, encryption, objectStore } from "@budibase/backend-core"
+import { ExportWorkspaceFn } from "@budibase/pro"
 import { tracer } from "dd-trace"
 import fs from "fs"
 import fsp from "fs/promises"
@@ -101,10 +102,10 @@ function defineFilter(excludeRows?: boolean) {
  * @param config Config to send to export DB/attachment export
  * @returns either a string or a stream of the backup
  */
-export async function exportWorkspace(
-  workspaceId: string,
-  config?: ExportOpts
-) {
+export const exportWorkspace: ExportWorkspaceFn = async (
+  workspaceId,
+  config
+) => {
   return await tracer.trace("exportApp", async span => {
     span.addTags({
       "config.excludeRows": config?.excludeRows,
