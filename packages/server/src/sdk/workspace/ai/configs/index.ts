@@ -441,7 +441,7 @@ export async function reconcileLiteLLMModels() {
       })
       modelAlreadyExisted = true
     } catch (e: any) {
-      if (e.code !== "404") {
+      if (e.status !== "404") {
         throw e
       }
     }
