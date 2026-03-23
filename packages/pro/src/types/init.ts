@@ -14,7 +14,7 @@ export interface ImportWorkspaceConfig {
   file: {
     type: string
     path: string
-    password: string
+    password?: string
   }
   key: string
 }
@@ -29,7 +29,7 @@ export type ExportWorkspaceFn = (
   devWorkspaceId: string,
   opts: {
     tar: boolean
-    excludeRows: boolean
+    excludeRows?: boolean
     encryptPassword?: string
     exportPath?: string
     filter?: string
