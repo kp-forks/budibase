@@ -161,24 +161,24 @@ describe("backups", () => {
   // Disable date mocking
   tk.reset()
 
-  const exportAppFn = jest.fn(),
-    importAppFn = jest.fn(),
+  const exportWorkspaceFn = jest.fn(),
+    importWorkspaceFn = jest.fn(),
     statsFn = jest.fn()
 
   beforeAll(async () => {
     mocks.licenses.useBackups()
     await backups.init({
       processing: {
-        exportAppFn,
-        importAppFn,
+        exportWorkspaceFn,
+        importWorkspaceFn,
         statsFn,
       },
     })
   })
 
   beforeEach(() => {
-    exportAppFn.mockReset().mockReturnValue("/path")
-    importAppFn.mockReset().mockImplementation()
+    exportWorkspaceFn.mockReset().mockReturnValue("/path")
+    importWorkspaceFn.mockReset().mockImplementation()
     statsFn.mockReset().mockImplementation()
     mockedObjectStore.listAllObjects
       .mockReset()
@@ -223,22 +223,22 @@ describe("backups", () => {
       expect(backup.status).toEqual(BackupStatus.COMPLETE)
       await waitForQueue()
       expect(backup._id).toBeDefined()
-      expect(exportAppFn).toHaveBeenCalledTimes(1)
+      expect(exportWorkspaceFn).toHaveBeenCalledTimes(1)
     })
   })
 
-  it("should call importAppFn with dev workspace id, not temp app id", async () => {
+  it("should call importWorkspaceFn with dev workspace id, not temp app id", async () => {
     await config.doInTenant(async () => {
       const restore = await createRestore()
       const processedRestore = await backups.getAppBackup(restore._id)
       const [importWorkspaceId, importDb, _config, importOpts] =
-        importAppFn.mock.calls[0]
+        importWorkspaceFn.mock.calls[0]
       const devWorkspaceId = db.getDevWorkspaceID(config.workspaceId)
       const tempAppId = importDb.name
 
       expect(processedRestore._id).toBeDefined()
-      expect(exportAppFn).toHaveBeenCalledTimes(2)
-      expect(importAppFn).toHaveBeenCalledTimes(1)
+      expect(exportWorkspaceFn).toHaveBeenCalledTimes(2)
+      expect(importWorkspaceFn).toHaveBeenCalledTimes(1)
       expect(importWorkspaceId).toEqual(devWorkspaceId)
       expect(importWorkspaceId).not.toEqual(tempAppId)
       expect(importDb.name).toMatch(new RegExp(`^${devWorkspaceId}_temp_`))
@@ -446,7 +446,7 @@ describe("backups", () => {
       const backup = await createBackup()
       await waitForQueue()
 
-      importAppFn.mockRejectedValue(new Error("Import failed"))
+      importWorkspaceFn.mockRejectedValue(new Error("Import failed"))
       // Trigger restore which should fail
       const response = await backups.triggerAppRestore(
         config.workspaceId,
@@ -459,7 +459,7 @@ describe("backups", () => {
       // Verify restore failed
       const processedRestore = await backups.getAppBackup(response!.restoreId)
       expect(processedRestore.status).toEqual(BackupStatus.FAILED)
-      expect(importAppFn).toHaveBeenCalledTimes(1)
+      expect(importWorkspaceFn).toHaveBeenCalledTimes(1)
 
       // Verify dev workspace database is not deleted
       expect(await db.getDB(devWorkspaceId).allDocs({})).toEqual({

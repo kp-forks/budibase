@@ -241,7 +241,7 @@ async function runBackup(
     }
   }
   try {
-    const tarPath = await opts.processing.exportAppFn(devWorkspaceId, {
+    const tarPath = await opts.processing.exportWorkspaceFn(devWorkspaceId, {
       tar: true,
     })
     const contents = await opts.processing.statsFn(devWorkspaceId)
@@ -310,7 +310,7 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
     try {
       // Import into a temporary database, but rewrite embedded app references
       // against the real development workspace ID.
-      await opts.importAppFn(
+      await opts.importWorkspaceFn(
         devWorkspaceId,
         dbCore.getDB(tempAppId),
         {
