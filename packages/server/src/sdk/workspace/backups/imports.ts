@@ -1,11 +1,19 @@
-import { db as dbCore, encryption, objectStore } from "@budibase/backend-core"
+import {
+  db as dbCore,
+  docIds,
+  encryption,
+  objectStore,
+} from "@budibase/backend-core"
 import { ImportWorkspaceFn } from "@budibase/pro"
 import { utils } from "@budibase/shared-core"
 import {
   Automation,
   AutomationTriggerStepId,
+  CustomAIProviderConfig,
   Database,
+  DocumentType,
   FieldType,
+  LiteLLMKeyConfig,
   Row,
   RowAttachment,
   WebhookTriggerInputs,
@@ -184,6 +192,33 @@ export interface ImportAppOpts {
   updateAttachmentColumns?: boolean
   importObjStoreContents?: boolean
   objectStoreAppId?: string
+  preserveLiteLLMConfig?: boolean
+}
+
+async function sanitizeLiteLLMImportData(db: Database) {
+  const keyDocId = docIds.getLiteLLMKeyID()
+  const keyDoc = await db.tryGet<LiteLLMKeyConfig>(keyDocId)
+  if (keyDoc) {
+    await db.remove(keyDoc)
+  }
+
+  const aiConfigs = await db.allDocs<CustomAIProviderConfig>(
+    docIds.getDocParams(DocumentType.AI_CONFIG, undefined, {
+      include_docs: true,
+    })
+  )
+
+  const updatedAIConfigs = aiConfigs.rows
+    .map(row => row.doc)
+    .filter((doc): doc is CustomAIProviderConfig => !!doc)
+    .map(doc => ({
+      ...doc,
+      liteLLMModelId: "",
+    }))
+
+  if (updatedAIConfigs.length) {
+    await db.bulkDocs(updatedAIConfigs)
+  }
 }
 
 export const importApp: ImportWorkspaceFn = async (
@@ -195,6 +230,7 @@ export const importApp: ImportWorkspaceFn = async (
   const importOpts: ImportAppOpts = {
     updateAttachmentColumns: true,
     importObjStoreContents: true,
+    preserveLiteLLMConfig: false,
     ...opts,
   }
   const prodAppId = dbCore.getProdWorkspaceID(appId)
@@ -291,6 +327,9 @@ export const importApp: ImportWorkspaceFn = async (
     await updateAttachmentColumns(prodAppId, db)
   }
   await updateAutomations(prodAppId, db)
+  if (!importOpts.preserveLiteLLMConfig) {
+    await sanitizeLiteLLMImportData(db)
+  }
 
   await sdk.ai.configs.reconcileLiteLLMModels()
 
