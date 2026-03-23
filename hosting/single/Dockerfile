@@ -62,7 +62,9 @@ RUN apt-get update && \
 
 # Install litellm
 RUN python3 -m venv /opt/venv/litellm
-RUN /opt/venv/litellm/bin/pip install 'litellm[proxy]'
+# Keep this pinned and in sync with charts/budibase/values.yaml (services.litellm.image)
+ARG LITELLM_PYPI_VERSION=1.82.3
+RUN /opt/venv/litellm/bin/pip install "litellm[proxy]==${LITELLM_PYPI_VERSION}"
 ENV PATH="/opt/venv/litellm/bin:${PATH}"
 RUN mkdir -p /litellm
 
