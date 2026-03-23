@@ -66,6 +66,7 @@
   }
 
   const navigateToWorkspace = (ws: EnrichedApp) => {
+    contextMenuStore.close()
     const wsUrl = getWorkspaceUrl(ws)
     if (!ws.editable) {
       window.open(wsUrl, "_blank")
@@ -169,6 +170,7 @@
   }
 
   const onMenuClose = () => {
+    contextMenuStore.close()
     open = false
     sortOpen = false
   }
