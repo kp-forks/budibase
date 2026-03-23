@@ -8,7 +8,7 @@ export const getIncludedToolRuntimeBindings = (
   prompt: string | undefined | null,
   bindingsMap: Record<string, string>
 ) => {
-  const matches = (prompt || "").match(/\{\{[^}]+\}\}/g) || []
+  const matches = (prompt || "").match(/\{\{\s*[^{}]+\s*\}\}/g) || []
   return Array.from(
     new Set(
       matches
