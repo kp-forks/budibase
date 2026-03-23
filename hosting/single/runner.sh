@@ -260,6 +260,8 @@ if [[ -z "${LITELLM_MASTER_KEY}" || -z "${LITELLM_SALT_KEY}" ]]; then
     exit 1
 fi
 
+export USE_PRISMA_MIGRATE="True"
+
 upsert_env_var() {
     local name="$1"
     local value="$2"
