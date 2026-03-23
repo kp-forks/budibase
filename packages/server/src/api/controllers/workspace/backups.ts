@@ -13,24 +13,24 @@ import {
 } from "@budibase/types"
 import { backups, utils } from "@budibase/pro"
 
-async function checkAppId(ctx: UserCtx, appId?: string) {
-  if (!appId) {
-    ctx.throw(400, "App ID missing")
+async function checkWorkspaceId(ctx: UserCtx, workspaceId?: string) {
+  if (!workspaceId) {
+    ctx.throw(400, "Workspace ID missing")
   }
-  if (!(await utils.workspaceExists(appId))) {
-    ctx.throw(400, `Provided app ID: ${appId} - is invalid.`)
+  if (!(await utils.workspaceExists(workspaceId))) {
+    ctx.throw(400, `Provided workspace ID: ${workspaceId} - is invalid.`)
   }
 }
 
 export async function manualBackup(
   ctx: UserCtx<CreateWorkspaceBackupRequest, CreateWorkspaceBackupResponse>
 ) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspaceId = ctx.params.appId
+  await checkWorkspaceId(ctx, workspaceId)
   const { body } = ctx.request
   const createdBy = ctx.user?._id
   const backupId = await backups.triggerWorkspaceBackup(
-    appId,
+    workspaceId,
     BackupTrigger.MANUAL,
     {
       name: body.name,
@@ -49,12 +49,12 @@ export async function manualBackup(
 export async function importBackup(
   ctx: UserCtx<ImportWorkspaceBackupRequest, ImportWorkspaceBackupResponse>
 ) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspaceId = ctx.params.appId
+  await checkWorkspaceId(ctx, workspaceId)
   const backupId = ctx.params.backupId
   const nameForBackup = ctx.request.body.name
   const response = await backups.triggerWorkspaceRestore(
-    appId,
+    workspaceId,
     backupId,
     nameForBackup,
     ctx.user?._id
@@ -70,8 +70,8 @@ export async function importBackup(
 }
 
 export async function deleteBackup(ctx: UserCtx) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspace = ctx.params.appId
+  await checkWorkspaceId(ctx, workspace)
   const backupId = ctx.params.backupId
   await backups.deleteWorkspaceBackup(backupId)
   ctx.body = {
@@ -82,8 +82,8 @@ export async function deleteBackup(ctx: UserCtx) {
 export async function deleteBackups(
   ctx: UserCtx<DeleteWorkspaceBackupsRequest, DeleteWorkspaceBackupsResponse>
 ) {
-  const appId = context.getWorkspaceId()
-  await checkAppId(ctx, appId)
+  const workspaceId = context.getWorkspaceId()
+  await checkWorkspaceId(ctx, workspaceId)
   const { backupIds } = ctx.request.body
 
   if (!Array.isArray(backupIds) || backupIds.length === 0) {
@@ -103,8 +103,8 @@ export async function deleteBackups(
 }
 
 export async function fetchBackups(ctx: UserCtx) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspaceId = ctx.params.appId
+  await checkWorkspaceId(ctx, workspaceId)
   const body = ctx.request.body as SearchWorkspaceBackupsRequest
   if (body?.trigger) {
     body.trigger = body.trigger.toLowerCase() as BackupTrigger
@@ -112,23 +112,23 @@ export async function fetchBackups(ctx: UserCtx) {
       ctx.throw(400, "Provided trigger is not a valid option.")
     }
   }
-  ctx.body = await backups.fetchWorkspaceBackups(appId, {
+  ctx.body = await backups.fetchWorkspaceBackups(workspaceId, {
     paginate: true,
     ...body,
   })
 }
 
 export async function updateBackup(ctx: UserCtx) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspaceId = ctx.params.appId
+  await checkWorkspaceId(ctx, workspaceId)
   const backupId = ctx.params.backupId
   const body = ctx.request.body as UpdateWorkspaceBackupRequest
   ctx.body = await backups.updateWorkspaceBackup(backupId, body.name)
 }
 
 export async function downloadBackup(ctx: UserCtx) {
-  const appId = ctx.params.appId
-  await checkAppId(ctx, appId)
+  const workspaceId = ctx.params.appId
+  await checkWorkspaceId(ctx, workspaceId)
   const backupId = ctx.params.backupId
   const { metadata, stream } = await backups.getBackupDownloadStream(backupId)
   ctx.attachment(`backup-${metadata.timestamp}.tar.gz`)
