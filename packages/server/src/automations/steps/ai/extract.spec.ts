@@ -1,12 +1,10 @@
 import { DocumentSourceType, SupportedFileType } from "@budibase/types"
 import { generateText } from "ai"
 import sdk from "../../../sdk"
-import fetch from "node-fetch"
 import { PDFParse } from "pdf-parse"
 import { Readable } from "stream"
 import { run } from "./extract"
-
-jest.mock("node-fetch", () => jest.fn())
+import { fetchWithBlacklist } from "../utils"
 
 jest.mock("pdf-parse", () => ({
   PDFParse: jest.fn(),
@@ -31,6 +29,10 @@ jest.mock("../../../sdk", () => ({
   },
 }))
 
+jest.mock("../utils", () => ({
+  fetchWithBlacklist: jest.fn(),
+}))
+
 describe("extract file data step unit tests", () => {
   const getDefaultLLMMock = sdk.ai.llm
     .getDefaultLLMOrThrow as jest.MockedFunction<
@@ -39,7 +41,9 @@ describe("extract file data step unit tests", () => {
   const generateTextMock = generateText as jest.MockedFunction<
     typeof generateText
   >
-  const fetchMock = fetch as jest.MockedFunction<typeof fetch>
+  const fetchWithBlacklistMock = fetchWithBlacklist as jest.MockedFunction<
+    typeof fetchWithBlacklist
+  >
   const PDFParseMock = PDFParse as jest.MockedClass<typeof PDFParse>
 
   beforeEach(() => {
@@ -51,7 +55,7 @@ describe("extract file data step unit tests", () => {
     const bufferMock = jest.fn()
     const uploadFile = jest.fn().mockResolvedValue("file-123")
 
-    fetchMock.mockResolvedValue({
+    fetchWithBlacklistMock.mockResolvedValue({
       ok: true,
       body: fileStream,
       buffer: bufferMock,
@@ -101,7 +105,7 @@ describe("extract file data step unit tests", () => {
   })
 
   it("falls back to inline pdf text when llm.uploadFile is unavailable", async () => {
-    fetchMock.mockResolvedValue({
+    fetchWithBlacklistMock.mockResolvedValue({
       ok: true,
       buffer: jest.fn().mockResolvedValue(Buffer.from("fake pdf bytes")),
     } as any)
@@ -154,7 +158,7 @@ describe("extract file data step unit tests", () => {
 
   it("sends images as data URLs without using file upload", async () => {
     const uploadFile = jest.fn()
-    fetchMock.mockResolvedValue({
+    fetchWithBlacklistMock.mockResolvedValue({
       ok: true,
       buffer: jest
         .fn()
@@ -200,7 +204,7 @@ describe("extract file data step unit tests", () => {
   })
 
   it("returns a clear error when extraction output is empty", async () => {
-    fetchMock.mockResolvedValue({
+    fetchWithBlacklistMock.mockResolvedValue({
       ok: true,
       buffer: jest.fn().mockResolvedValue(Buffer.from("fake pdf bytes")),
     } as any)
@@ -236,5 +240,35 @@ describe("extract file data step unit tests", () => {
 
     expect(result.success).toBe(false)
     expect(result.response).toBe("Error: Could not extract the requested data.")
+  })
+
+  it("returns a clear error when url is blocked", async () => {
+    fetchWithBlacklistMock.mockRejectedValue(
+      new Error("URL is blocked or could not be resolved safely.")
+    )
+
+    getDefaultLLMMock.mockResolvedValue({
+      chat: {} as any,
+      embedding: {} as any,
+      providerOptions: undefined,
+      uploadFile: jest.fn(),
+    })
+
+    const result = await run({
+      inputs: {
+        source: DocumentSourceType.URL,
+        file: "http://169.254.169.254/metadata/v1/",
+        fileType: SupportedFileType.PDF,
+        schema: { value: "string" },
+      },
+    })
+
+    expect(fetchWithBlacklistMock).toHaveBeenCalledWith(
+      "http://169.254.169.254/metadata/v1/"
+    )
+    expect(result.success).toBe(false)
+    expect(result.response).toContain(
+      "URL is blocked or could not be resolved safely."
+    )
   })
 })
