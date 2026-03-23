@@ -401,6 +401,78 @@ export async function remove(id: string) {
   await liteLLM.syncKeyModels()
 }
 
+export async function reconcileLiteLLMModels() {
+  const status = await getLiteLLMStatus()
+  if (status === liteLLM.LiteLLMStatus.NOT_CONFIGURED) {
+    return
+  }
+
+  const db = context.getWorkspaceDB()
+  const existingConfigs = await fetch()
+  const isSelfhost = env.SELF_HOSTED
+
+  for (const existingConfig of existingConfigs) {
+    if (!existingConfig._id) {
+      continue
+    }
+
+    const isBBAI = existingConfig.provider === BUDIBASE_AI_PROVIDER_ID
+    if (isBBAI && !isSelfhost) {
+      continue
+    }
+
+    const resolvedCredentialFields = await resolveCredentialFields(
+      existingConfig.credentialsFields
+    )
+    const currentModelId = existingConfig.liteLLMModelId
+    let modelId = currentModelId
+
+    let modelAlreadyExisted = false
+
+    try {
+      await liteLLM.updateModel({
+        configId: existingConfig._id,
+        llmModelId: currentModelId,
+        provider: existingConfig.provider,
+        name: existingConfig.model,
+        credentialFields: resolvedCredentialFields,
+        configType: existingConfig.configType,
+        reasoningEffort: existingConfig.reasoningEffort,
+      })
+      modelAlreadyExisted = true
+    } catch (e: any) {
+      if (e.code !== "404") {
+        throw e
+      }
+    }
+
+    if (!modelAlreadyExisted) {
+      modelId = await liteLLM.addModel({
+        configId: existingConfig._id,
+        provider: existingConfig.provider,
+        model: existingConfig.model,
+        credentialFields: resolvedCredentialFields,
+        configType: existingConfig.configType,
+        reasoningEffort: existingConfig.reasoningEffort,
+      })
+    }
+
+    if (modelId !== currentModelId) {
+      const updatedConfig: CustomAIProviderConfig = {
+        ...existingConfig,
+        liteLLMModelId: modelId,
+      }
+      const encodedConfig: CustomAIProviderConfig = {
+        ...updatedConfig,
+        ...(await encodeConfigSecrets(updatedConfig)),
+      }
+      await db.put(encodedConfig)
+    }
+  }
+
+  await liteLLM.syncKeyModels()
+}
+
 let liteLLMProviders: LLMProvider[]
 
 export async function fetchLiteLLMProviders(): Promise<LLMProvider[]> {

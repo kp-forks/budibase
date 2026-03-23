@@ -291,6 +291,9 @@ export const importApp: ImportWorkspaceFn = async (
     await updateAttachmentColumns(prodAppId, db)
   }
   await updateAutomations(prodAppId, db)
+
+  await sdk.ai.configs.reconcileLiteLLMModels()
+
   // clear up afterward
   if (tmpPath) {
     await fsp.rm(tmpPath, { recursive: true, force: true })

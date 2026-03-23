@@ -268,11 +268,15 @@ export async function updateModel({
     `${liteLLMUrl}/model/${llmModelId}/update`,
     requestOptions
   )
-  const json = await res.json()
-  if (json.status === "error") {
-    const trimmedError = json.result.error.split("\n")[0] || json.result.error
+  if (!res.ok) {
+    const json = await res.json()
+    const message = json.error?.message
+    const statusCode = json.error?.code || 400
 
-    throw new HTTPError(`Error updating configuration: ${trimmedError}`, 400)
+    throw new HTTPError(
+      [`Error updating configuration`, message].filter(Boolean).join(": "),
+      statusCode
+    )
   }
 }
 
