@@ -13,6 +13,7 @@ import {
 import { createVectorDb, type ChunkInput } from "../vectorDb/utils"
 import { knowledgeBase as knowledgeBaseSdk } from ".."
 import { createLLM } from "../llm"
+import { searchGoogleFileStore } from "../knowledgeBase/googleFileStore"
 
 interface RagFileInput {
   filename?: string
@@ -221,7 +222,9 @@ const getLocalKnowledgeBaseRefs = (knowledgeBase: KnowledgeBase) => {
   if (
     (knowledgeBase.type || KnowledgeBaseType.LOCAL) !== KnowledgeBaseType.LOCAL
   ) {
-    throw new Error("Google knowledge base retrieval is not implemented yet")
+    throw new Error(
+      "Knowledge base is not configured for local vector retrieval"
+    )
   }
   if (!knowledgeBase.embeddingModel) {
     throw new Error("Embedding model is required for local knowledge bases")
@@ -364,6 +367,42 @@ interface RetrievedContextResult {
   sources: AgentMessageRagSource[]
 }
 
+interface GoogleSearchResultItem {
+  id?: string
+  file_id?: string
+  fileId?: string
+  filename?: string
+  content?: Array<{ text?: string }>
+  attributes?: {
+    uri?: string
+    title?: string
+  }
+}
+
+const toGoogleRetrievedChunks = (
+  rows: GoogleSearchResultItem[]
+): RetrievedContextChunk[] => {
+  return rows
+    .map((row, index) => {
+      const chunkText = row.content?.[0]?.text?.trim()
+      if (!chunkText) {
+        return undefined
+      }
+      return {
+        sourceId:
+          row.file_id ||
+          row.fileId ||
+          row.filename ||
+          row.attributes?.uri ||
+          row.id ||
+          `google-result-${index}`,
+        chunkText,
+        chunkHash: hashChunk(chunkText),
+      }
+    })
+    .filter((value): value is RetrievedContextChunk => Boolean(value))
+}
+
 export const retrieveContextForAgent = async (
   agent: Agent,
   question: string
@@ -374,7 +413,8 @@ export const retrieveContextForAgent = async (
 
   const knowledgeBases = await resolveKnowledgeBasesForAgent(agent)
   const maxDistance = 1 - DEFAULT_RAG_MIN_SIMILARITY
-  const retrieved: Array<RetrievedContextChunk & { distance: number }> = []
+  const localRetrieved: Array<RetrievedContextChunk & { distance: number }> = []
+  const googleRetrieved: RetrievedContextChunk[] = []
   const files: KnowledgeBaseFile[] = []
 
   for (const knowledgeBase of knowledgeBases) {
@@ -397,6 +437,25 @@ export const retrieveContextForAgent = async (
     if (readyFileSources.length === 0) {
       continue
     }
+
+    if (
+      (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
+      KnowledgeBaseType.GOOGLE
+    ) {
+      if (!knowledgeBase.googleFileStoreId) {
+        throw new Error("Google knowledge base store is not configured")
+      }
+
+      const rows = await searchGoogleFileStore({
+        vectorStoreId: knowledgeBase.googleFileStoreId,
+        query: question,
+        maxNumResults: DEFAULT_RAG_TOP_K,
+      })
+
+      googleRetrieved.push(...toGoogleRetrievedChunks(rows))
+      continue
+    }
+
     const refs = getLocalKnowledgeBaseRefs(knowledgeBase)
 
     const [queryEmbedding] = await embedChunks(
@@ -418,7 +477,7 @@ export const retrieveContextForAgent = async (
       DEFAULT_RAG_TOP_K
     )
 
-    retrieved.push(
+    localRetrieved.push(
       ...rows
         .filter(row => row.distance <= maxDistance)
         .map(row => ({
@@ -430,14 +489,17 @@ export const retrieveContextForAgent = async (
     )
   }
 
-  if (retrieved.length === 0) {
+  if (localRetrieved.length === 0 && googleRetrieved.length === 0) {
     return { text: "", chunks: [], sources: [] }
   }
 
-  const chunks: RetrievedContextChunk[] = retrieved
+  const localChunks: RetrievedContextChunk[] = localRetrieved
     .sort((a, b) => a.distance - b.distance)
-    .slice(0, DEFAULT_RAG_TOP_K)
     .map(({ distance: _distance, ...chunk }) => chunk)
+  const chunks: RetrievedContextChunk[] = [
+    ...localChunks,
+    ...googleRetrieved,
+  ].slice(0, DEFAULT_RAG_TOP_K)
 
   return {
     text: chunks.map(chunk => chunk.chunkText).join("\n\n"),

@@ -459,10 +459,12 @@ export async function getKeySettings(): Promise<{
 async function updateKey({
   keyId,
   modelIds,
+  vectorStoreIds,
   teamId,
 }: {
   keyId: string
   modelIds?: string[]
+  vectorStoreIds?: string[]
   teamId?: string
 }) {
   const requestOptions = {
@@ -474,6 +476,7 @@ async function updateKey({
     body: JSON.stringify({
       key: keyId,
       ...(modelIds ? { models: modelIds } : {}),
+      ...(vectorStoreIds ? { vector_store_ids: vectorStoreIds } : {}),
       ...(teamId ? { team_id: teamId } : {}),
     }),
   }
@@ -485,6 +488,14 @@ async function updateKey({
 
     throw new HTTPError(`Error syncing keys: ${trimmedError}`, 400)
   }
+}
+
+export async function allowVectorStoreOnWorkspaceKey(vectorStoreId: string) {
+  const { keyId } = await getKeySettings()
+  await updateKey({
+    keyId,
+    vectorStoreIds: [vectorStoreId],
+  })
 }
 
 export async function syncKeyModels() {
