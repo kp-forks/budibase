@@ -271,11 +271,10 @@ export async function updateModel({
   if (!res.ok) {
     const json = await res.json()
     const message = json.error?.message
-    const statusCode = json.error?.code || 400
 
     throw new HTTPError(
       [`Error updating configuration`, message].filter(Boolean).join(": "),
-      statusCode
+      res.status || 400
     )
   }
 }
@@ -373,11 +372,13 @@ async function validateCompletionsModel(model: {
     }
     throw new HTTPError(text, 500)
   }
-  const json = await res.json()
-  if (json.status === "error") {
-    const trimmedError = json.result.error.split("\n")[0] || json.result.error
+  if (res.ok) {
+    const json = await res.json()
+    const message = ["Error validating configuration", json.error?.message]
+      .filter(Boolean)
+      .join(": ")
 
-    throw new HTTPError(`Error validating configuration: ${trimmedError}`, 400)
+    throw new HTTPError(message, res.status || 400)
   }
 }
 
@@ -484,25 +485,99 @@ async function updateKey({
 
   const res = await fetch(`${liteLLMUrl}/key/update`, requestOptions)
   const json = await res.json()
-  if (json.status === "error") {
-    const trimmedError = json.result.error.split("\n")[0] || json.result.error
+  if (!res.ok) {
+    const message = ["Error syncing keys", json.error?.message]
+      .filter(Boolean)
+      .join(": ")
 
-    throw new HTTPError(`Error syncing keys: ${trimmedError}`, 400)
+    throw new HTTPError(message, res.status || 400)
   }
 }
 
+function isMissingVirtualKeyError(error: any): boolean {
+  const message = `${error?.message || ""}`.toLowerCase()
+  const status = error?.status
+
+  return status === 401 && message.includes("user key does not exist in db")
+}
+
+async function regenerateWorkspaceKey() {
+  const db = context.getWorkspaceDB()
+  const keyDocId = docIds.getLiteLLMKeyID()
+  const workspaceId = context.getProdWorkspaceId()
+
+  if (!workspaceId) {
+    throw new HTTPError("Workspace ID is required to configure LiteLLM", 400)
+  }
+
+  const { result } = await locks.doWithLock(
+    {
+      name: LockName.LITELLM_KEY,
+      type: LockType.AUTO_EXTEND,
+      resource: workspaceId,
+    },
+    async () => {
+      const existing = await db.tryGet<LiteLLMKeyConfig>(keyDocId)
+      const teamId = existing?.teamId || (await getOrCreateTenantTeam()).id
+      const key = await generateKey(getKeyAlias(workspaceId), teamId)
+      const updatedConfig: LiteLLMKeyConfig = {
+        _id: keyDocId,
+        _rev: existing?._rev,
+        keyId: key.id,
+        secretKey: key.secret,
+        teamId,
+      }
+      const { rev } = await db.put(updatedConfig)
+      return {
+        ...updatedConfig,
+        _rev: rev,
+      }
+    }
+  )
+
+  return result
+}
+
 export async function syncKeyModels() {
-  const { keyId } = await getKeySettings()
+  let { keyId } = await getKeySettings()
 
   const aiConfigs = await configSdk.fetch()
   const modelIds = aiConfigs
     .map(c => c.liteLLMModelId)
     .filter((id): id is string => !!id)
 
-  await updateKey({
-    keyId,
-    modelIds,
-  })
+  let success = false
+  try {
+    await updateKey({
+      keyId,
+      modelIds,
+    })
+    success = true
+  } catch (err: any) {
+    if (!isMissingVirtualKeyError(err)) {
+      throw err
+    }
+  }
+
+  if (!success) {
+    const keyRes = await fetch(`${liteLLMUrl}/key/info?key=${keyId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: liteLLMAuthorizationHeader,
+      },
+    })
+    if (keyRes.status !== 404) {
+      throw new Error("Key already exists, cannot be recreated")
+    }
+
+    const regeneratedKey = await regenerateWorkspaceKey()
+    keyId = regeneratedKey.keyId
+    await updateKey({
+      keyId,
+      modelIds,
+    })
+  }
 }
 
 type LiteLLMPublicProvider = {
