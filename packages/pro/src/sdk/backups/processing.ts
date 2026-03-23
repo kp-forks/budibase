@@ -225,7 +225,7 @@ async function runBackup(
         updateOpts?.filename
       )
     } else {
-      await backups.storeAppBackupMetadata(
+      await backups.storeWorkspaceBackupMetadata(
         {
           appId: prodAppId,
           timestamp,
@@ -290,7 +290,7 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
   const tenantId = tenancy.getTenantIDFromWorkspaceID(appId) as string
   return tenancy.doInTenant(tenantId, async () => {
     const devWorkspaceId = dbCore.getDevWorkspaceID(appId)
-    const tempAppId = `${devWorkspaceId}_temp_${Date.now()}`
+    const tempWorkspaceId = `${devWorkspaceId}_temp_${Date.now()}`
 
     const { rev } = await backups.updateRestoreStatus(
       data.docId,
@@ -304,7 +304,7 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
       name: nameForBackup,
     })
     // get the backup ready on disk
-    const path = await backups.downloadAppBackup(backupId)
+    const path = await backups.downloadWorkspaceBackup(backupId)
     let status = BackupStatus.COMPLETE
     let promotedWorkspaceFiles: PromoteWorkspaceFilesResult | null = null
     try {
@@ -312,7 +312,7 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
       // against the real development workspace ID.
       await opts.importWorkspaceFn(
         devWorkspaceId,
-        dbCore.getDB(tempAppId),
+        dbCore.getDB(tempWorkspaceId),
         {
           file: {
             type: "application/gzip",
@@ -321,20 +321,20 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
           key: path,
         },
         {
-          objectStoreAppId: tempAppId,
+          objectStoreId: tempWorkspaceId,
         }
       )
       // Copy files before database cutover. We only add/overwrite desired keys
       // here and defer deletions until after replication succeeds.
       promotedWorkspaceFiles = await promoteWorkspaceFiles(
-        tempAppId,
+        tempWorkspaceId,
         devWorkspaceId
       )
 
       // if import succeeds, replace the original app with the temporary one
       await removeExistingApp(devWorkspaceId)
       await new db.Replication({
-        source: tempAppId,
+        source: tempWorkspaceId,
         target: devWorkspaceId,
       }).replicate()
       try {
@@ -368,13 +368,13 @@ async function importProcessor(job: Job, opts: BackupProcessingOpts) {
       )
     } finally {
       try {
-        const tempDb = dbCore.getDB(tempAppId, { skip_setup: true })
+        const tempDb = dbCore.getDB(tempWorkspaceId, { skip_setup: true })
         await tempDb.destroy()
       } catch (cleanupErr) {
         // ignore cleanup errors
       }
       try {
-        await clearWorkspaceFiles(tempAppId)
+        await clearWorkspaceFiles(tempWorkspaceId)
       } catch (cleanupErr) {
         // ignore cleanup errors
       }

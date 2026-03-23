@@ -38,5 +38,5 @@ async function appBackupTriggered(
 
 export default {
   appBackupRestored,
-  appBackupTriggered,
+  workspaceBackupTriggered: appBackupTriggered,
 }

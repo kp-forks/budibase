@@ -21,7 +21,7 @@ export interface ImportWorkspaceConfig {
 export interface ImportWorkspaceOpts {
   updateAttachmentColumns?: boolean
   importObjStoreContents?: boolean
-  objectStoreAppId?: string
+  objectStoreId?: string
 }
 
 type ExportWorkspaceFn = (
