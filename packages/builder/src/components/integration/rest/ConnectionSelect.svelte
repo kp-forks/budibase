@@ -355,7 +355,9 @@
 
   .picker-button {
     border-radius: 6px;
-    border: 1px solid var(--spectrum-global-color-gray-300);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    height: 40px;
+    box-sizing: border-box;
     transition:
       background 130ms ease-out,
       border-color 130ms ease-out;
@@ -370,6 +372,9 @@
   }
   .picker-button.disabled :global(*:not(.edit-link)) {
     cursor: default;
+  }
+  .picker-button.disabled :global(.spectrum-ActionButton--quiet:hover) {
+    color: var(--spectrum-alias-text-color);
   }
   .picker-button :global(.spectrum-ActionButton) {
     border: none !important;
