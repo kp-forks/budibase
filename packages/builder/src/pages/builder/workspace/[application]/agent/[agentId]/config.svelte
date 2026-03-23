@@ -818,7 +818,6 @@ Any constraints the agent must follow.
         >Use <code>{`{{`}</code> to add to tools & knowledge sources</span
       >
       <GenerateInstructionsControl
-        aiconfigId={draft.aiconfig}
         agentName={draft.name}
         goal={draft.goal}
         promptInstructions={draft.promptInstructions}

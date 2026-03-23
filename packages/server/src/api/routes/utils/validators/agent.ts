@@ -127,7 +127,6 @@ export function toggleAgentSlackDeploymentValidator() {
 export function generateAgentInstructionsValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      aiconfigId: Joi.string().trim().disallow("").required(),
       prompt: Joi.string().trim().disallow("").required(),
       agentName: OPTIONAL_STRING,
       goal: OPTIONAL_STRING,

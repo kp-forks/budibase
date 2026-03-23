@@ -17,7 +17,6 @@
   const AI_AGENT_INSTRUCTIONS_FLAG = "AI_AGENT_INSTRUCTIONS"
 
   export interface Props {
-    aiconfigId?: string
     agentName?: string
     goal?: string
     promptInstructions?: string
@@ -27,7 +26,6 @@
   }
 
   let {
-    aiconfigId = "",
     agentName = "",
     goal = "",
     promptInstructions = "",
@@ -103,7 +101,6 @@
 
     try {
       const { instructions } = await API.generateAgentInstructions({
-        aiconfigId,
         prompt,
         agentName,
         goal,

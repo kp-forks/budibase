@@ -81,7 +81,6 @@ export interface GenerateTablesResponse {
 }
 
 export interface GenerateAgentInstructionsRequest {
-  aiconfigId: string
   prompt: string
   agentName?: string
   goal?: string

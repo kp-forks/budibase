@@ -23,7 +23,6 @@ function sanitizeInstructions(value: string) {
 }
 
 export async function generateAgentInstructions({
-  aiconfigId,
   prompt,
   agentName,
   goal,
@@ -52,7 +51,7 @@ export async function generateAgentInstructions({
     { role: "user", content: userMessage },
   ]
 
-  const { chat, providerOptions } = await sdk.ai.llm.createLLM(aiconfigId)
+  const { chat, providerOptions } = await sdk.ai.llm.getDefaultLLMOrThrow()
   const result = await generateText({
     model: chat,
     messages,
