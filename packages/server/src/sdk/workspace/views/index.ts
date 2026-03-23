@@ -399,7 +399,8 @@ export async function enrichSchema(
         recoverableError.reason !== "deleted" &&
         recoverableError.status !== 404 &&
         recoverableError.statusCode !== 404 &&
-        recoverableError.message !== "Cannot enrich relationship, table not found" &&
+        recoverableError.message !==
+          "Cannot enrich relationship, table not found" &&
         !recoverableError.message?.startsWith("Unable to find table named")
       ) {
         throw err
