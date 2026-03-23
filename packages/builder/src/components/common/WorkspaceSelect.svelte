@@ -97,7 +97,9 @@
   }
 
   const getWorkspaceUrl = (app: EnrichedApp) => {
-    return app.editable ? `/builder/workspace/${app.devId}/home` : `/app${app.url}`
+    return app.editable
+      ? `/builder/workspace/${app.devId}/home`
+      : `/app${app.url}`
   }
 
   const openWorkspaceContextMenu = (
