@@ -308,6 +308,19 @@ pm2 start /opt/venv/litellm/bin/litellm \
   --time \
   -- -c "${LITELLM_CONFIG_PATH}"
 
+echo "Waiting for LiteLLM to become ready..."
+litellm_ready_timeout="${LITELLM_READY_TIMEOUT_SECONDS:-120}"
+litellm_wait_seconds=0
+until [[ $(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/health/liveliness) -eq 200 ]]; do
+    litellm_wait_seconds=$((litellm_wait_seconds + 1))
+    if [[ "${litellm_wait_seconds}" -ge "${litellm_ready_timeout}" ]]; then
+        echo "Timed out waiting for LiteLLM readiness after ${litellm_ready_timeout}s."
+        exit 1
+    fi
+    sleep 1
+done
+echo "LiteLLM is ready."
+
 pushd app
 pm2 start --name app "yarn run:docker"
 popd
