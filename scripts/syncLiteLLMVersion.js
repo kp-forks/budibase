@@ -13,12 +13,10 @@ function updateFile(filePath, updater) {
   const original = fs.readFileSync(filePath, "utf8")
   const updated = updater(original)
 
-  if (original !== updated) {
-    fs.writeFileSync(filePath, updated)
-    return true
+  return {
+    changed: original !== updated,
+    updated,
   }
-
-  return false
 }
 
 function required(value, label) {
@@ -36,6 +34,7 @@ function replaceRequired(content, pattern, replacement, filePath) {
 }
 
 function main() {
+  const checkOnly = process.argv.includes("--check")
   const versionConfig = readJson(versionConfigPath)
   const version = required(versionConfig.version, "version")
   const channel = required(versionConfig.channel, "channel")
@@ -97,16 +96,28 @@ function main() {
 
   const changed = []
   for (const item of updates) {
-    if (updateFile(item.path, item.update)) {
+    const result = updateFile(item.path, item.update)
+    if (result.changed) {
+      if (!checkOnly) {
+        fs.writeFileSync(item.path, result.updated)
+      }
       changed.push(path.relative(repoRoot, item.path))
     }
   }
 
-  console.log(`LiteLLM version synced: version=${version}, channel=${channel}`)
+  console.log(
+    `LiteLLM version ${
+      checkOnly ? "check" : "sync"
+    }: version=${version}, channel=${channel}`
+  )
   if (changed.length > 0) {
-    console.log(`Updated files:\n${changed.join("\n")}`)
+    const header = checkOnly ? "Out-of-sync files" : "Updated files"
+    console.log(`${header}:\n${changed.join("\n")}`)
+    if (checkOnly) {
+      process.exit(1)
+    }
   } else {
-    console.log("No files changed")
+    console.log(checkOnly ? "All files are in sync" : "No files changed")
   }
 }
 
