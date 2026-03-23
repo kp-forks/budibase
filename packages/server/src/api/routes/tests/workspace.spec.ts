@@ -540,9 +540,12 @@ describe("/applications", () => {
         await config.api.workspace.update(sourceWorkspace.appId, { scripts })
       })
 
-      const exportPath = await sdk.backups.exportApp(sourceWorkspace.appId, {
-        tar: true,
-      })
+      const exportPath = await sdk.backups.exportWorkspace(
+        sourceWorkspace.appId,
+        {
+          tar: true,
+        }
+      )
 
       const newWorkspace = await config.api.workspace.createFromImport({
         name: generateAppName(),
