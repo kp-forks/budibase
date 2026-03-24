@@ -32,7 +32,7 @@
       <div transition:fly={{ y: -30 }}>
         <Banner
           type={BANNER_TYPES.WARNING}
-          extraButtonText={sessionBanner?.action?.label || "Login"}
+          extraButtonText={sessionBanner?.action?.label || "Log in"}
           extraButtonAction={handleAction}
           showCloseButton={true}
           closeButtonTooltip="Close"
