@@ -60,7 +60,6 @@ const SELF_FEATURES: PlanFeatures = {
   [PlanType.BUSINESS_PLUS]: [
     Feature.USER_GROUPS,
     Feature.WORKSPACE_BACKUPS,
-    Feature.AUDIT_LOGS,
     Feature.BRANDING,
     Feature.ENFORCEABLE_SSO,
     Feature.ENVIRONMENT_VARIABLES,
