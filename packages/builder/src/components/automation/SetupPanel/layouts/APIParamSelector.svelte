@@ -160,5 +160,4 @@
   .wrap :global(label) {
     text-transform: capitalize;
   }
-
 </style>

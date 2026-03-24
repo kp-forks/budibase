@@ -114,7 +114,9 @@
 
   $: {
     const current = normaliseOidcConfig({ configs: [oidcConfig] })
-    const original = normaliseOidcConfig({ configs: [originalOidcDoc?.config?.configs?.[0]] })
+    const original = normaliseOidcConfig({
+      configs: [originalOidcDoc?.config?.configs?.[0]],
+    })
     oidcSaveButtonDisabled = isEqual(current, original)
   }
 
@@ -201,7 +203,9 @@
         c
           ? Object.fromEntries(
               Object.entries(c).filter(
-                ([k, v]) => !RENDER_INJECTED_FIELDS.includes(k) || (v !== undefined && v !== null)
+                ([k, v]) =>
+                  !RENDER_INJECTED_FIELDS.includes(k) ||
+                  (v !== undefined && v !== null)
               )
             )
           : c
