@@ -217,6 +217,8 @@ async function createInstance(appId: string, template: AppTemplate) {
     }
     await sdk.backups.importApp(appId, db, template, opts)
   } else {
+    // Re-construct USERS_TABLE_SCHEMA because we need to exclude the POWER role
+    // if we are not importing a workspace.
     const usersTable = {
       ...USERS_TABLE_SCHEMA,
       schema: {
