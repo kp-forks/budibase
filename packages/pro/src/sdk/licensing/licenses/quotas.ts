@@ -203,6 +203,7 @@ const CLOUD_QUOTAS: PlanQuotas = {
       ...quotas.appBackupRetentionDays(UNLIMITED),
     },
   },
+  [PlanType.BUSINESS_PLUS]: undefined,
   [PlanType.ENTERPRISE_BASIC]: {
     usage: {
       monthly: {
@@ -442,6 +443,30 @@ const SELF_QUOTAS: PlanQuotas = {
         ...quotas.userGroups(50),
         ...quotas.plugins(UNLIMITED),
         ...quotas.customAIConfigurations(0),
+      },
+    },
+    constant: {
+      ...quotas.agentLogRetentionDays(UNLIMITED),
+      ...quotas.automationLogRetentionDays(UNLIMITED),
+      ...quotas.appBackupRetentionDays(UNLIMITED),
+    },
+  },
+  [PlanType.BUSINESS_PLUS]: {
+    usage: {
+      monthly: {
+        ...quotas.queries(UNLIMITED),
+        ...quotas.automations(UNLIMITED),
+        ...quotas.budibaseAICredits(millions(50)),
+        ...quotas.actions(UNLIMITED),
+      },
+      static: {
+        ...quotas.rows(UNLIMITED),
+        ...quotas.apps(UNLIMITED),
+        ...quotas.users(UNLIMITED),
+        ...quotas.creators(UNLIMITED),
+        ...quotas.userGroups(UNLIMITED),
+        ...quotas.plugins(UNLIMITED),
+        ...quotas.customAIConfigurations(UNLIMITED),
       },
     },
     constant: {
