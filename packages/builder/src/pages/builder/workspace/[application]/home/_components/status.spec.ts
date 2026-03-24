@@ -5,7 +5,7 @@ describe("getPublishResourceStatusLabel", () => {
   it("returns Live when resource is published", () => {
     const status = getPublishResourceStatusLabel({
       state: PublishResourceState.PUBLISHED,
-      deployedAt: undefined,
+      lastDeployedLiveAt: undefined,
     })
 
     expect(status).toEqual("Live")
@@ -14,7 +14,7 @@ describe("getPublishResourceStatusLabel", () => {
   it("returns Not Deployed when resource is disabled and never published", () => {
     const status = getPublishResourceStatusLabel({
       state: PublishResourceState.DISABLED,
-      deployedAt: undefined,
+      lastDeployedLiveAt: undefined,
     })
 
     expect(status).toEqual("Not Deployed")
@@ -23,7 +23,7 @@ describe("getPublishResourceStatusLabel", () => {
   it("returns Stopped when resource is disabled and was published before", () => {
     const status = getPublishResourceStatusLabel({
       state: PublishResourceState.DISABLED,
-      deployedAt: "2026-01-01T00:00:00.000Z",
+      lastDeployedLiveAt: "2026-01-01T00:00:00.000Z",
     })
 
     expect(status).toEqual("Stopped")

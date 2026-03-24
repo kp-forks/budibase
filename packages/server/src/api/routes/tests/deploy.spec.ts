@@ -97,7 +97,7 @@ describe("/api/deploy", () => {
 
       expect(res.automations[automation._id!]).toEqual({
         publishedAt: expect.any(String),
-        deployedAt: expect.any(String),
+        lastDeployedLiveAt: expect.any(String),
         published: true,
         name: automation.name,
         unpublishedChanges: false,
@@ -105,7 +105,7 @@ describe("/api/deploy", () => {
       })
       expect(res.workspaceApps[workspaceApp._id!]).toEqual({
         publishedAt: expect.any(String),
-        deployedAt: expect.any(String),
+        lastDeployedLiveAt: expect.any(String),
         published: true,
         name: workspaceApp.name,
         unpublishedChanges: false,
@@ -113,7 +113,7 @@ describe("/api/deploy", () => {
       })
       expect(res.tables[table._id!]).toEqual({
         publishedAt: expect.any(String),
-        deployedAt: expect.any(String),
+        lastDeployedLiveAt: expect.any(String),
         published: true,
         name: table.name,
         unpublishedChanges: false,
@@ -162,7 +162,7 @@ describe("/api/deploy", () => {
         published: true,
         name: publishedAutomation.name,
         publishedAt: expect.any(String),
-        deployedAt: expect.any(String),
+        lastDeployedLiveAt: expect.any(String),
         unpublishedChanges: false,
         state: "published",
       })
@@ -170,7 +170,7 @@ describe("/api/deploy", () => {
         published: true,
         name: publishedWorkspaceApp.name,
         publishedAt: expect.any(String),
-        deployedAt: expect.any(String),
+        lastDeployedLiveAt: expect.any(String),
         unpublishedChanges: false,
         state: "published",
       })
@@ -242,7 +242,7 @@ describe("/api/deploy", () => {
         unpublishedChanges: false,
         state: "disabled",
       })
-      expect(res.automations[automation._id!].deployedAt).toBeUndefined()
+      expect(res.automations[automation._id!].lastDeployedLiveAt).toBeUndefined()
     })
 
     it("returns only development resources that exist", async () => {

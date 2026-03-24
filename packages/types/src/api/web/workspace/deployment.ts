@@ -17,7 +17,7 @@ export type PublishStatusResource = {
   published: boolean
   name: string
   publishedAt?: string
-  deployedAt?: string
+  lastDeployedLiveAt?: string
   unpublishedChanges?: boolean
   state: PublishResourceState
 }

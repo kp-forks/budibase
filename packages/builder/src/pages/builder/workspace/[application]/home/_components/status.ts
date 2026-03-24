@@ -11,13 +11,13 @@ const NOT_DEPLOYED_LABEL = "Not Deployed"
 const hasAgentDeploymentHistory = (agent: Agent) => !!agent.publishedAt
 
 export const getPublishResourceStatusLabel = (
-  publishStatus: Pick<PublishStatusResource, "state" | "deployedAt">
+  publishStatus: Pick<PublishStatusResource, "state" | "lastDeployedLiveAt">
 ) => {
   if (publishStatus.state === PublishResourceState.PUBLISHED) {
     return LIVE_LABEL
   }
 
-  return publishStatus.deployedAt ? STOPPED_LABEL : NOT_DEPLOYED_LABEL
+  return publishStatus.lastDeployedLiveAt ? STOPPED_LABEL : NOT_DEPLOYED_LABEL
 }
 
 export const getAgentStatusLabel = (agent: Agent) => {

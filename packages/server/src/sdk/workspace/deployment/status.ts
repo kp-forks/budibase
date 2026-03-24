@@ -12,9 +12,9 @@ import sdk from "../.."
 
 function getPublishedState(
   resource: { disabled?: boolean },
-  lastPublishedAt?: string
+  publishedAt?: string
 ): PublishResourceState {
-  if (!resource.disabled && lastPublishedAt) {
+  if (!resource.disabled && publishedAt) {
     return PublishResourceState.PUBLISHED
   }
 
@@ -96,7 +96,7 @@ export async function status() {
       published: isPublished,
       name: resource.name,
       publishedAt: resourcePublishedAt,
-      deployedAt: resourceDeployedAt,
+      lastDeployedLiveAt: resourceDeployedAt,
       unpublishedChanges:
         !resourcePublishedAt || resource.updatedAt! > resourcePublishedAt,
       state: getPublishedState(resource, resourcePublishedAt),
@@ -127,7 +127,7 @@ export async function status() {
       published: prodWorkspaceAppIds.has(workspaceApp._id!),
       name: workspaceApp.name,
       publishedAt: resourcePublishedAt,
-      deployedAt: resourceDeployedAt,
+      lastDeployedLiveAt: resourceDeployedAt,
       unpublishedChanges:
         !resourcePublishedAt ||
         !!workspaceScreens.find(
