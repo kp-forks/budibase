@@ -123,7 +123,10 @@ async function fetchFromUrl(url: string): Promise<string> {
           )
         }
         if (redirectCount === MAX_IMPORT_REDIRECTS) {
-          throw new HTTPError("Failed to fetch import data - too many redirects", 400)
+          throw new HTTPError(
+            "Failed to fetch import data - too many redirects",
+            400
+          )
         }
         const nextUrl = new URL(location, currentUrl).toString()
         currentUrl = parseImportUrl(nextUrl).toString()

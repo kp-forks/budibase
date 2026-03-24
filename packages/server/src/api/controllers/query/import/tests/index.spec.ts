@@ -815,9 +815,9 @@ describe("Importer caching", () => {
   })
 
   it("rejects non-http url schemes for url imports", async () => {
-    await expect(
-      createImporter({ url: "file:///etc/passwd" })
-    ).rejects.toThrow("Only HTTP(S) URLs are allowed for query import")
+    await expect(createImporter({ url: "file:///etc/passwd" })).rejects.toThrow(
+      "Only HTTP(S) URLs are allowed for query import"
+    )
   })
 
   it("caches fetched specs for url imports", async () => {
