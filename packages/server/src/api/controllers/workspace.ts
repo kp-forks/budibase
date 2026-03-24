@@ -217,8 +217,25 @@ async function createInstance(appId: string, template: AppTemplate) {
     }
     await sdk.backups.importApp(appId, db, template, opts)
   } else {
+    const usersTable = {
+      ...USERS_TABLE_SCHEMA,
+      schema: {
+        ...USERS_TABLE_SCHEMA.schema,
+        roleId: {
+          ...USERS_TABLE_SCHEMA.schema.roleId,
+          constraints: {
+            ...USERS_TABLE_SCHEMA.schema.roleId.constraints,
+            inclusion: [
+              roles.BUILTIN_ROLE_IDS.ADMIN,
+              roles.BUILTIN_ROLE_IDS.BASIC,
+              roles.BUILTIN_ROLE_IDS.PUBLIC,
+            ],
+          },
+        },
+      },
+    }
     // create the users table
-    await db.put(USERS_TABLE_SCHEMA)
+    await db.put(usersTable)
   }
 
   return { _id: appId }
