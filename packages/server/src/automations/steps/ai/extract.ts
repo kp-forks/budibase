@@ -75,25 +75,26 @@ function buildExtractPrompt() {
   ].join("\n\n")
 }
 
-const downloadAssetsForExtract: Experimental_DownloadFunction = async requests =>
-  Promise.all(
-    requests.map(async ({ url, isUrlSupportedByModel }) => {
-      if (url.protocol === "data:") {
-        return null
-      }
-      if (isUrlSupportedByModel) {
-        return null
-      }
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`Failed to download asset: ${response.statusText}`)
-      }
-      return {
-        data: new Uint8Array(await response.arrayBuffer()),
-        mediaType: response.headers.get("content-type") ?? undefined,
-      }
-    })
-  )
+const downloadAssetsForExtract: Experimental_DownloadFunction =
+  async requests =>
+    Promise.all(
+      requests.map(async ({ url, isUrlSupportedByModel }) => {
+        if (url.protocol === "data:") {
+          return null
+        }
+        if (isUrlSupportedByModel) {
+          return null
+        }
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Failed to download asset: ${response.statusText}`)
+        }
+        return {
+          data: new Uint8Array(await response.arrayBuffer()),
+          mediaType: response.headers.get("content-type") ?? undefined,
+        }
+      })
+    )
 
 function buildExtractModelMessages(input: ExtractInput): ModelMessage[] {
   const prompt = buildExtractPrompt()
