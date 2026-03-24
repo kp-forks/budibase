@@ -29,6 +29,7 @@ const BUSINESS_FEATURES = [
   Feature.CUSTOM_APP_SCRIPTS,
   Feature.PWA,
   Feature.PDF,
+  Feature.BUDIBASE_AI,
   Feature.RECAPTCHA,
   Feature.PKCE_OIDC,
   Feature.TRANSLATIONS,
@@ -59,7 +60,7 @@ const SELF_FEATURES: PlanFeatures = {
   [PlanType.PRO_MAX]: PRO_FEATURES,
   [PlanType.TEAM]: [Feature.USER_GROUPS, Feature.WORKSPACE_BACKUPS],
   [PlanType.BUSINESS]: BUSINESS_FEATURES,
-  [PlanType.BUSINESS_PLUS]: [...BUSINESS_FEATURES, Feature.BUDIBASE_AI],
+  [PlanType.BUSINESS_PLUS]: BUSINESS_FEATURES,
   [PlanType.ENTERPRISE_BASIC]: [
     Feature.USER_GROUPS,
     Feature.WORKSPACE_BACKUPS,
