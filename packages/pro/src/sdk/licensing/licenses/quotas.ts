@@ -470,8 +470,8 @@ const SELF_QUOTAS: PlanQuotas = {
       },
     },
     constant: {
-      ...quotas.agentLogRetentionDays(UNLIMITED),
-      ...quotas.automationLogRetentionDays(UNLIMITED),
+      ...quotas.agentLogRetentionDays(30),
+      ...quotas.automationLogRetentionDays(30),
       ...quotas.appBackupRetentionDays(UNLIMITED),
     },
   },
