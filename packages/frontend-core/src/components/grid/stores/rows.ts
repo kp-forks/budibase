@@ -272,7 +272,7 @@ export const createActions = (context: StoreContext): RowActionStore => {
             text: "Session not authenticated",
             variant: "session-not-authenticated",
             action: {
-              label: "Login",
+              label: "Log in",
               onClick: () => redirectToLoginWithReturnUrl(),
             },
           })
