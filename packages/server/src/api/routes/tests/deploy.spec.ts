@@ -242,7 +242,9 @@ describe("/api/deploy", () => {
         unpublishedChanges: false,
         state: "disabled",
       })
-      expect(res.automations[automation._id!].lastDeployedLiveAt).toBeUndefined()
+      expect(
+        res.automations[automation._id!].lastDeployedLiveAt
+      ).toBeUndefined()
     })
 
     it("returns only development resources that exist", async () => {
