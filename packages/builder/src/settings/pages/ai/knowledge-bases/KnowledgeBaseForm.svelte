@@ -92,23 +92,23 @@
       : undefined
   })
 
+  let isLocalKnowledgeBase = $derived(draft.type === KnowledgeBaseType.LOCAL)
   let canSave = $derived.by(() => {
     if (isSaving || !isModified) {
       return false
     }
-    const isLocal = draft.type === KnowledgeBaseType.LOCAL
     return (
       !!draft.name?.trim() &&
       !duplicateNameError &&
-      (!isLocal || (!!draft.embeddingModel?.trim() && !!draft.vectorDb?.trim()))
+      (!isLocalKnowledgeBase ||
+        (!!draft.embeddingModel?.trim() && !!draft.vectorDb?.trim()))
     )
   })
-  let isLocalKnowledgeBase = $derived(draft.type === KnowledgeBaseType.LOCAL)
 
-  let knowledgeBaseTypeOptions = $derived([
+  let knowledgeBaseTypeOptions = [
     { label: "Local", value: KnowledgeBaseType.LOCAL },
     { label: "Google", value: KnowledgeBaseType.GOOGLE },
-  ])
+  ]
 
   let embeddingModelSelectOptions = $derived(
     embeddingModelOptions.map(option => ({
@@ -284,17 +284,17 @@
         options={embeddingModelSelectOptions}
         getOptionValue={option => option.value}
         getOptionLabel={option => option.label}
-        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        disabled={!canEditReferences || !isLocalKnowledgeBase}
         tooltip={!canEditReferences
           ? "Remove all files to change the embedding model."
-          : draft.type !== KnowledgeBaseType.LOCAL
+          : isLocalKnowledgeBase
             ? "Embedding model is only used for local knowledge bases."
             : ""}
       />
       <ActionButton
         icon={"Add"}
         size="M"
-        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        disabled={!canEditReferences || !isLocalKnowledgeBase}
         on:click={createNewEmbeddingModel}
       />
     </div>
@@ -308,17 +308,17 @@
         options={vectorDbSelectOptions}
         getOptionValue={option => option.value}
         getOptionLabel={option => option.label}
-        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        disabled={!canEditReferences || !isLocalKnowledgeBase}
         tooltip={!canEditReferences
           ? "Remove all files to change the vector database."
-          : draft.type !== KnowledgeBaseType.LOCAL
+          : !isLocalKnowledgeBase
             ? "Vector database is only used for local knowledge bases."
             : ""}
       />
       <ActionButton
         icon={"Add"}
         size="M"
-        disabled={!canEditReferences || draft.type !== KnowledgeBaseType.LOCAL}
+        disabled={!canEditReferences || !isLocalKnowledgeBase}
         on:click={createNewVectorDb}
       />
     </div>
