@@ -2,7 +2,7 @@ import { Document } from "../.."
 
 export enum KnowledgeBaseType {
   LOCAL = "local",
-  GOOGLE = "google",
+  GEMINI = "gemini",
 }
 
 export interface KnowledgeBase extends Document {

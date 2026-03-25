@@ -440,7 +440,7 @@ export const retrieveContextForAgent = async (
 
     if (
       (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
-      KnowledgeBaseType.GOOGLE
+      KnowledgeBaseType.GEMINI
     ) {
       if (!knowledgeBase.googleFileStoreId) {
         throw new Error("Google knowledge base store is not configured")

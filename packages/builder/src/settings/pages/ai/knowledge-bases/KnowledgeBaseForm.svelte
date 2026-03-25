@@ -43,7 +43,7 @@
           _id: undefined as string | undefined,
           _rev: undefined as string | undefined,
           name: "",
-          type: KnowledgeBaseType.GOOGLE,
+          type: KnowledgeBaseType.GEMINI,
           embeddingModel: "",
           vectorDb: "",
         }
@@ -107,7 +107,7 @@
 
   let knowledgeBaseTypeOptions = [
     { label: "Local", value: KnowledgeBaseType.LOCAL },
-    { label: "Google", value: KnowledgeBaseType.GOOGLE },
+    { label: "Gemini", value: KnowledgeBaseType.GEMINI },
   ]
 
   let embeddingModelSelectOptions = $derived(

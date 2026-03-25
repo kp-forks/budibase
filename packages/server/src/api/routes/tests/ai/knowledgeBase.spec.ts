@@ -291,7 +291,7 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.update(
           {
             ...created,
-            type: KnowledgeBaseType.GOOGLE,
+            type: KnowledgeBaseType.GEMINI,
           },
           {
             status: 400,

@@ -18,7 +18,7 @@ const validateReferences = async ({
   embeddingModel,
   vectorDb,
 }: Pick<KnowledgeBase, "type" | "embeddingModel" | "vectorDb">) => {
-  if (type === KnowledgeBaseType.GOOGLE) {
+  if (type === KnowledgeBaseType.GEMINI) {
     return
   }
 
@@ -120,7 +120,7 @@ export async function create(config: KnowledgeBase): Promise<KnowledgeBase> {
   await ensureUniqueName(config.name)
 
   const googleFileStoreId =
-    knowledgeBaseType === KnowledgeBaseType.GOOGLE
+    knowledgeBaseType === KnowledgeBaseType.GEMINI
       ? await createGoogleFileStore(config.name.trim())
       : undefined
 
@@ -177,7 +177,7 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
   }
 
   await validateReferences(updated)
-  if (updated.type === KnowledgeBaseType.GOOGLE && !updated.googleFileStoreId) {
+  if (updated.type === KnowledgeBaseType.GEMINI && !updated.googleFileStoreId) {
     throw new HTTPError(
       "Google knowledge base is missing its file store configuration",
       400

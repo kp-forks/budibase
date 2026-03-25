@@ -65,7 +65,7 @@ export const uploadKnowledgeBaseFile = async (
     try {
       if (
         (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
-        KnowledgeBaseType.GOOGLE
+        KnowledgeBaseType.GEMINI
       ) {
         if (!knowledgeBase.googleFileStoreId) {
           throw new Error(
