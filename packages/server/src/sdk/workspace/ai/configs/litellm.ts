@@ -23,6 +23,31 @@ import * as configSdk from "../configs"
 const liteLLMUrl = env.LITELLM_URL
 const liteLLMAuthorizationHeader = `Bearer ${env.LITELLM_MASTER_KEY}`
 
+function sanitizeLiteLLMErrorMessage(message?: string): string | undefined {
+  if (!message) {
+    return
+  }
+
+  const hasTraceback = /stack trace:|Traceback \(most recent call last\):/i.test(
+    message
+  )
+
+  let cleaned = message
+    .split(/stack trace:/i)[0]
+    .split(/Traceback \(most recent call last\):/i)[0]
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (hasTraceback) {
+    cleaned = cleaned
+      .replace(/^litellm\.[\w.]+:\s*/i, "")
+      .replace(/^[\w.]+Exception\s*-\s*/i, "")
+      .trim()
+  }
+
+  return cleaned || message
+}
+
 export enum LiteLLMStatus {
   OK = "ok",
   STARTING = "starting",
@@ -277,6 +302,17 @@ export async function updateModel({
       res.status || 400
     )
   }
+
+  const json = await res.json()
+  if (json?.status && json.status !== "success") {
+    const message = sanitizeLiteLLMErrorMessage(
+      json.error?.message || json.result?.error
+    )
+    throw new HTTPError(
+      ["Error updating configuration", message].filter(Boolean).join(": "),
+      400
+    )
+  }
 }
 
 async function validateEmbeddingConfig(model: {
@@ -362,6 +398,7 @@ async function validateCompletionsModel(model: {
     `${liteLLMUrl}/health/test_connection`,
     requestOptions
   )
+
   if (res.status !== 200) {
     const text = await res.text()
     if (text.includes("DB not connected")) {
@@ -372,13 +409,17 @@ async function validateCompletionsModel(model: {
     }
     throw new HTTPError(text, 500)
   }
-  if (!res.ok) {
-    const json = await res.json()
-    const message = ["Error validating configuration", json.error?.message]
+
+  const json = await res.json()
+  if (json?.status !== "success") {
+    const message = [
+      "Error validating configuration",
+      sanitizeLiteLLMErrorMessage(json.error?.message || json.result?.error),
+    ]
       .filter(Boolean)
       .join(": ")
 
-    throw new HTTPError(message, res.status || 400)
+    throw new HTTPError(message, 400)
   }
 }
 
