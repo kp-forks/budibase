@@ -35,7 +35,7 @@
           _id: config._id,
           _rev: config._rev,
           name: config.name,
-          type: config.type || KnowledgeBaseType.LOCAL,
+          type: config.type,
           embeddingModel: config.embeddingModel,
           vectorDb: config.vectorDb,
         }
@@ -43,7 +43,7 @@
           _id: undefined as string | undefined,
           _rev: undefined as string | undefined,
           name: "",
-          type: KnowledgeBaseType.LOCAL,
+          type: KnowledgeBaseType.GOOGLE,
           embeddingModel: "",
           vectorDb: "",
         }

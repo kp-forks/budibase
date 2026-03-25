@@ -70,7 +70,7 @@
     )
   )
   let selectedKnowledgeBaseType = $derived(
-    $knowledgeBaseStore.selectedKnowledgeBase?.type || KnowledgeBaseType.LOCAL
+    $knowledgeBaseStore.selectedKnowledgeBase?.type
   )
   let shouldPoll = $derived(
     !!knowledgeBaseId &&
