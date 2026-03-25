@@ -287,9 +287,7 @@
         disabled={!canEditReferences || !isLocalKnowledgeBase}
         tooltip={!canEditReferences
           ? "Remove all files to change the embedding model."
-          : isLocalKnowledgeBase
-            ? "Embedding model is only used for local knowledge bases."
-            : ""}
+          : ""}
       />
       <ActionButton
         icon={"Add"}
@@ -311,9 +309,7 @@
         disabled={!canEditReferences || !isLocalKnowledgeBase}
         tooltip={!canEditReferences
           ? "Remove all files to change the vector database."
-          : !isLocalKnowledgeBase
-            ? "Vector database is only used for local knowledge bases."
-            : ""}
+          : ""}
       />
       <ActionButton
         icon={"Add"}
