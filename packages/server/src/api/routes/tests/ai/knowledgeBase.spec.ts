@@ -3,6 +3,7 @@ import {
   AIConfigType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
+  KnowledgeBaseType,
   VectorDbProvider,
 } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
@@ -274,6 +275,30 @@ describe("knowledge base configs", () => {
             name: " support docs ",
           },
           { status: 400 }
+        )
+      })
+    })
+
+    it("rejects changing the knowledge base type", async () => {
+      await withRagEnabled(async () => {
+        const { embeddingModelId, vectorDb } = await buildDependencies()
+        const created = await config.api.knowledgeBase.create({
+          name: "Support Docs",
+          embeddingModel: embeddingModelId,
+          vectorDb: vectorDb._id!,
+        })
+
+        await config.api.knowledgeBase.update(
+          {
+            ...created,
+            type: KnowledgeBaseType.GOOGLE,
+          },
+          {
+            status: 400,
+            body: {
+              message: "Knowledge base type cannot be changed",
+            },
+          }
         )
       })
     })

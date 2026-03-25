@@ -150,13 +150,19 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
     throw new HTTPError("Knowledge base not found", 404)
   }
 
+  const existingType = existing.type || KnowledgeBaseType.LOCAL
+  const requestedType = config.type || existingType
+  if (requestedType !== existingType) {
+    throw new HTTPError("Knowledge base type cannot be changed", 400)
+  }
+
   const updated: KnowledgeBase = {
     ...existing,
     ...config,
+    type: existingType,
   }
 
   const referencesChanged =
-    existing.type !== updated.type ||
     existing.embeddingModel !== updated.embeddingModel ||
     existing.vectorDb !== updated.vectorDb
 
@@ -171,6 +177,12 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
   }
 
   await validateReferences(updated)
+  if (updated.type === KnowledgeBaseType.GOOGLE && !updated.googleFileStoreId) {
+    throw new HTTPError(
+      "Google knowledge base is missing its file store configuration",
+      400
+    )
+  }
   await ensureUniqueName(updated.name, updated._id)
   updated.name = updated.name.trim()
 
