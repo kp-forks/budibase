@@ -197,7 +197,8 @@ export interface ImportAppOpts {
   preserveLiteLLMConfig?: boolean
 }
 
-const IMPORT_PENDING_LITELLM_MODEL_ID = "__bb_import_pending_litellm_model__"
+export const IMPORT_PENDING_LITELLM_MODEL_ID =
+  "__bb_import_pending_litellm_model__"
 
 async function sanitizeLiteLLMImportData(db: Database) {
   const keyDocId = docIds.getLiteLLMKeyID()

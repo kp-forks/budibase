@@ -19,9 +19,9 @@ import {
 import * as liteLLM from "./litellm"
 import * as knowledgeBaseSdk from "../knowledgeBase"
 import { processEnvironmentVariable } from "../../../utils"
+import { IMPORT_PENDING_LITELLM_MODEL_ID } from "../../backups/imports"
 
 const SECRET_ENCODING_PREFIX = "bbai_enc::"
-const IMPORT_PENDING_LITELLM_MODEL_ID = "__bb_import_pending_litellm_model__"
 
 const normalizeProviderModelId = (
   modelId: string,
