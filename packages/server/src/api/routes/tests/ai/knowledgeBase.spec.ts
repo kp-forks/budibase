@@ -286,6 +286,7 @@ describe("knowledge base configs", () => {
           name: "Support Docs",
           embeddingModel: embeddingModelId,
           vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
         })
 
         await config.api.knowledgeBase.update(
