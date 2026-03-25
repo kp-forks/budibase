@@ -9,6 +9,7 @@ import { utils } from "@budibase/shared-core"
 import {
   Automation,
   AutomationTriggerStepId,
+  BUDIBASE_AI_PROVIDER_ID,
   CustomAIProviderConfig,
   Database,
   DocumentType,
@@ -25,6 +26,7 @@ import * as tar from "tar"
 import { v4 as uuid } from "uuid"
 import sdk from "../.."
 import { ObjectStoreBuckets } from "../../../constants"
+import environment from "../../../environment"
 import { getAutomationParams } from "../../../db/utils"
 import { budibaseTempDir } from "../../../utilities/budibaseDir"
 import { downloadTemplate } from "../../../utilities/fileSystem"
@@ -213,7 +215,10 @@ async function sanitizeLiteLLMImportData(db: Database) {
     .filter((doc): doc is CustomAIProviderConfig => !!doc)
     .map(doc => ({
       ...doc,
-      liteLLMModelId: "",
+      liteLLMModelId:
+        doc.provider === BUDIBASE_AI_PROVIDER_ID && !environment.SELF_HOSTED
+          ? doc.liteLLMModelId
+          : "",
     }))
 
   if (updatedAIConfigs.length) {

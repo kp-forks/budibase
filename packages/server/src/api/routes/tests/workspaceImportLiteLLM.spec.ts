@@ -5,6 +5,7 @@ import path from "path"
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
 import {
   AIConfigType,
+  BUDIBASE_AI_PROVIDER_ID,
   CustomAIProviderConfig,
   DocumentType,
   LiteLLMKeyConfig,
@@ -74,6 +75,9 @@ describe("workspace import LiteLLM scenarios", () => {
       configId: string
       modelId: string
       keyId: string
+      provider?: string
+      model?: string
+      credentialsFields?: Record<string, string>
     }
   ) {
     await config.doInContext(workspaceId, async () => {
@@ -81,9 +85,9 @@ describe("workspace import LiteLLM scenarios", () => {
       await workspaceDb.put<CustomAIProviderConfig>({
         _id: args.configId,
         name: "Import Test Config",
-        provider: "OpenAI",
-        model: "gpt-4o-mini",
-        credentialsFields: {
+        provider: args.provider ?? "OpenAI",
+        model: args.model ?? "gpt-4o-mini",
+        credentialsFields: args.credentialsFields ?? {
           api_key: "sk-test-key",
           api_base: "https://api.openai.com",
         },
@@ -306,5 +310,54 @@ describe("workspace import LiteLLM scenarios", () => {
         fs.rmSync(tempDir, { recursive: true, force: true })
       }
     })
+  })
+
+  it("preserves Budibase AI model id on cloud imports", async () => {
+    await withEnv(
+      { LITELLM_MASTER_KEY: undefined, SELF_HOSTED: "false" },
+      async () => {
+        const sourceWorkspaceId = config.getDevWorkspaceId()
+        const sourceConfigId = docIds.generateAIConfigID("bbai")
+        await seedLiteLLMArtifacts(sourceWorkspaceId, {
+          configId: sourceConfigId,
+          modelId: BUDIBASE_AI_PROVIDER_ID,
+          keyId: "source-key-bbai",
+          provider: BUDIBASE_AI_PROVIDER_ID,
+          model: "gpt-4o-mini",
+          credentialsFields: {},
+        })
+
+        const { tarPath, tempDir } =
+          await createWorkspaceExportTar(sourceWorkspaceId)
+        try {
+          const targetWorkspace = await config.api.workspace.create({
+            name: "Import target workspace bbai cloud",
+          })
+
+          await config.doInContext(targetWorkspace.appId!, async () => {
+            await sdk.backups.importApp(
+              targetWorkspace.appId!,
+              db.getDB(targetWorkspace.appId!),
+              {
+                file: {
+                  type: "application/gzip",
+                  path: tarPath,
+                },
+              },
+              {
+                updateAttachmentColumns: false,
+                importObjStoreContents: false,
+              }
+            )
+          })
+
+          const importedConfig = await getFirstAIConfig(targetWorkspace.appId!)
+          expect(importedConfig?.provider).toBe(BUDIBASE_AI_PROVIDER_ID)
+          expect(importedConfig?.liteLLMModelId).toBe(BUDIBASE_AI_PROVIDER_ID)
+        } finally {
+          fs.rmSync(tempDir, { recursive: true, force: true })
+        }
+      }
+    )
   })
 })
