@@ -28,16 +28,19 @@ describe("outboundFetch", () => {
 
   it("blocks redirects to blacklisted urls", async () => {
     isBlacklistedMock.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    const resume = jest.fn()
 
     fetchMock.mockResolvedValue({
       status: 302,
       headers: { get: jest.fn().mockReturnValue("http://169.254.169.254/") },
+      body: { resume },
     } as any)
 
     await expect(
       fetchWithBlacklist("https://example.com/spec.json")
     ).rejects.toThrow("URL is blocked or could not be resolved safely.")
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(resume).toHaveBeenCalledTimes(1)
   })
 
   it("rejects unsupported schemes", async () => {

@@ -86,6 +86,10 @@ interface RedirectSafeRequest extends RequestInit {
   redirect: "manual"
 }
 
+function releaseResponseBody(response: Response) {
+  response.body?.resume()
+}
+
 export async function fetchWithBlacklist(
   url: string,
   request: RequestInit = {}
@@ -104,6 +108,7 @@ export async function fetchWithBlacklist(
     }
 
     if (redirects === MAX_REDIRECTS) {
+      releaseResponseBody(response)
       break
     }
 
@@ -111,6 +116,8 @@ export async function fetchWithBlacklist(
     if (!location) {
       return response
     }
+
+    releaseResponseBody(response)
 
     const redirectUrl = parseUrl(
       new URL(location, nextUrl).toString()
