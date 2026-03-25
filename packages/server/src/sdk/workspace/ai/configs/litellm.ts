@@ -372,7 +372,7 @@ async function validateCompletionsModel(model: {
     }
     throw new HTTPError(text, 500)
   }
-  if (res.ok) {
+  if (!res.ok) {
     const json = await res.json()
     const message = ["Error validating configuration", json.error?.message]
       .filter(Boolean)
