@@ -657,7 +657,7 @@ describe("BudibaseAI", () => {
         .reply(400, {
           error: {
             message:
-              "litellm.NotFoundError: OpenAIException - The model `gpt-5-minia` does not exist or you do not have access to it. stack trace: Traceback (most recent call last): File \"/usr/lib/python3.13/site-packages/litellm/llms/openai/openai.py\", line 923, in acompletion",
+              'litellm.NotFoundError: OpenAIException - The model `gpt-5-minia` does not exist or you do not have access to it. stack trace: Traceback (most recent call last): File "/usr/lib/python3.13/site-packages/litellm/llms/openai/openai.py", line 923, in acompletion',
           },
         })
 

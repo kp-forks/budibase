@@ -201,10 +201,17 @@ export const IMPORT_PENDING_LITELLM_MODEL_ID =
   "__bb_import_pending_litellm_model__"
 
 async function sanitizeLiteLLMImportData(db: Database) {
+  console.log("Starting LiteLLM import sanitization", {
+    dbName: db.name,
+  })
   const keyDocId = docIds.getLiteLLMKeyID()
   const keyDoc = await db.tryGet<LiteLLMKeyConfig>(keyDocId)
   if (keyDoc) {
     await db.remove(keyDoc)
+    console.log("Removed LiteLLM key config from imported data", {
+      dbName: db.name,
+      keyDocId,
+    })
   }
 
   const aiConfigs = await db.allDocs<CustomAIProviderConfig>(
@@ -227,6 +234,16 @@ async function sanitizeLiteLLMImportData(db: Database) {
   if (updatedAIConfigs.length) {
     await db.bulkDocs(updatedAIConfigs)
   }
+
+  console.log("Finished LiteLLM import sanitization", {
+    dbName: db.name,
+    aiConfigCount: updatedAIConfigs.length,
+    preservedBudibaseAIConfigCount: updatedAIConfigs.filter(
+      c =>
+        c.provider === BUDIBASE_AI_PROVIDER_ID &&
+        c.liteLLMModelId !== IMPORT_PENDING_LITELLM_MODEL_ID
+    ).length,
+  })
 }
 
 export const importApp: ImportWorkspaceFn = async (
