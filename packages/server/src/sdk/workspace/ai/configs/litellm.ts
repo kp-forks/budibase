@@ -294,7 +294,9 @@ export async function updateModel({
   )
   if (!res.ok) {
     const json = await res.json()
-    const message = json.error?.message
+    const message = sanitizeLiteLLMErrorMessage(
+      json.error?.message || json.result?.error
+    )
 
     throw new HTTPError(
       [`Error updating configuration`, message].filter(Boolean).join(": "),
