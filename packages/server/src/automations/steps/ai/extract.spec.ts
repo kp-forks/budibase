@@ -1,5 +1,5 @@
 import { DocumentSourceType, SupportedFileType } from "@budibase/types"
-import { generateText } from "ai"
+import { MockLanguageModelV3 } from "ai/test"
 import sdk from "../../../sdk"
 import { PDFParse } from "pdf-parse"
 import { Readable } from "stream"
@@ -9,14 +9,6 @@ import { fetchWithBlacklist } from "../utils"
 jest.mock("pdf-parse", () => ({
   PDFParse: jest.fn(),
 }))
-
-jest.mock("ai", () => {
-  const actual = jest.requireActual("ai")
-  return {
-    ...actual,
-    generateText: jest.fn(),
-  }
-})
 
 jest.mock("../../../sdk", () => ({
   __esModule: true,
@@ -32,14 +24,32 @@ jest.mock("../../../sdk", () => ({
 jest.mock("../utils", () => ({
   fetchWithBlacklist: jest.fn(),
 }))
+const createExtractMockLanguageModel = (data: unknown[]) =>
+  new MockLanguageModelV3({
+    doGenerate: async () => ({
+      content: [{ type: "text" as const, text: JSON.stringify({ data }) }],
+      finishReason: { unified: "stop" as const, raw: undefined },
+      usage: {
+        inputTokens: {
+          total: 10,
+          noCache: 10,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 20,
+          text: 20,
+          reasoning: undefined,
+        },
+      },
+      warnings: [],
+    }),
+  })
 
 describe("extract file data step unit tests", () => {
   const getDefaultLLMMock = sdk.ai.llm
     .getDefaultLLMOrThrow as jest.MockedFunction<
     typeof sdk.ai.llm.getDefaultLLMOrThrow
-  >
-  const generateTextMock = generateText as jest.MockedFunction<
-    typeof generateText
   >
   const fetchWithBlacklistMock = fetchWithBlacklist as jest.MockedFunction<
     typeof fetchWithBlacklist
@@ -54,6 +64,9 @@ describe("extract file data step unit tests", () => {
     const fileStream = Readable.from(Buffer.from("fake pdf bytes"))
     const bufferMock = jest.fn()
     const uploadFile = jest.fn().mockResolvedValue("file-123")
+    const chatModel = createExtractMockLanguageModel([
+      { invoiceNumber: "INV-1" },
+    ])
 
     fetchWithBlacklistMock.mockResolvedValue({
       ok: true,
@@ -62,15 +75,11 @@ describe("extract file data step unit tests", () => {
     } as any)
 
     getDefaultLLMMock.mockResolvedValue({
-      chat: {} as any,
+      chat: chatModel,
       embedding: {} as any,
       providerOptions: undefined,
       uploadFile,
     })
-
-    generateTextMock.mockResolvedValue({
-      output: { data: [{ invoiceNumber: "INV-1" }] },
-    } as any)
 
     const result = await run({
       inputs: {
@@ -88,7 +97,8 @@ describe("extract file data step unit tests", () => {
       SupportedFileType.PDF
     )
     expect(bufferMock).not.toHaveBeenCalled()
-    expect(generateTextMock.mock.calls[0][0].messages).toEqual(
+    expect(chatModel.doGenerateCalls).toHaveLength(1)
+    expect(chatModel.doGenerateCalls[0].prompt).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: "user",
@@ -119,18 +129,18 @@ describe("extract file data step unit tests", () => {
         }) as any
     )
 
+    const chatModel = createExtractMockLanguageModel([
+      { invoiceNumber: "INV-1" },
+    ])
+
     getDefaultLLMMock.mockResolvedValue({
-      chat: {} as any,
+      chat: chatModel,
       embedding: {} as any,
       providerOptions: undefined,
       uploadFile: jest
         .fn()
         .mockRejectedValue(new Error("This model doesn't support create_file")),
     })
-
-    generateTextMock.mockResolvedValue({
-      output: { data: [{ invoiceNumber: "INV-1" }] },
-    } as any)
 
     const result = await run({
       inputs: {
@@ -143,14 +153,19 @@ describe("extract file data step unit tests", () => {
 
     expect(result.success).toBe(true)
     expect(result.data).toEqual([{ invoiceNumber: "INV-1" }])
-    expect(generateTextMock).toHaveBeenCalledTimes(1)
-    expect(generateTextMock.mock.calls[0][0].messages).toEqual(
+    expect(chatModel.doGenerateCalls).toHaveLength(1)
+    expect(chatModel.doGenerateCalls[0].prompt).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: "user",
-          content: expect.stringContaining(
-            "Document text:\ninvoice number INV-1"
-          ),
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: "text",
+              text: expect.stringContaining(
+                "Document text:\ninvoice number INV-1"
+              ),
+            }),
+          ]),
         }),
       ])
     )
@@ -165,16 +180,14 @@ describe("extract file data step unit tests", () => {
         .mockResolvedValue(Buffer.from([0xde, 0xad, 0xbe, 0xef])),
     } as any)
 
+    const chatModel = createExtractMockLanguageModel([{ label: "receipt" }])
+
     getDefaultLLMMock.mockResolvedValue({
-      chat: {} as any,
+      chat: chatModel,
       embedding: {} as any,
       uploadFile,
       providerOptions: undefined,
     })
-
-    generateTextMock.mockResolvedValue({
-      output: { data: [{ label: "receipt" }] },
-    } as any)
 
     const result = await run({
       inputs: {
@@ -187,15 +200,16 @@ describe("extract file data step unit tests", () => {
 
     expect(result.success).toBe(true)
     expect(uploadFile).not.toHaveBeenCalled()
-    expect(generateTextMock).toHaveBeenCalledTimes(1)
-    expect(generateTextMock.mock.calls[0][0].messages).toEqual(
+    expect(chatModel.doGenerateCalls).toHaveLength(1)
+    expect(chatModel.doGenerateCalls[0].prompt).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           role: "user",
           content: expect.arrayContaining([
             expect.objectContaining({
-              type: "image",
-              image: new URL("data:image/png;base64,3q2+7w=="),
+              type: "file",
+              mediaType: "image/png",
+              data: "3q2+7w==",
             }),
           ]),
         }),
@@ -210,10 +224,10 @@ describe("extract file data step unit tests", () => {
     } as any)
 
     getDefaultLLMMock.mockResolvedValue({
-      chat: {} as any,
+      chat: createExtractMockLanguageModel([]),
       embedding: {} as any,
       providerOptions: undefined,
-      uploadFile: jest.fn(),
+      uploadFile: jest.fn().mockResolvedValue("file-123"),
     })
 
     PDFParseMock.mockImplementation(
@@ -224,10 +238,6 @@ describe("extract file data step unit tests", () => {
             .mockResolvedValue({ text: "no match in document" }),
         }) as any
     )
-
-    generateTextMock.mockResolvedValue({
-      output: { data: [] },
-    } as any)
 
     const result = await run({
       inputs: {
