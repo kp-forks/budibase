@@ -28,9 +28,8 @@ function sanitizeLiteLLMErrorMessage(message?: string): string | undefined {
     return
   }
 
-  const hasTraceback = /stack trace:|Traceback \(most recent call last\):/i.test(
-    message
-  )
+  const hasTraceback =
+    /stack trace:|Traceback \(most recent call last\):/i.test(message)
 
   let cleaned = message
     .split(/stack trace:/i)[0]
