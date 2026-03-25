@@ -21,6 +21,7 @@ import * as knowledgeBaseSdk from "../knowledgeBase"
 import { processEnvironmentVariable } from "../../../utils"
 
 const SECRET_ENCODING_PREFIX = "bbai_enc::"
+const IMPORT_PENDING_LITELLM_MODEL_ID = "__bb_import_pending_litellm_model__"
 
 const normalizeProviderModelId = (
   modelId: string,
@@ -429,20 +430,22 @@ export async function reconcileLiteLLMModels() {
 
     let modelAlreadyExisted = false
 
-    try {
-      await liteLLM.updateModel({
-        configId: existingConfig._id,
-        llmModelId: currentModelId,
-        provider: existingConfig.provider,
-        name: existingConfig.model,
-        credentialFields: resolvedCredentialFields,
-        configType: existingConfig.configType,
-        reasoningEffort: existingConfig.reasoningEffort,
-      })
-      modelAlreadyExisted = true
-    } catch (e: any) {
-      if (e.status !== 404) {
-        throw e
+    if (currentModelId !== IMPORT_PENDING_LITELLM_MODEL_ID) {
+      try {
+        await liteLLM.updateModel({
+          configId: existingConfig._id,
+          llmModelId: currentModelId,
+          provider: existingConfig.provider,
+          name: existingConfig.model,
+          credentialFields: resolvedCredentialFields,
+          configType: existingConfig.configType,
+          reasoningEffort: existingConfig.reasoningEffort,
+        })
+        modelAlreadyExisted = true
+      } catch (e: any) {
+        if (e.status !== 404) {
+          throw e
+        }
       }
     }
 

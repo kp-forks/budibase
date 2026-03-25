@@ -129,8 +129,6 @@ describe("workspace import LiteLLM scenarios", () => {
     keyId: string
   }) {
     nock(environment.LITELLM_URL)
-      .patch("/model//update")
-      .reply(404, { error: { message: "Model not found" } })
       .post("/model/new")
       .reply(200, { model_id: target.modelId })
       .post("/key/generate")
