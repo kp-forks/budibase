@@ -79,8 +79,8 @@ RUN set -eux; \
 # apt clean-up
     rm -rf /var/lib/apt/lists/*;
 
-# Upgrade npm to pick up patched transitive dependencies (tar, minimatch, glob).
-RUN npm install -g npm@latest && npm cache clean --force
+# Pin npm to avoid regressions in npm@latest during image builds.
+RUN npm install -g npm@10.9.7 && npm cache clean --force
 
 # Add configuration
 COPY --chown=couchdb:couchdb couch/10-docker-default.ini /opt/couchdb/etc/default.d/
