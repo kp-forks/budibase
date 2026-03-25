@@ -132,7 +132,10 @@ export async function ingestGoogleFile({
         400
       )
     }
-    throw new HTTPError(text || "Failed to ingest file into Gemini store", 400)
+    throw new HTTPError(
+      text || "Failed to ingest file into Gemini store",
+      response.status
+    )
   }
 
   const payload = (await response.json()) as GoogleIngestResponse
