@@ -84,6 +84,7 @@ Vite proxies to Budibase:
 
 - `/api/*`
 - `/socket/*`
+- `/builder/*`
 
 BFF (`bff.server.mjs`) proxies:
 
