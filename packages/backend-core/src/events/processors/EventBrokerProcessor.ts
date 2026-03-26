@@ -72,7 +72,7 @@ export default class EventBrokerProcessor implements EventProcessor {
         body: payload,
       })
 
-      if (response.status !== 200) {
+      if (!response.ok) {
         console.warn(
           `[EventBrokerProcessor] unexpected response status: ${response.status}`
         )
