@@ -115,6 +115,8 @@ describe("/applications", () => {
     })
 
     it("should only return apps a user has access to through a custom role on a group", async () => {
+      mocks.licenses.useUnlimited()
+
       let user = await config.createUser({
         builder: { global: false },
         admin: { global: false },
@@ -922,6 +924,8 @@ describe("/applications", () => {
     })
 
     it("should allow users in multiple groups with different roles to access all permitted screens", async () => {
+      mocks.licenses.useUnlimited()
+
       const hrRole = await config.api.roles.save({
         name: `HR_${structures.generator.guid().replace(/[^a-zA-Z0-9]/g, "")}`,
         inherits: [roles.BUILTIN_ROLE_IDS.BASIC],
