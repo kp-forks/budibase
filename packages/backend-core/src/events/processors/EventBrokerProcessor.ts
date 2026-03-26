@@ -66,7 +66,8 @@ export default class EventBrokerProcessor implements EventProcessor {
         }),
         ...(identity.tenantId && { tenantId: identity.tenantId }),
       },
-      timestamp: timestamp === undefined ? Date.now() : new Date(timestamp).getTime(),
+      timestamp:
+        timestamp === undefined ? Date.now() : new Date(timestamp).getTime(),
     }
 
     try {
