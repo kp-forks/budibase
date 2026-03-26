@@ -62,11 +62,11 @@ Vite proxies Budibase services from the same origin:
 - `/api/*`
 - `/socket/*`
 - `/worker/*`
-- `/_bb/*` (published-page lookup used to resolve app ID)
+- `/api/microfrontend/bootstrap` (Budibase microfrontend bootstrap metadata)
+
+Note: `/api/microfrontend/bootstrap` is available only for Enterprise licenses.
 
 ## Important note
-
-App ID resolution parses `window["##BUDIBASE_APP_ID##"]` from the published app HTML. If that marker changes upstream, update `resolveAppIdFromPublishedPage`.
 
 For OIDC bridge mode, Budibase `platformUrl` must point to the shell/BFF public URL (for local example: `http://localhost:5174`). Otherwise Budibase will generate OIDC callback URLs with `:10000` and redirect away from the shell.
 

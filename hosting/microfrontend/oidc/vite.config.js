@@ -23,11 +23,6 @@ export default defineConfig({
         target: budibaseTarget,
         changeOrigin: true,
       },
-      "/_bb": {
-        target: budibaseTarget,
-        changeOrigin: true,
-        rewrite: path => path.replace(/^\/_bb/, ""),
-      },
     },
   },
 })

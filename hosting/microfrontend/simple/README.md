@@ -44,7 +44,12 @@ Vite proxies Budibase services from the same origin:
 - `/socket/*`
 - `/worker/*`
 - `/builder/*`
-- `/_bb/*` (published-page lookup used to resolve app ID)
+
+The shell resolves app metadata via Budibase endpoint:
+
+- `GET /api/microfrontend/bootstrap?appPath=/app/<workspace-url>`
+
+Note: this endpoint is available only for Enterprise licenses.
 
 ## Related example
 

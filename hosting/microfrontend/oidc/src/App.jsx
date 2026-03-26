@@ -69,48 +69,24 @@ const checkSessionState = async () => {
   return { hasOidcSession, hasBudibaseSession }
 }
 
-const resolveAppIdFromPublishedPage = async appPath => {
-  const response = await fetch(`/_bb${appPath}`, {
-    credentials: "same-origin",
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch published app page for path: ${appPath}`)
-  }
-
-  const html = await response.text()
-  const appIdMatch = html.match(
-    /window\["##BUDIBASE_APP_ID##"\]\s*=\s*"([^"]+)"/
+const fetchMicrofrontendBootstrap = async appPath => {
+  const response = await fetch(
+    `/api/microfrontend/bootstrap?appPath=${encodeURIComponent(appPath)}`,
+    {
+      credentials: "same-origin",
+    }
   )
-  return appIdMatch?.[1]
-}
-
-const resolvePublishedApp = async appPath => {
-  const appId = await resolveAppIdFromPublishedPage(appPath)
-  if (!appId) {
-    throw new Error(`Could not resolve Budibase app for path: ${appPath}`)
-  }
-  return { appId, appPath }
-}
-
-const resolveClientLibPath = async ({ appId, appPath }) => {
-  const response = await fetch(`/api/applications/${appId}/appPackage`, {
-    credentials: "same-origin",
-    headers: {
-      "x-budibase-embed-location": appPath,
-    },
-  })
 
   if (!response.ok) {
-    throw new Error("Failed to fetch app package")
+    throw new Error(`Failed to fetch microfrontend bootstrap for path: ${appPath}`)
   }
 
-  const appPackage = await response.json()
-  if (!appPackage?.clientLibPath) {
-    throw new Error("App package did not include clientLibPath")
+  const bootstrap = await response.json()
+  if (!bootstrap?.appId || !bootstrap?.clientLibPath) {
+    throw new Error("Bootstrap response is missing required fields")
   }
 
-  return appPackage.clientLibPath
+  return bootstrap
 }
 
 const BudibaseRoute = ({ appUrl, appPath }) => {
@@ -152,11 +128,10 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
         }
 
         setStatus("Loading Budibase app metadata...")
-        const resolvedApp = await resolvePublishedApp(appPath)
+        const bootstrap = await fetchMicrofrontendBootstrap(appPath)
 
         setStatus("Loading Budibase client bundle...")
-        const clientLibPath = await resolveClientLibPath(resolvedApp)
-        const remote = await import(/* @vite-ignore */ clientLibPath)
+        const remote = await import(/* @vite-ignore */ bootstrap.clientLibPath)
 
         if (!isMounted) {
           return
@@ -170,7 +145,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
         const handle = await remote.mountBudibaseApp({
           target: targetRef.current,
           appUrl,
-          appId: resolvedApp.appId,
+          appId: bootstrap.appId,
           initialPath: initialBudibaseRoute,
           onNavigate: nextPath => {
             const targetHash = toHash(nextPath)
