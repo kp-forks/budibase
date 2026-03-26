@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:bff": "node ./bff.server.mjs",
-    "dev:all": "concurrently \"yarn dev\" \"yarn dev:bff\"",
+    "dev:oidc": "VITE_AUTH_MODE=oidc concurrently \"yarn dev\" \"yarn dev:bff\"",
+    "dev:all": "yarn dev:oidc",
     "build": "vite build",
     "preview": "vite preview"
   },

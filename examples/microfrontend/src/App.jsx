@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom"
+
+const AUTH_MODE = (import.meta.env.VITE_AUTH_MODE || "none").toLowerCase()
+const OIDC_AUTH_MODE = "oidc"
 
 const parseConfiguredBudibaseUrl = () => {
   const raw = window.__BUDIBASE_APP_URL__
@@ -31,13 +40,40 @@ const normalizePath = path => {
     return "/"
   }
   const [pathname = "/", query = ""] = path.split("?")
-  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`
+  const normalizedPathname = pathname.startsWith("/")
+    ? pathname
+    : `/${pathname}`
   return query ? `${normalizedPathname}?${query}` : normalizedPathname
 }
 
 const toHash = routePath => {
   const normalized = normalizePath(routePath)
   return normalized === "/" ? "" : `#${normalized}`
+}
+
+const buildReturnTo = appPath => {
+  const fallback = appPath || "/"
+  if (window.location.pathname.startsWith("/auth/")) {
+    return `${fallback}${window.location.hash || ""}`
+  }
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`
+}
+
+const checkSessionState = async () => {
+  try {
+    const bffSession = await fetch("/auth/session", {
+      credentials: "same-origin",
+    })
+
+    const hasOidcSession = bffSession.ok
+    const budibaseSession = await fetch("/api/global/self", {
+      credentials: "same-origin",
+    })
+    const hasBudibaseSession = budibaseSession.ok
+    return { hasOidcSession, hasBudibaseSession }
+  } catch (_error) {
+    return { hasOidcSession: false, hasBudibaseSession: false }
+  }
 }
 
 const fetchMicrofrontendBootstrap = async appPath => {
@@ -67,6 +103,9 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
   const mountHandleRef = useRef(null)
   const currentHostUrlRef = useRef(`${location.pathname}${location.hash || ""}`)
   const [status, setStatus] = useState("Loading Budibase app...")
+  const [isOidcAuthenticated, setIsOidcAuthenticated] = useState(false)
+  const [isBudibaseAuthenticated, setIsBudibaseAuthenticated] = useState(false)
+  const oidcModeEnabled = AUTH_MODE === OIDC_AUTH_MODE
 
   const initialBudibaseRoute = useMemo(() => {
     const rawHashPath = location.hash.startsWith("#")
@@ -82,6 +121,25 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
 
     const mountRemote = async () => {
       try {
+        if (oidcModeEnabled) {
+          setStatus("Checking OIDC and Budibase sessions...")
+          const sessionState = await checkSessionState()
+          if (!isMounted) {
+            return
+          }
+
+          setIsOidcAuthenticated(sessionState.hasOidcSession)
+          setIsBudibaseAuthenticated(sessionState.hasBudibaseSession)
+
+          if (!sessionState.hasOidcSession) {
+            setStatus("OIDC mode: click Login to start authentication.")
+          } else if (!sessionState.hasBudibaseSession) {
+            setStatus("OIDC active: click Login to bridge Budibase session.")
+          } else {
+            setStatus("Authenticated. Loading Budibase app...")
+          }
+        }
+
         setStatus("Loading Budibase app metadata...")
         const bootstrap = await fetchMicrofrontendBootstrap(appPath)
 
@@ -140,7 +198,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
       }
       mountHandleRef.current = null
     }
-  }, [appPath, appUrl, navigate])
+  }, [appPath, appUrl, initialBudibaseRoute, navigate, oidcModeEnabled])
 
   useEffect(() => {
     const handle = mountHandleRef.current
@@ -156,11 +214,52 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
     handle.navigate(initialBudibaseRoute)
   }, [initialBudibaseRoute])
 
+  const login = () => {
+    if (!oidcModeEnabled) {
+      return
+    }
+
+    const returnTo = buildReturnTo(appPath)
+    window.location.assign(
+      `/auth/login?returnTo=${encodeURIComponent(returnTo)}&bridgeBudibase=1`
+    )
+  }
+
+  const logout = () => {
+    if (!oidcModeEnabled) {
+      return
+    }
+
+    const returnTo = buildReturnTo(appPath)
+    window.location.assign(`/auth/logout?returnTo=${encodeURIComponent(returnTo)}`)
+  }
+
   return (
     <div className="mf-shell">
       <header className="mf-header">
-        <h1>Budibase Host Shell (Simple)</h1>
-        <p>Status: {status}</p>
+        <div className="mf-header-row">
+          <div>
+            <h1>Budibase Host Shell (Unified PoC)</h1>
+            <p>Status: {status}</p>
+          </div>
+          {oidcModeEnabled ? (
+            <div className="mf-header-actions">
+              {isOidcAuthenticated && isBudibaseAuthenticated ? (
+                <button
+                  type="button"
+                  className="mf-login-button"
+                  onClick={logout}
+                >
+                  Logout
+                </button>
+              ) : (
+                <button type="button" className="mf-login-button" onClick={login}>
+                  Login
+                </button>
+              )}
+            </div>
+          ) : null}
+        </div>
       </header>
       <main className="mf-canvas">
         <div ref={targetRef} className="mf-budibase-target" />
