@@ -54,3 +54,10 @@ body,
   border-radius: 6px;
   overflow: hidden;
 }
+
+.mf-home-panel {
+  padding: 16px;
+  background: white;
+  border: 1px solid #d9dde5;
+  border-radius: 6px;
+}
