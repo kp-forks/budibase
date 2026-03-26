@@ -643,13 +643,13 @@ const resolveProdWorkspaceIdFromAppPath = async (appPath: string) => {
 export async function fetchMicrofrontendBootstrap(
   ctx: UserCtx<void, FetchMicrofrontendBootstrapResponse>
 ) {
-  const license = await licensing.cache.getCachedLicense()
-  if (!(await features.isMicrofrontendFeatureEnabled(license))) {
-    ctx.throw(
-      403,
-      "Microfrontend bootstrap is only available when the microfrontend feature is enabled."
-    )
-  }
+  // const license = await licensing.cache.getCachedLicense()
+  // if (!(await features.isMicrofrontendFeatureEnabled(license))) {
+  //   ctx.throw(
+  //     403,
+  //     "Microfrontend bootstrap is only available when the microfrontend feature is enabled."
+  //   )
+  // }
 
   const appPath = parseMicrofrontendAppPath(ctx.query.appPath)
   if (!appPath) {
