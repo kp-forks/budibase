@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid"
 const api = new API(env.INTERNAL_ACCOUNT_PORTAL_URL)
 
 export default class EventBrokerProcessor implements EventProcessor {
-  private static getLicenseKeyFn: GetLicenseKeyFn
+  private static getLicenseKeyFn: GetLicenseKeyFn | undefined
 
   static init(getLicenseKeyFn: GetLicenseKeyFn) {
     EventBrokerProcessor.getLicenseKeyFn = getLicenseKeyFn
@@ -27,6 +27,9 @@ export default class EventBrokerProcessor implements EventProcessor {
 
     let headers: Record<string, string>
     if (env.SELF_HOSTED) {
+      if (!EventBrokerProcessor.getLicenseKeyFn) {
+        return
+      }
       const licenseKey = await EventBrokerProcessor.getLicenseKeyFn()
       if (!licenseKey) {
         return
