@@ -198,7 +198,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
       }
       mountHandleRef.current = null
     }
-  }, [appPath, appUrl, initialBudibaseRoute, navigate, oidcModeEnabled])
+  }, [appPath, appUrl, navigate, oidcModeEnabled])
 
   useEffect(() => {
     const handle = mountHandleRef.current
