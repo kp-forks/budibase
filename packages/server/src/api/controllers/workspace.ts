@@ -13,7 +13,7 @@ import {
   users,
   utils,
 } from "@budibase/backend-core"
-import { groups, licensing, quotas } from "@budibase/pro"
+import { features, groups, licensing, quotas } from "@budibase/pro"
 import {
   DefaultAppTheme,
   helpers,
@@ -644,10 +644,10 @@ export async function fetchMicrofrontendBootstrap(
   ctx: UserCtx<void, FetchMicrofrontendBootstrapResponse>
 ) {
   const license = await licensing.cache.getCachedLicense()
-  if (license?.plan?.type !== PlanType.ENTERPRISE) {
+  if (!(await features.isMicrofrontendFeatureEnabled(license))) {
     ctx.throw(
       403,
-      "Microfrontend bootstrap is only available on Enterprise plans."
+      "Microfrontend bootstrap is only available when the microfrontend feature is enabled."
     )
   }
 
@@ -667,31 +667,41 @@ export async function fetchMicrofrontendBootstrap(
   const isChatRoute =
     appPath === "/app-chat" || appPath.startsWith("/app-chat/")
 
-  const bootstrap = await context.doInWorkspaceContext(workspaceId, async () => {
-    const matchedWorkspaceApp = await sdk.workspaceApps.getMatchedWorkspaceApp(
-      appPath
-    )
+  const bootstrap = await context.doInWorkspaceContext(
+    workspaceId,
+    async () => {
+      const matchedWorkspaceApp =
+        await sdk.workspaceApps.getMatchedWorkspaceApp(appPath)
 
-    if (!isChatRoute && (!matchedWorkspaceApp || matchedWorkspaceApp.disabled)) {
-      ctx.throw(404, `No matching workspace app found for URL path: ${appPath}`)
+      if (
+        !isChatRoute &&
+        (!matchedWorkspaceApp || matchedWorkspaceApp.disabled)
+      ) {
+        ctx.throw(
+          404,
+          `No matching workspace app found for URL path: ${appPath}`
+        )
+      }
+
+      const appInfo = await sdk.workspaces.metadata.get()
+      const clientLibPath = await objectStore.clientLibraryUrl(
+        workspaceId,
+        appInfo.version
+      )
+      const clientCacheKey = await objectStore.getClientCacheKey(
+        appInfo.version
+      )
+
+      return {
+        appId: workspaceId,
+        appPath,
+        appType: isChatRoute ? "app-chat" : "app",
+        workspaceAppId: matchedWorkspaceApp?._id,
+        clientLibPath,
+        clientCacheKey,
+      } satisfies FetchMicrofrontendBootstrapResponse
     }
-
-    const appInfo = await sdk.workspaces.metadata.get()
-    const clientLibPath = await objectStore.clientLibraryUrl(
-      workspaceId,
-      appInfo.version
-    )
-    const clientCacheKey = await objectStore.getClientCacheKey(appInfo.version)
-
-    return {
-      appId: workspaceId,
-      appPath,
-      appType: isChatRoute ? "app-chat" : "app",
-      workspaceAppId: matchedWorkspaceApp?._id,
-      clientLibPath,
-      clientCacheKey,
-    }
-  })
+  )
 
   ctx.body = bootstrap
 }

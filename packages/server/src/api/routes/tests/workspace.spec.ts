@@ -8,6 +8,7 @@ import { structures } from "@budibase/backend-core/tests"
 import {
   type Workspace,
   BuiltinPermissionID,
+  Feature,
   PlanType,
   PermissionLevel,
   Screen,
@@ -1233,6 +1234,7 @@ describe("/applications", () => {
       const license = structures.licenses.license({
         planType: PlanType.ENTERPRISE,
       })
+      license.features = [...license.features, Feature.MICROFRONTEND]
       license.tenantId = config.getTenantId()
       jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
       await config.publish()
@@ -1252,6 +1254,7 @@ describe("/applications", () => {
       const license = structures.licenses.license({
         planType: PlanType.ENTERPRISE,
       })
+      license.features = [...license.features, Feature.MICROFRONTEND]
       license.tenantId = config.getTenantId()
       jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
       await config.api.workspace.getMicrofrontendBootstrap("/app/does-not-exist", {
