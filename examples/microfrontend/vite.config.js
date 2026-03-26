@@ -19,14 +19,6 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
-      "/worker": {
-        target: budibaseTarget,
-        changeOrigin: true,
-      },
-      "/builder": {
-        target: budibaseTarget,
-        changeOrigin: true,
-      },
     },
   },
 })

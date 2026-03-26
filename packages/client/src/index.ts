@@ -332,7 +332,6 @@ export const mountBudibaseApp = async ({
   const resolvedAppId = appId || (await resolveAppIdFromPath(appPath))
 
   window["##BUDIBASE_APP_ID##"] = resolvedAppId
-  window["##BUDIBASE_APP_EMBEDDED##"] = "false"
   window["##BUDIBASE_EMBED_LOCATION##"] = appPath
 
   const resolvedInitialPath = initialPath
