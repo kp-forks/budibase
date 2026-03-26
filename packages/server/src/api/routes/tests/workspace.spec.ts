@@ -1242,8 +1242,6 @@ describe("/applications", () => {
       )
 
       expect(res.appId).toEqual(config.getProdWorkspaceId())
-      expect(res.appPath).toEqual(appPath)
-      expect(res.appType).toEqual("app")
       expect(res.clientLibPath).toContain("/api/assets/")
     })
 

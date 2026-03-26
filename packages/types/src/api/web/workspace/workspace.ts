@@ -57,9 +57,6 @@ export interface FetchAppPackageResponse {
 
 export interface FetchMicrofrontendBootstrapResponse {
   appId: string
-  appPath: string
-  appType: "app" | "app-chat"
-  workspaceAppId?: string
   clientLibPath: string
   clientCacheKey?: string
 }

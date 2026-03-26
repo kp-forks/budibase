@@ -694,12 +694,9 @@ export async function fetchMicrofrontendBootstrap(
 
       return {
         appId: workspaceId,
-        appPath,
-        appType: isChatRoute ? "app-chat" : "app",
-        workspaceAppId: matchedWorkspaceApp?._id,
         clientLibPath,
         clientCacheKey,
-      } satisfies FetchMicrofrontendBootstrapResponse
+      }
     }
   )
 
