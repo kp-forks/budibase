@@ -15,7 +15,7 @@
         <img
           class="logo"
           alt="logo"
-          src={logoUrl || "/bblogo.png"}
+          src={logoUrl || "/builder/bblogo.png"}
           height="48"
         />
       </a>

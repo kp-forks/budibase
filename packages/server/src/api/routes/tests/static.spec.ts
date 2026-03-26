@@ -240,7 +240,7 @@ describe("/static", () => {
     it("should not error when trying to get 'apple-touch-icon.png' (public call)", async () => {
       const res = await request.get(`/apple-touch-icon.png`)
       expect(res.status).toEqual(302)
-      expect(res.text).toEqual("Redirecting to /bblogo.png.")
+      expect(res.text).toEqual("Redirecting to /builder/bblogo.png.")
     })
   })
 
