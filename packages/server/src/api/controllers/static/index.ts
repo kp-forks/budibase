@@ -585,6 +585,10 @@ export const serveServiceWorker = async function (ctx: Ctx) {
   ctx.body = serviceWorkerContent
 }
 
+export const serveLogo = async function (ctx: Ctx) {
+  return serveLocalFile(ctx, "bblogo.png")
+}
+
 export const getSignedUploadURL = async function (
   ctx: Ctx<GetSignedUploadUrlRequest, GetSignedUploadUrlResponse>
 ) {

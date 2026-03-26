@@ -15,8 +15,9 @@ addFileManagement(router)
 
 router
   .get("/apple-touch-icon.png", async ctx => {
-    ctx.redirect("/builder/bblogo.png")
+    ctx.redirect("/bblogo.png")
   })
+  .get("/bblogo.png", controller.serveLogo)
   .get("/api/assets/:appId/client", controller.serveClientLibrary)
   .get("/api/assets/:appId/*file", controller.serve3rdPartyFile)
   .get("/api/apps/:appId/manifest.json", controller.servePwaManifest)

@@ -36,7 +36,7 @@
   {#if props.favicon !== ""}
     <link rel="icon" type="image/png" href={props.favicon} />
   {:else}
-    <link rel="icon" type="image/png" href="/builder/bblogo.png" />
+    <link rel="icon" type="image/png" href="/bblogo.png" />
   {/if}
 
   <link
