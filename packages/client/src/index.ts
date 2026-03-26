@@ -180,7 +180,9 @@ const normalizeRoutePath = (path: string) => {
     return "/"
   }
   const [pathname = "/", query = ""] = path.split("?")
-  const normalizedPathname = pathname.startsWith("/") ? pathname : `/${pathname}`
+  const normalizedPathname = pathname.startsWith("/")
+    ? pathname
+    : `/${pathname}`
   if (!query) {
     return normalizedPathname
   }

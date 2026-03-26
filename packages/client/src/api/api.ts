@@ -30,8 +30,7 @@ export const API = createAPIClient({
     const embedLocation = window["##BUDIBASE_EMBED_LOCATION##"]
     if (appData.embedded || embedLocation) {
       headers["x-budibase-embed-location"] =
-        embedLocation ||
-        window.location.pathname
+        embedLocation || window.location.pathname
     }
 
     // Attach client header if not inside the builder preview
