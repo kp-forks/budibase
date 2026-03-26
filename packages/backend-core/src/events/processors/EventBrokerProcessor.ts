@@ -18,7 +18,7 @@ export default class EventBrokerProcessor implements EventProcessor {
   async processEvent(
     event: Event,
     identity: Identity,
-    properties: any,
+    properties: Record<string, unknown>,
     timestamp?: string | number
   ): Promise<void> {
     if (env.DISABLE_ACCOUNT_PORTAL) {
