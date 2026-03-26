@@ -1,42 +1,11 @@
-# Budibase App Microfrontend Host
+# Budibase Microfrontend Examples
 
-## Run
+Two reference integrations are provided:
 
-1. Ensure Budibase is available locally at `http://localhost:10000`.
-2. In this folder run:
+- `oidc/`: host + OIDC token bridge (BFF) for platform-initiated login flows.
+- `simple/`: host-only integration without a token bridge.
 
-`npm install`
+Use:
 
-`npm run dev`
-
-3. Open:
-
-`http://localhost:5173`
-
-The host mounts Budibase without iframes using `mountBudibaseApp(...)`.
-
-## Configure app target
-
-Set the published Budibase app URL in `index.html`:
-
-`window.__BUDIBASE_APP_URL__ = "http://localhost:5173/app/my-workspace"`
-
-Use a published route (`/app/*` or `/app-chat/*`).
-The value must be an absolute URL.
-
-## Dev proxy
-
-Vite proxies Budibase services from the same origin:
-
-- `/api/*`
-- `/socket/*`
-- `/worker/*`
-- `/builder/*`
-- `/_bb/*` (published-page proxy used to resolve app ID)
-
-App routes (`/app/*`, `/app-chat/*`) remain owned by the host shell.
-
-## Production notes
-
-- Preserve forwarded headers and `Referer` when proxying to Budibase.
-- Example nginx config: `hosting/microfrontend/nginx.root.conf`
+- `/Users/adribb/code/budibase/hosting/microfrontend/oidc` when you need a backend-mediated OIDC bridge.
+- `/Users/adribb/code/budibase/hosting/microfrontend/simple` when Budibase login/session handling is enough on its own.
