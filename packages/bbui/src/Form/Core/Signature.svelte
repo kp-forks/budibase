@@ -164,7 +164,7 @@
         style="--max-sig-width: {width}px; --max-sig-height: {height}px"
       ></canvas>
       {#if editable}
-        <div class="indicator-overlay" style="pointer-events: none;">
+        <div class="indicator-overlay">
           <div class="sign-here">
             <Icon name="x" />
             <hr />
