@@ -171,7 +171,7 @@ const resolveBudibaseOidcConfigId = async tenantId => {
     return BUDIBASE_OIDC_CONFIG_ID
   }
   const response = await fetch(
-    `${HOST_ORIGIN}/api/global/configs/public/oidc?tenantId=${encodeURIComponent(tenantId)}`
+    `${BUDIBASE_ORIGIN}/api/global/configs/public/oidc?tenantId=${encodeURIComponent(tenantId)}`
   )
   if (!response.ok) {
     throw new Error(
@@ -329,7 +329,7 @@ app.get("/auth/logout", async (req, res) => {
 
   // Best effort: clear Budibase auth cookie as part of sign-out.
   try {
-    await fetch(`${HOST_ORIGIN}/api/global/auth/logout`, {
+    await fetch(`${BUDIBASE_ORIGIN}/api/global/auth/logout`, {
       method: "POST",
       headers: {
         cookie: req.headers.cookie || "",
