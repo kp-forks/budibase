@@ -79,7 +79,7 @@ RUN set -eux; \
 # apt clean-up
     rm -rf /var/lib/apt/lists/*;
 
-# Pin npm to avoid regressions in npm@latest during image builds.
+# Upgrade npm to pick up patched transitive dependencies (tar, minimatch, glob).
 RUN npm install -g npm@11.11.1 && npm cache clean --force
 
 # Add configuration
