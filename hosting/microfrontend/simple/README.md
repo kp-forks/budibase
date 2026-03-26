@@ -6,8 +6,8 @@ Use this example when you do not need an OIDC token bridge/BFF.
 
 - Mounts Budibase as a non-iframe microfrontend.
 - Keeps app routes (`/app/*`, `/app-chat/*`) owned by the host shell.
-- Checks Budibase session with `GET /api/global/self`.
-- Redirects to Budibase login (`/builder/auth/login`) if session is missing.
+- Does not implement host-side auth checks.
+- Lets Budibase handle login/session behavior directly.
 
 ## Run
 

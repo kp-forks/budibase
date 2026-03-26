@@ -40,22 +40,6 @@ const toHash = routePath => {
   return normalized === "/" ? "" : `#${normalized}`
 }
 
-const ensureBudibaseSession = async () => {
-  const response = await fetch("/api/global/self", {
-    credentials: "same-origin",
-  })
-
-  if (response.ok) {
-    return true
-  }
-
-  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`
-  window.location.assign(
-    `/builder/auth/login?returnUrl=${encodeURIComponent(returnTo)}`
-  )
-  return false
-}
-
 const resolveAppIdFromPublishedPage = async appPath => {
   const response = await fetch(`/_bb${appPath}`, {
     credentials: "same-origin",
@@ -106,7 +90,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
   const targetRef = useRef(null)
   const mountHandleRef = useRef(null)
   const currentHostUrlRef = useRef(`${location.pathname}${location.hash || ""}`)
-  const [status, setStatus] = useState("Checking Budibase session...")
+  const [status, setStatus] = useState("Loading Budibase app...")
 
   const initialBudibaseRoute = useMemo(() => {
     const rawHashPath = location.hash.startsWith("#")
@@ -122,11 +106,6 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
 
     const mountRemote = async () => {
       try {
-        const hasSession = await ensureBudibaseSession()
-        if (!hasSession || !isMounted) {
-          return
-        }
-
         setStatus("Loading Budibase app metadata...")
         const resolvedApp = await resolvePublishedApp(appPath)
 
