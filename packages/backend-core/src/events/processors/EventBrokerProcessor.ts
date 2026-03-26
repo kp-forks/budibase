@@ -1,18 +1,84 @@
-import { Event, Identity } from "@budibase/types"
+import { Event, GetLicenseKeyFn, Identity } from "@budibase/types"
 import { EventProcessor } from "./types"
+import API from "../../accounts/api"
+import env from "../../environment"
+import { Header } from "../../constants"
+import * as context from "../../context"
+import { v4 as uuidv4 } from "uuid"
+
+const api = new API(env.INTERNAL_ACCOUNT_PORTAL_URL)
 
 export default class EventBrokerProcessor implements EventProcessor {
+  private static getLicenseKeyFn: GetLicenseKeyFn
+
+  static init(getLicenseKeyFn: GetLicenseKeyFn) {
+    EventBrokerProcessor.getLicenseKeyFn = getLicenseKeyFn
+  }
+
   async processEvent(
     event: Event,
     identity: Identity,
-    properties: any
+    properties: any,
+    timestamp?: string | number
   ): Promise<void> {
-    // TODO: Replace this log with a real HTTP request to the Event Broker once it is available.
-    // The Event Broker endpoint will receive the event payload and forward it to the internal
-    // ingestion pipeline (e.g. SQS → Logstash → S3 → Snowpipe).
-    console.log(`[EventBrokerProcessor] event received: ${event}`, {
-      identityType: identity.type,
-      properties,
-    })
+    if (env.DISABLE_ACCOUNT_PORTAL) {
+      return
+    }
+
+    let headers: Record<string, string>
+    if (env.SELF_HOSTED) {
+      const licenseKey = await EventBrokerProcessor.getLicenseKeyFn()
+      if (!licenseKey) {
+        return
+      }
+      headers = { [Header.LICENSE_KEY]: licenseKey }
+    } else {
+      headers = { [Header.API_KEY]: env.ACCOUNT_PORTAL_API_KEY }
+      if (identity.tenantId) {
+        headers[Header.TENANT_ID] = identity.tenantId
+      }
+    }
+
+    const appId = context.getWorkspaceId()
+
+    const payload: {
+      id: string
+      type: Event
+      identity: Identity
+      properties: Record<string, unknown>
+      timestamp: number
+    } = {
+      id: uuidv4(),
+      type: event,
+      identity,
+      properties: {
+        ...properties,
+        version: env.VERSION,
+        service: env.SERVICE,
+        environment: identity.environment,
+        hosting: identity.hosting,
+        ...(appId && { appId }),
+        ...(identity.installationId && {
+          installationId: identity.installationId,
+        }),
+        ...(identity.tenantId && { tenantId: identity.tenantId }),
+      },
+      timestamp: timestamp === undefined ? Date.now() : Number(timestamp),
+    }
+
+    try {
+      const response = await api.post("/api/v2/analytics/event", {
+        headers,
+        body: payload,
+      })
+
+      if (response.status !== 200) {
+        console.warn(
+          `[EventBrokerProcessor] unexpected response status: ${response.status}`
+        )
+      }
+    } catch (err) {
+      console.error(`[EventBrokerProcessor] failed to send event: ${err}`)
+    }
   }
 }
