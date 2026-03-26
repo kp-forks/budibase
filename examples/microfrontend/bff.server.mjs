@@ -135,7 +135,13 @@ const sanitizeTenantId = value => {
     return BUDIBASE_TENANT_ID
   }
   const tenantId = value.trim()
-  return tenantId || BUDIBASE_TENANT_ID
+  if (!tenantId) {
+    return BUDIBASE_TENANT_ID
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(tenantId)) {
+    return undefined
+  }
+  return tenantId
 }
 
 const rewriteBudibaseAuthLocation = (location, req) => {
@@ -208,6 +214,10 @@ app.get("/auth/login", async (req, res) => {
     const returnTo = sanitizeReturnTo(req.query.returnTo)
     const bridgeBudibase = req.query.bridgeBudibase === "1"
     const tenantId = sanitizeTenantId(req.query.tenantId)
+    if (!tenantId) {
+      res.status(400).send("Invalid tenantId")
+      return
+    }
 
     pendingLogins.set(state, {
       nonce,
@@ -294,8 +304,9 @@ app.get("/auth/callback", async (req, res) => {
     if (loginContext.bridgeBudibase) {
       const configId = await resolveBudibaseOidcConfigId(loginContext.tenantId)
       setReturnToCookie(res, loginContext.returnTo)
+      const encodedTenantId = encodeURIComponent(loginContext.tenantId)
       res.redirect(
-        `/api/global/auth/${loginContext.tenantId}/oidc/configs/${configId}`
+        `/api/global/auth/${encodedTenantId}/oidc/configs/${configId}`
       )
       return
     }

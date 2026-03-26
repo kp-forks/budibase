@@ -23,7 +23,9 @@ Set `window.__BUDIBASE_APP_URL__` in `index.html`.
 
 Default:
 
-`window.__BUDIBASE_APP_URL__ = "${window.location.origin}/app/microfrontend"`
+```js
+window.__BUDIBASE_APP_URL__ = `${window.location.origin}/app/microfrontend`
+```
 
 Requirements:
 
@@ -90,6 +92,11 @@ BFF (`bff.server.mjs`) proxies:
 
 - `/api/global/auth/*` to Budibase auth endpoints
 - everything else to host shell
+
+When using `nginx.root.conf` in OIDC mode, ensure nginx routes these to BFF:
+
+- `/auth/*`
+- `/api/global/auth/*`
 
 ## Important OIDC note
 

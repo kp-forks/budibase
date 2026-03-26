@@ -115,7 +115,7 @@ export interface MountBudibaseAppOptions {
 }
 
 export type BudibaseMountHandle = (() => void) & {
-  navigate: (path: string) => void
+  navigate: (path: string) => ReturnType<typeof navigateToPath>
   getCurrentPath: () => string
 }
 
@@ -372,7 +372,7 @@ export const mountBudibaseApp = async ({
   }) as BudibaseMountHandle
 
   handle.navigate = path => {
-    navigateToPath(path)
+    return navigateToPath(path)
   }
   handle.getCurrentPath = () => {
     return getCurrentPath()
