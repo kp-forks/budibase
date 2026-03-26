@@ -3,13 +3,10 @@ import { USERS_TABLE_SCHEMA } from "../../../constants"
 import { setEnv, withEnv } from "../../../environment"
 
 import { Header, context, db, events, roles } from "@budibase/backend-core"
-import { licensing } from "@budibase/pro"
-import { structures } from "@budibase/backend-core/tests"
+import { mocks, structures } from "@budibase/backend-core/tests"
 import {
   type Workspace,
   BuiltinPermissionID,
-  Feature,
-  PlanType,
   PermissionLevel,
   Screen,
   WorkspaceApp,
@@ -54,6 +51,7 @@ describe("/applications", () => {
   }
 
   beforeEach(async () => {
+    mocks.licenses.useCloudFree()
     await createNewApp()
     jest.clearAllMocks()
     nock.cleanAll()
@@ -1226,17 +1224,9 @@ describe("/applications", () => {
   })
 
   describe("fetchMicrofrontendBootstrap", () => {
-    afterEach(() => {
-      jest.restoreAllMocks()
-    })
-
     it("should resolve bootstrap data for a published app path", async () => {
-      const license = structures.licenses.license({
-        planType: PlanType.ENTERPRISE,
-      })
-      license.features = [...license.features, Feature.MICROFRONTEND]
-      license.tenantId = config.getTenantId()
-      jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
+      mocks.licenses.useMicrofrontend()
+
       await config.publish()
       const appPath = `/app${config.prodWorkspace?.url}`
 
@@ -1254,12 +1244,8 @@ describe("/applications", () => {
     })
 
     it("should return 404 for unknown app paths", async () => {
-      const license = structures.licenses.license({
-        planType: PlanType.ENTERPRISE,
-      })
-      license.features = [...license.features, Feature.MICROFRONTEND]
-      license.tenantId = config.getTenantId()
-      jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
+      mocks.licenses.useMicrofrontend()
+
       await config.api.workspace.getMicrofrontendBootstrap(
         "/app/does-not-exist",
         {
@@ -1272,11 +1258,8 @@ describe("/applications", () => {
     })
 
     it("should return 403 when license is not enterprise", async () => {
-      const license = structures.licenses.license({
-        planType: PlanType.FREE,
-      })
-      license.tenantId = config.getTenantId()
-      jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
+      mocks.licenses.useCloudFree()
+
       await config.publish()
       const appPath = `/app${config.prodWorkspace?.url}`
 
