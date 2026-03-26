@@ -1240,9 +1240,12 @@ describe("/applications", () => {
       await config.publish()
       const appPath = `/app${config.prodWorkspace?.url}`
 
-      const res = await config.api.workspace.getMicrofrontendBootstrap(appPath, {
-        publicUser: true,
-      })
+      const res = await config.api.workspace.getMicrofrontendBootstrap(
+        appPath,
+        {
+          publicUser: true,
+        }
+      )
 
       expect(res.appId).toEqual(config.getProdWorkspaceId())
       expect(res.appPath).toEqual(appPath)
@@ -1257,12 +1260,15 @@ describe("/applications", () => {
       license.features = [...license.features, Feature.MICROFRONTEND]
       license.tenantId = config.getTenantId()
       jest.spyOn(licensing.cache, "getCachedLicense").mockResolvedValue(license)
-      await config.api.workspace.getMicrofrontendBootstrap("/app/does-not-exist", {
-        publicUser: true,
-        expectations: {
-          status: 404,
-        },
-      })
+      await config.api.workspace.getMicrofrontendBootstrap(
+        "/app/does-not-exist",
+        {
+          publicUser: true,
+          expectations: {
+            status: 404,
+          },
+        }
+      )
     })
 
     it("should return 403 when license is not enterprise", async () => {
