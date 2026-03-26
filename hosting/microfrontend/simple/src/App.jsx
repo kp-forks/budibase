@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom"
 
-/**
- * Host contract:
- * - window.__BUDIBASE_APP_URL__ must be an absolute URL.
- * - Path must be /app/<workspace> or /app-chat/<workspace>.
- */
 const parseConfiguredBudibaseUrl = () => {
   const raw = window.__BUDIBASE_APP_URL__
   if (!raw || typeof raw !== "string") {
@@ -14,12 +9,10 @@ const parseConfiguredBudibaseUrl = () => {
     )
   }
 
-  let parsed
-  try {
-    parsed = new URL(raw)
-  } catch {
+  const parsed = new URL(raw)
+  if (parsed.origin !== window.location.origin) {
     throw new Error(
-      "window.__BUDIBASE_APP_URL__ must be an absolute URL (e.g. https://app.company.com/app/my-workspace)."
+      "window.__BUDIBASE_APP_URL__ must use the same origin as the host shell."
     )
   }
 
@@ -30,10 +23,7 @@ const parseConfiguredBudibaseUrl = () => {
     )
   }
 
-  return {
-    appUrl: parsed.toString(),
-    appPath,
-  }
+  return { appUrl: parsed.toString(), appPath }
 }
 
 const normalizePath = path => {
@@ -48,6 +38,22 @@ const normalizePath = path => {
 const toHash = routePath => {
   const normalized = normalizePath(routePath)
   return normalized === "/" ? "" : `#${normalized}`
+}
+
+const ensureBudibaseSession = async () => {
+  const response = await fetch("/api/global/self", {
+    credentials: "same-origin",
+  })
+
+  if (response.ok) {
+    return true
+  }
+
+  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`
+  window.location.assign(
+    `/builder/auth/login?returnUrl=${encodeURIComponent(returnTo)}`
+  )
+  return false
 }
 
 const resolveAppIdFromPublishedPage = async appPath => {
@@ -100,9 +106,8 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
   const targetRef = useRef(null)
   const mountHandleRef = useRef(null)
   const currentHostUrlRef = useRef(`${location.pathname}${location.hash || ""}`)
-  const [status, setStatus] = useState("Loading client bundle...")
+  const [status, setStatus] = useState("Checking Budibase session...")
 
-  // Budibase internal route is hash-based (e.g. #/employees)
   const initialBudibaseRoute = useMemo(() => {
     const rawHashPath = location.hash.startsWith("#")
       ? location.hash.slice(1)
@@ -117,7 +122,15 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
 
     const mountRemote = async () => {
       try {
+        const hasSession = await ensureBudibaseSession()
+        if (!hasSession || !isMounted) {
+          return
+        }
+
+        setStatus("Loading Budibase app metadata...")
         const resolvedApp = await resolvePublishedApp(appPath)
+
+        setStatus("Loading Budibase client bundle...")
         const clientLibPath = await resolveClientLibPath(resolvedApp)
         const remote = await import(/* @vite-ignore */ clientLibPath)
 
@@ -160,7 +173,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
         setStatus("Budibase app mounted")
       } catch (error) {
         console.error(error)
-        setStatus("Failed to load Budibase app via appPackage")
+        setStatus("Failed to load Budibase app")
       }
     }
 
@@ -192,7 +205,7 @@ const BudibaseRoute = ({ appUrl, appPath }) => {
   return (
     <div className="mf-shell">
       <header className="mf-header">
-        <h1>Budibase Host Shell</h1>
+        <h1>Budibase Host Shell (Simple)</h1>
         <p>Status: {status}</p>
       </header>
       <main className="mf-canvas">
