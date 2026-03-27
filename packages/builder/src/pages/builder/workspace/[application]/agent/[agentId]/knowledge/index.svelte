@@ -167,7 +167,7 @@
     </div>
   {:else if knowledgeBases.length > 0}
     <div class="knowledge-header">
-      <Body size="XS"></Body>
+      <div></div>
 
       <Button
         icon="plus"
