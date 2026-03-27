@@ -9,6 +9,7 @@ import { utils } from "@budibase/shared-core"
 import {
   AIConfigType,
   BUDIBASE_AI_PROVIDER_ID,
+  KnowledgeBaseType,
   LiteLLMKeyConfig,
   ReasoningEffort,
   LockName,
@@ -19,6 +20,7 @@ import { buildLiteLLMParams } from "../helpers/litellm"
 import fetch from "node-fetch"
 import env from "../../../../environment"
 import * as configSdk from "../configs"
+import sdk from "../../.."
 
 const liteLLMUrl = env.LITELLM_URL
 const liteLLMAuthorizationHeader = `Bearer ${env.LITELLM_MASTER_KEY}`
@@ -583,11 +585,17 @@ async function regenerateWorkspaceKey() {
   return result
 }
 
-export async function allowVectorStoreOnWorkspaceKey(vectorStoreId: string) {
+export async function syncKeyVectorStores() {
+  const kbs = await sdk.ai.knowledgeBase.fetch()
+  const vectorStoreIds = kbs
+    .filter(kb => kb.type === KnowledgeBaseType.GEMINI)
+    .map(kb => kb.config.googleFileStoreId)
+    .filter((id): id is string => !!id)
+
   const { keyId } = await getKeySettings()
   await updateKey({
     keyId,
-    vectorStoreIds: [vectorStoreId],
+    vectorStoreIds,
   })
 }
 

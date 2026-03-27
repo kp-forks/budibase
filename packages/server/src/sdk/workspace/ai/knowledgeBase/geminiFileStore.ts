@@ -1,10 +1,7 @@
 import { HTTPError } from "@budibase/backend-core"
 import fetch from "node-fetch"
 import environment from "../../../../environment"
-import {
-  allowVectorStoreOnWorkspaceKey,
-  getKeySettings,
-} from "../configs/litellm"
+import { getKeySettings } from "../configs/litellm"
 
 interface CreateVectorStoreResponse {
   id?: string
@@ -74,8 +71,6 @@ export async function createGeminiFileStore(name: string): Promise<string> {
   if (!payload.id) {
     throw new HTTPError("Gemini file store creation did not return an id", 500)
   }
-
-  await allowVectorStoreOnWorkspaceKey(payload.id)
 
   return payload.id
 }

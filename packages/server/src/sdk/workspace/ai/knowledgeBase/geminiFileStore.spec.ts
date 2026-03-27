@@ -1,5 +1,4 @@
 const mockFetch = jest.fn()
-const mockAllowVectorStore = jest.fn()
 const mockGetKeySettings = jest.fn()
 
 jest.mock("node-fetch", () => ({
@@ -8,8 +7,6 @@ jest.mock("node-fetch", () => ({
 }))
 
 jest.mock("../configs/litellm", () => ({
-  allowVectorStoreOnWorkspaceKey: (...args: any[]) =>
-    mockAllowVectorStore(...args),
   getKeySettings: (...args: any[]) => mockGetKeySettings(...args),
 }))
 
@@ -48,7 +45,6 @@ describe("geminiFileStore", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetKeySettings.mockResolvedValue({ secretKey: "workspace-key" })
-    mockAllowVectorStore.mockResolvedValue(undefined)
   })
 
   it("throws a 400 when GEMINI_API_KEY is missing", async () => {

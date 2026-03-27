@@ -8,6 +8,7 @@ import {
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
 import { createGeminiFileStore } from "./geminiFileStore"
+import { syncKeyVectorStores } from "../configs/litellm"
 import { utils } from "@budibase/shared-core"
 
 const normalizeKnowledgeBaseName = (name: string | undefined) =>
@@ -79,6 +80,7 @@ export async function create(
 
   const { rev } = await db.put(newConfig)
   newConfig._rev = rev
+  await syncKeyVectorStores()
 
   return newConfig
 }
@@ -138,4 +140,5 @@ export async function remove(id: string) {
 
   const existing = await db.get<KnowledgeBase>(id)
   await db.remove(existing)
+  await syncKeyVectorStores()
 }

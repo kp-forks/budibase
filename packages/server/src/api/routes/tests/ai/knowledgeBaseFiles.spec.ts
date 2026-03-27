@@ -207,4 +207,48 @@ describe("knowledge base files", () => {
       expect(deleteScope.isDone()).toBe(true)
     })
   })
+
+  it("preserves previously allowed vector stores when creating another knowledge base", async () => {
+    await withRagEnabled(async () => {
+      mockLiteLLMProviders()
+      mockLiteLLMModelCostMap()
+
+      const liteLLMScope = nock(environment.LITELLM_URL)
+        .post("/team/new")
+        .reply(200, { team_id: "team-2" })
+        .post("/key/generate")
+        .reply(200, { token_id: "embed-key-2", key: "embed-secret-2" })
+        .post("/v1/vector_stores")
+        .reply(200, { id: "vector-store-1" })
+        .post(
+          "/key/update",
+          body =>
+            body.key === "embed-key-2" &&
+            JSON.stringify(body.vector_store_ids) ===
+              JSON.stringify(["vector-store-1"])
+        )
+        .reply(200, { status: "success" })
+        .post("/v1/vector_stores")
+        .reply(200, { id: "vector-store-2" })
+        .post(
+          "/key/update",
+          body =>
+            body.key === "embed-key-2" &&
+            JSON.stringify(body.vector_store_ids) ===
+              JSON.stringify(["vector-store-1", "vector-store-2"])
+        )
+        .reply(200, { status: "success" })
+
+      await config.api.knowledgeBase.create({
+        name: "Support KB",
+        type: KnowledgeBaseType.GEMINI,
+      })
+      await config.api.knowledgeBase.create({
+        name: "HR KB",
+        type: KnowledgeBaseType.GEMINI,
+      })
+
+      expect(liteLLMScope.isDone()).toBe(true)
+    })
+  })
 })
