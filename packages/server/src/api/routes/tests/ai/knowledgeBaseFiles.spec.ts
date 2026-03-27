@@ -6,7 +6,7 @@ import {
   KnowledgeBaseFileStatus,
   KnowledgeBaseType,
 } from "@budibase/types"
-import environment from "../../../../environment"
+import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
@@ -39,6 +39,7 @@ describe("knowledge base files", () => {
     await config.newTenant()
     jest.restoreAllMocks()
     nock.cleanAll()
+    setEnv({ GEMINI_API_KEY: "test-gemini-key" })
   })
 
   const fileBuffer = Buffer.from("Hello from Budibase")

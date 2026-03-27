@@ -1,35 +1,34 @@
-const mockCreateVectorDb = jest.fn()
-const mockEmbedMany = jest.fn()
-const mockCreateLLM = jest.fn()
 const mockKnowledgeBaseFind = jest.fn()
+const mockKnowledgeBaseListFiles = jest.fn()
 
-jest.mock("../vectorDb/utils", () => ({
-  createVectorDb: (...args: any[]) => mockCreateVectorDb(...args),
-}))
-
-jest.mock("ai", () => ({
-  tool: jest.fn(),
-  embedMany: (...args: any[]) => mockEmbedMany(...args),
-}))
-
-jest.mock("../llm", () => ({
-  createLLM: (...args: any[]) => mockCreateLLM(...args),
-}))
+const mockProcessorIngest = jest.fn()
+const mockProcessorSearch = jest.fn()
+const mockProcessorDelete = jest.fn()
 
 jest.mock("..", () => ({
   knowledgeBase: {
     find: (...args: any[]) => mockKnowledgeBaseFind(...args),
+    listKnowledgeBaseFiles: (...args: any[]) =>
+      mockKnowledgeBaseListFiles(...args),
   },
 }))
 
+jest.mock("./processors/gemini", () => ({
+  GeminiRagProcessor: jest.fn().mockImplementation(() => ({
+    ingestKnowledgeBaseFile: (...args: any[]) => mockProcessorIngest(...args),
+    search: (...args: any[]) => mockProcessorSearch(...args),
+    deleteFiles: (...args: any[]) => mockProcessorDelete(...args),
+  })),
+}))
+
 import {
-  FeatureFlag,
   KnowledgeBase,
   KnowledgeBaseFile,
   KnowledgeBaseFileStatus,
+  KnowledgeBaseType,
 } from "@budibase/types"
-import { ingestKnowledgeBaseFile } from "./files"
-import { features, tenancy } from "@budibase/backend-core"
+import { GeminiRagProcessor } from "./processors/gemini"
+import { deleteKnowledgeBaseFileChunks, ingestKnowledgeBaseFile } from "./files"
 
 describe("rag files", () => {
   beforeEach(() => {
@@ -37,30 +36,14 @@ describe("rag files", () => {
   })
 
   describe("ingestKnowledgeBaseFile", () => {
-    it("uses the embedding model config for embeddings", async () => {
-      const vectorDb = {
-        deleteBySourceIds: jest.fn(),
-        upsertSourceChunks: jest.fn().mockResolvedValue({
-          inserted: 1,
-          total: 1,
-        }),
-      }
-
-      mockCreateVectorDb.mockResolvedValue(vectorDb)
-      mockCreateLLM.mockResolvedValue({ embedding: "mock-embedding-model" })
-      mockEmbedMany.mockResolvedValue({ embeddings: [[0.1, 0.2, 0.3]] })
-      mockKnowledgeBaseFind.mockResolvedValue({
-        _id: "kb_123",
-        name: "KB",
-        embeddingModel: "embedding_config",
-        vectorDb: "vector_db_config",
-      })
-
+    it("delegates ingestion to the Gemini processor", async () => {
       const knowledgeBase: KnowledgeBase = {
         _id: "kb_123",
         name: "Knowledge Base",
-        embeddingModel: "embedding_config",
-        vectorDb: "vector_db",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
       }
 
       const knowledgeBaseFile: KnowledgeBaseFile = {
@@ -69,26 +52,89 @@ describe("rag files", () => {
         filename: "test.txt",
         objectStoreKey: "key",
         ragSourceId: "rag_source_123",
-        status: KnowledgeBaseFileStatus.READY,
-        chunkCount: 0,
+        status: KnowledgeBaseFileStatus.PROCESSING,
         uploadedBy: "user_123",
       }
 
-      await tenancy.doInTenant("tenant", () =>
-        features.testutils.withFeatureFlags(
-          "tenant",
-          { [FeatureFlag.AI_RAG]: true },
-          () =>
-            ingestKnowledgeBaseFile(
-              knowledgeBase,
-              knowledgeBaseFile,
-              Buffer.from("hello world")
-            )
-        )
+      const fileBuffer = Buffer.from("hello world")
+
+      await ingestKnowledgeBaseFile(
+        knowledgeBase,
+        knowledgeBaseFile,
+        fileBuffer
       )
 
-      expect(mockCreateLLM).toHaveBeenCalledTimes(1)
-      expect(mockCreateLLM).toHaveBeenCalledWith("embedding_config")
+      expect(GeminiRagProcessor).toHaveBeenCalledTimes(1)
+      expect(GeminiRagProcessor).toHaveBeenCalledWith(knowledgeBase)
+      expect(mockProcessorIngest).toHaveBeenCalledTimes(1)
+      expect(mockProcessorIngest).toHaveBeenCalledWith(
+        knowledgeBaseFile,
+        fileBuffer
+      )
+    })
+
+    it("throws when knowledge base id is missing", async () => {
+      const knowledgeBase = {
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      } as KnowledgeBase
+
+      const knowledgeBaseFile: KnowledgeBaseFile = {
+        _id: "file_123",
+        knowledgeBaseId: "kb_123",
+        filename: "test.txt",
+        objectStoreKey: "key",
+        ragSourceId: "rag_source_123",
+        status: KnowledgeBaseFileStatus.PROCESSING,
+        uploadedBy: "user_123",
+      }
+
+      await expect(
+        ingestKnowledgeBaseFile(
+          knowledgeBase,
+          knowledgeBaseFile,
+          Buffer.from("x")
+        )
+      ).rejects.toThrow("Knowledge base id not set")
+    })
+  })
+
+  describe("deleteKnowledgeBaseFileChunks", () => {
+    it("delegates delete calls to the Gemini processor", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+
+      await deleteKnowledgeBaseFileChunks(knowledgeBase, [
+        "source-1",
+        "source-2",
+      ])
+
+      expect(GeminiRagProcessor).toHaveBeenCalledWith(knowledgeBase)
+      expect(mockProcessorDelete).toHaveBeenCalledWith(["source-1", "source-2"])
+    })
+
+    it("does not call processor when there are no source ids", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+
+      await deleteKnowledgeBaseFileChunks(knowledgeBase, [])
+
+      expect(mockProcessorDelete).not.toHaveBeenCalled()
     })
   })
 })

@@ -31,10 +31,10 @@ interface GeminiSearchResponse {
 }
 
 const getGeminiApiKey = () => {
-  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+  const key = environment.GEMINI_API_KEY
   if (!key) {
     throw new HTTPError(
-      "Gemini File Search failed. Set GEMINI_API_KEY (or GOOGLE_API_KEY) on your local environment",
+      "Gemini File Search failed. Set GEMINI_API_KEY on your local environment",
       400
     )
   }

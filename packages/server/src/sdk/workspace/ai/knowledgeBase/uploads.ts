@@ -70,7 +70,6 @@ export const uploadKnowledgeBaseFile = async (
       knowledgeBaseFile.status = KnowledgeBaseFileStatus.FAILED
       knowledgeBaseFile.errorMessage =
         error?.message || "Failed to process uploaded file"
-      knowledgeBaseFile.chunkCount = 0
       await updateKnowledgeBaseFile(knowledgeBaseFile)
       throw error
     }
