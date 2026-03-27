@@ -4,6 +4,7 @@ import {
   PASSWORD_REPLACEMENT,
   AIConfigType,
   VectorDbProvider,
+  KnowledgeBaseType,
 } from "@budibase/types"
 import { context, docIds } from "@budibase/backend-core"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
@@ -154,8 +155,11 @@ describe("vector db configs", () => {
 
       await config.api.knowledgeBase.create({
         name: "Support Docs",
-        embeddingModel: embeddingModelId,
-        vectorDb: created._id!,
+        type: KnowledgeBaseType.LOCAL,
+        config: {
+          embeddingModel: embeddingModelId,
+          vectorDb: created._id!,
+        },
       })
 
       await config.api.vectorDb.remove(created._id!, { status: 400 })

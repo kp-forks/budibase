@@ -2,10 +2,9 @@ import nock from "nock"
 import { features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import {
-  AIConfigType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
-  VectorDbProvider,
+  KnowledgeBaseType,
 } from "@budibase/types"
 import environment from "../../../../environment"
 import * as ragSdk from "../../../../sdk/workspace/ai/rag"
@@ -82,52 +81,24 @@ describe("knowledge base files", () => {
   const createKnowledgeBase = async () => {
     mockLiteLLMProviders()
     mockLiteLLMModelCostMap()
-    const embeddingValidationScope = nock(environment.LITELLM_URL)
-      .post("/v1/embeddings")
-      .reply(200, { data: [] })
 
     const liteLLMScope = nock(environment.LITELLM_URL)
       .post("/team/new")
       .reply(200, { team_id: "team-2" })
       .post("/key/generate")
       .reply(200, { token_id: "embed-key-2", key: "embed-secret-2" })
-      .post("/model/new")
-      .reply(200, { model_id: "embed-validation-2" })
-      .post("/model/delete")
-      .reply(200, { status: "success" })
-      .post("/model/new")
-      .reply(200, { model_id: "embed-model-2" })
+      .post("/v1/vector_stores")
+      .reply(200, { id: "vector-store-1" })
       .post("/key/update")
       .reply(200, { status: "success" })
 
-    const embeddings = await config.api.ai.createConfig({
-      name: "Embeddings",
-      provider: "OpenAI",
-      model: "text-embedding-3-small",
-      credentialsFields: {
-        api_key: "test",
-        api_base: "https://example.com",
-      },
-      configType: AIConfigType.EMBEDDINGS,
-    })
-    const vectorDb = await config.api.vectorDb.create({
-      name: "Knowledge Base Vector DB",
-      provider: VectorDbProvider.PGVECTOR,
-      host: "localhost",
-      port: 5432,
-      database: "budibase",
-      user: "bb_user",
-      password: "secret",
+    const kb = await config.api.knowledgeBase.create({
+      name: "Support KB",
+      type: KnowledgeBaseType.GEMINI,
     })
 
     expect(liteLLMScope.isDone()).toBe(true)
-    expect(embeddingValidationScope.isDone()).toBe(true)
-
-    return await config.api.knowledgeBase.create({
-      name: "Support KB",
-      embeddingModel: embeddings._id!,
-      vectorDb: vectorDb._id!,
-    })
+    return kb
   }
 
   it("uploads and lists knowledge base files", async () => {

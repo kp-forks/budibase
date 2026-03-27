@@ -11,6 +11,7 @@ import {
   FeatureFlag,
   LiteLLMKeyConfig,
   VectorDbProvider,
+  KnowledgeBaseType,
 } from "@budibase/types"
 import { context } from "@budibase/backend-core"
 import environment from "../../../../environment"
@@ -1005,8 +1006,11 @@ describe("BudibaseAI", () => {
 
           await config.api.knowledgeBase.create({
             name: "Support Docs",
-            embeddingModel: created._id!,
-            vectorDb: vectorDb._id!,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: created._id!,
+              vectorDb: vectorDb._id!,
+            },
           })
 
           await config.api.ai.deleteConfig(created._id!, { status: 400 })

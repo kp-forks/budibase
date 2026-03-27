@@ -80,8 +80,11 @@ describe("knowledge base configs", () => {
 
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         expect(created._id).toBeDefined()
@@ -94,8 +97,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.create(
           {
             name: "Incomplete",
-            embeddingModel: "",
-            vectorDb: "",
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: "",
+              vectorDb: "",
+            },
           },
           { status: 400 }
         )
@@ -108,8 +114,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.create(
           {
             name: "Invalid Vector DB",
-            embeddingModel: embeddingModelId,
-            vectorDb: "vectordb_missing",
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: embeddingModelId,
+              vectorDb: "vectordb_missing",
+            },
           },
           { status: 404 }
         )
@@ -122,8 +131,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.create(
           {
             name: "Invalid Embedding",
-            embeddingModel: "aiconfig_missing",
-            vectorDb: vectorDb._id!,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: "aiconfig_missing",
+              vectorDb: vectorDb._id!,
+            },
           },
           { status: 404 }
         )
@@ -159,8 +171,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.create(
           {
             name: "Invalid Embedding Type",
-            embeddingModel: completionsModelId,
-            vectorDb: vectorDb._id!,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: completionsModelId,
+              vectorDb: vectorDb._id!,
+            },
           },
           { status: 400 }
         )
@@ -189,8 +204,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.create(
           {
             name: "Invalid Vector DB Type",
-            embeddingModel: embeddingModelId,
-            vectorDb: completionsModelId,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: embeddingModelId,
+              vectorDb: completionsModelId,
+            },
           },
           { status: 400 }
         )
@@ -203,15 +221,21 @@ describe("knowledge base configs", () => {
 
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         await config.api.knowledgeBase.create(
           {
             name: " support docs ",
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: embeddingModelId,
+              vectorDb: vectorDb._id!,
+            },
           },
           { status: 400 }
         )
@@ -225,14 +249,20 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         const knowledgeBases = await config.api.knowledgeBase.fetch()
         expect(knowledgeBases).toHaveLength(1)
-        expect(knowledgeBases[0].embeddingModel).toBe(embeddingModelId)
-        expect(knowledgeBases[0].vectorDb).toBe(vectorDb._id)
+        if (knowledgeBases[0].type !== KnowledgeBaseType.LOCAL) {
+          throw new Error("Expected local knowledge base")
+        }
+        expect(knowledgeBases[0].config.embeddingModel).toBe(embeddingModelId)
+        expect(knowledgeBases[0].config.vectorDb).toBe(vectorDb._id)
       })
     })
   })
@@ -243,8 +273,11 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         const updated = await config.api.knowledgeBase.update({
@@ -260,13 +293,19 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
         const created = await config.api.knowledgeBase.create({
           name: "HR Policies",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         await config.api.knowledgeBase.update(
@@ -284,8 +323,10 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
           type: KnowledgeBaseType.LOCAL,
         })
 
@@ -309,8 +350,11 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         const otherVectorDb = await config.api.vectorDb.create({
@@ -342,7 +386,11 @@ describe("knowledge base configs", () => {
         await config.api.knowledgeBase.update(
           {
             ...created,
-            vectorDb: otherVectorDb._id!,
+            type: KnowledgeBaseType.LOCAL,
+            config: {
+              embeddingModel: embeddingModelId,
+              vectorDb: otherVectorDb._id!,
+            },
           },
           { status: 400 }
         )
@@ -354,8 +402,11 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         const otherVectorDb = await config.api.vectorDb.create({
@@ -370,10 +421,17 @@ describe("knowledge base configs", () => {
 
         const updated = await config.api.knowledgeBase.update({
           ...created,
-          vectorDb: otherVectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: otherVectorDb._id!,
+          },
         })
 
-        expect(updated.vectorDb).toBe(otherVectorDb._id)
+        if (updated.type !== KnowledgeBaseType.LOCAL) {
+          throw new Error("Expected local knowledge base")
+        }
+        expect(updated.config.vectorDb).toBe(otherVectorDb._id)
       })
     })
   })
@@ -384,8 +442,11 @@ describe("knowledge base configs", () => {
         const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          embeddingModel: embeddingModelId,
-          vectorDb: vectorDb._id!,
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: embeddingModelId,
+            vectorDb: vectorDb._id!,
+          },
         })
 
         const { deleted } = await config.api.knowledgeBase.remove(created._id!)
@@ -403,8 +464,11 @@ describe("knowledge base configs", () => {
       await config.api.knowledgeBase.create(
         {
           name: "Support Docs",
-          embeddingModel: "aiconfig_test",
-          vectorDb: "vectordb_test",
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: "aiconfig_test",
+            vectorDb: "vectordb_test",
+          },
         },
         { status: 403 }
       )
@@ -413,8 +477,11 @@ describe("knowledge base configs", () => {
           _id: "kb_test",
           _rev: "1-test",
           name: "Support Docs",
-          embeddingModel: "aiconfig_test",
-          vectorDb: "vectordb_test",
+          type: KnowledgeBaseType.LOCAL,
+          config: {
+            embeddingModel: "aiconfig_test",
+            vectorDb: "vectordb_test",
+          },
         },
         { status: 403 }
       )

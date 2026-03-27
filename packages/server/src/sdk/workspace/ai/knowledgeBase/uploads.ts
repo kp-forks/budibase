@@ -1,14 +1,9 @@
 import { context, docIds, objectStore } from "@budibase/backend-core"
-import {
-  KnowledgeBaseFile,
-  KnowledgeBaseFileStatus,
-  KnowledgeBaseType,
-} from "@budibase/types"
+import { KnowledgeBaseFile, KnowledgeBaseFileStatus } from "@budibase/types"
 import { ObjectStoreBuckets } from "../../../../constants"
 import { enqueueRagFileIngestion } from "../rag/queue"
 import { createKnowledgeBaseFile, updateKnowledgeBaseFile } from "./files"
 import { find as findKnowledgeBase } from "./crud"
-import { ingestGoogleFile } from "./googleFileStore"
 
 interface UploadKnowledgeBaseFileInput {
   knowledgeBaseId: string
@@ -63,23 +58,6 @@ export const uploadKnowledgeBaseFile = async (
     })
 
     try {
-      if (knowledgeBase.type === KnowledgeBaseType.GEMINI) {
-        const ingested = await ingestGoogleFile({
-          vectorStoreId: knowledgeBase.config.googleFileStoreId,
-          filename: input.filename,
-          mimetype: input.mimetype,
-          buffer: input.buffer,
-        })
-
-        knowledgeBaseFile.status = KnowledgeBaseFileStatus.READY
-        knowledgeBaseFile.ragSourceId =
-          ingested.fileId || knowledgeBaseFile.ragSourceId
-        knowledgeBaseFile.chunkCount = ingested.chunkCount
-        knowledgeBaseFile.processedAt = new Date().toISOString()
-        knowledgeBaseFile.errorMessage = undefined
-        return await updateKnowledgeBaseFile(knowledgeBaseFile)
-      }
-
       await enqueueRagFileIngestion({
         workspaceId,
         knowledgeBaseId: input.knowledgeBaseId,
