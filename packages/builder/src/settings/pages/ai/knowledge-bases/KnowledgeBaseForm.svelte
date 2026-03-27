@@ -284,7 +284,7 @@
         options={embeddingModelSelectOptions}
         getOptionValue={option => option.value}
         getOptionLabel={option => option.label}
-        disabled={!canEditReferences || !isLocalKnowledgeBase}
+        disabled={!canEditReferences}
         tooltip={!canEditReferences
           ? "Remove all files to change the embedding model."
           : ""}
@@ -292,7 +292,7 @@
       <ActionButton
         icon={"Add"}
         size="M"
-        disabled={!canEditReferences || !isLocalKnowledgeBase}
+        disabled={!canEditReferences}
         on:click={createNewEmbeddingModel}
       />
     </div>
@@ -306,7 +306,7 @@
         options={vectorDbSelectOptions}
         getOptionValue={option => option.value}
         getOptionLabel={option => option.label}
-        disabled={!canEditReferences || !isLocalKnowledgeBase}
+        disabled={!canEditReferences}
         tooltip={!canEditReferences
           ? "Remove all files to change the vector database."
           : ""}
@@ -314,7 +314,7 @@
       <ActionButton
         icon={"Add"}
         size="M"
-        disabled={!canEditReferences || !isLocalKnowledgeBase}
+        disabled={!canEditReferences}
         on:click={createNewVectorDb}
       />
     </div>
