@@ -179,3 +179,43 @@ export async function searchGeminiFileStore({
   const payload = (await response.json()) as GeminiSearchResponse
   return payload.data || []
 }
+
+export async function deleteGeminiFileFromStore({
+  vectorStoreId,
+  fileId,
+}: {
+  vectorStoreId: string
+  fileId: string
+}): Promise<void> {
+  const geminiApiKey = getGeminiApiKey()
+  const response = await fetch(
+    `${environment.LITELLM_URL}/v1/vector_stores/${encodeURIComponent(
+      vectorStoreId
+    )}/files/${encodeURIComponent(fileId)}`,
+    {
+      method: "DELETE",
+      headers: await getCommonAuthHeaders(),
+      body: JSON.stringify({
+        custom_llm_provider: "gemini",
+        ...(geminiApiKey ? { api_key: geminiApiKey } : {}),
+      }),
+    }
+  )
+
+  if (!response.ok && response.status !== 404) {
+    const text = await response.text()
+    if (
+      text.includes("PERMISSION_DENIED") ||
+      text.includes("unregistered callers")
+    ) {
+      throw new HTTPError(
+        "Gemini File Search authentication failed. Configure GEMINI_API_KEY (or GOOGLE_API_KEY) on the LiteLLM service, or provide api_key in the request.",
+        400
+      )
+    }
+    throw new HTTPError(
+      text || "Failed to delete file from Gemini vector store",
+      response.status
+    )
+  }
+}

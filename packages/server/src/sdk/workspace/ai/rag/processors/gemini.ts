@@ -1,4 +1,3 @@
-import * as crypto from "crypto"
 import {
   GeminiKnowledgeBase,
   KnowledgeBase,
@@ -8,6 +7,7 @@ import {
 } from "@budibase/types"
 import { RagProcessor, RetrievedContextChunk } from "."
 import {
+  deleteGeminiFileFromStore,
   ingestGeminiFile,
   searchGeminiFileStore,
 } from "../../knowledgeBase/geminiFileStore"
@@ -65,6 +65,14 @@ export class GeminiRagProcessor implements RagProcessor {
   }
 
   async deleteFiles(fileIds: string[]): Promise<void> {
-    // TODO
+    const filteredIds = fileIds.filter(Boolean)
+    await Promise.all(
+      filteredIds.map(fileId =>
+        deleteGeminiFileFromStore({
+          vectorStoreId: this.knowledgeBase.config.googleFileStoreId,
+          fileId,
+        })
+      )
+    )
   }
 }
