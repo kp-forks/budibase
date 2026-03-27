@@ -1,9 +1,8 @@
 import { KnowledgeBaseFile } from "@budibase/types"
 
 export interface RetrievedContextChunk {
-  sourceId: string
+  sourceId?: string
   chunkText: string
-  chunkHash: string
 }
 
 export interface RagProcessor {

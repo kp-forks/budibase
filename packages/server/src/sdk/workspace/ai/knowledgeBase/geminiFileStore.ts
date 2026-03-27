@@ -10,29 +10,24 @@ interface CreateVectorStoreResponse {
   id?: string
 }
 
-interface GoogleIngestResponse {
+interface GeminiIngestResponse {
   file_id: string
 }
 
-interface GoogleSearchContent {
-  text?: string
+interface GeminiSearchContent {
+  text: string
+  type: "text"
 }
 
-interface GoogleSearchResultItem {
-  id?: string
-  file_id?: string
-  fileId?: string
+interface GeminiSearchResultItem {
+  file_id?: string | null
   filename?: string
-  score?: number
-  content?: GoogleSearchContent[]
-  attributes?: {
-    uri?: string
-    title?: string
-  }
+  score: number | null
+  content: GeminiSearchContent[]
 }
 
-interface GoogleSearchResponse {
-  data?: GoogleSearchResultItem[]
+interface GeminiSearchResponse {
+  data?: GeminiSearchResultItem[]
 }
 
 const getGeminiApiKey = () =>
@@ -47,7 +42,7 @@ const getCommonAuthHeaders = async () => {
   }
 }
 
-export async function createGoogleFileStore(name: string): Promise<string> {
+export async function createGeminiFileStore(name: string): Promise<string> {
   const geminiApiKey = getGeminiApiKey()
   const response = await fetch(`${environment.LITELLM_URL}/v1/vector_stores`, {
     method: "POST",
@@ -71,14 +66,14 @@ export async function createGoogleFileStore(name: string): Promise<string> {
       )
     }
     throw new HTTPError(
-      text || "Failed to create Google file store",
+      text || "Failed to create Gemini file store",
       response.status
     )
   }
 
   const payload = (await response.json()) as CreateVectorStoreResponse
   if (!payload.id) {
-    throw new HTTPError("Google file store creation did not return an id", 500)
+    throw new HTTPError("Gemini file store creation did not return an id", 500)
   }
 
   await allowVectorStoreOnWorkspaceKey(payload.id)
@@ -86,7 +81,7 @@ export async function createGoogleFileStore(name: string): Promise<string> {
   return payload.id
 }
 
-export async function ingestGoogleFile({
+export async function ingestGeminiFile({
   vectorStoreId,
   filename,
   mimetype,
@@ -135,19 +130,19 @@ export async function ingestGoogleFile({
     )
   }
 
-  const payload = (await response.json()) as GoogleIngestResponse
+  const payload = (await response.json()) as GeminiIngestResponse
   return {
     fileId: payload.file_id,
   }
 }
 
-export async function searchGoogleFileStore({
+export async function searchGeminiFileStore({
   vectorStoreId,
   query,
 }: {
   vectorStoreId: string
   query: string
-}): Promise<GoogleSearchResultItem[]> {
+}): Promise<GeminiSearchResultItem[]> {
   const geminiApiKey = getGeminiApiKey()
   const response = await fetch(
     `${environment.LITELLM_URL}/v1/vector_stores/${encodeURIComponent(
@@ -181,6 +176,6 @@ export async function searchGoogleFileStore({
     )
   }
 
-  const payload = (await response.json()) as GoogleSearchResponse
+  const payload = (await response.json()) as GeminiSearchResponse
   return payload.data || []
 }

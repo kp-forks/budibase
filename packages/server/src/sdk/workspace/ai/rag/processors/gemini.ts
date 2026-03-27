@@ -8,8 +8,8 @@ import {
 } from "@budibase/types"
 import { RagProcessor, RetrievedContextChunk } from "."
 import {
-  ingestGoogleFile,
-  searchGoogleFileStore,
+  ingestGeminiFile,
+  searchGeminiFileStore,
 } from "../../knowledgeBase/geminiFileStore"
 import { updateKnowledgeBaseFile } from "../../knowledgeBase"
 
@@ -30,7 +30,7 @@ export class GeminiRagProcessor implements RagProcessor {
     input: KnowledgeBaseFile,
     fileBuffer: Buffer
   ): Promise<void> {
-    const ingested = await ingestGoogleFile({
+    const ingested = await ingestGeminiFile({
       vectorStoreId: this.knowledgeBase.config.googleFileStoreId,
       filename: input.filename,
       mimetype: input.mimetype,
@@ -45,35 +45,23 @@ export class GeminiRagProcessor implements RagProcessor {
   }
 
   async search(question: string): Promise<RetrievedContextChunk[]> {
-    const rows = await searchGoogleFileStore({
+    const rows = await searchGeminiFileStore({
       vectorStoreId: this.knowledgeBase.config.googleFileStoreId,
       query: question,
     })
 
-    const results = rows
-      .map<RetrievedContextChunk | undefined>((row, index) => {
-        const chunkText = row.content?.[0]?.text?.trim()
-        if (!chunkText) {
-          return undefined
-        }
-        return {
-          sourceId:
-            row.file_id ||
-            row.fileId ||
-            row.filename ||
-            row.attributes?.uri ||
-            row.id ||
-            `google-result-${index}`,
-          chunkText,
-          chunkHash: this.hashChunk(chunkText),
-        }
-      })
-      .filter((value): value is RetrievedContextChunk => Boolean(value))
+    const results = rows.map<RetrievedContextChunk>(row => {
+      const chunkText = row.content
+        ?.map(x => x.text)
+        .join("\n")
+        .trim()
+      return {
+        sourceId: row.filename ?? undefined,
+        chunkText,
+      }
+    })
 
     return results
-  }
-  private hashChunk = (chunk: string) => {
-    return crypto.createHash("sha256").update(chunk).digest("hex")
   }
 
   async deleteFiles(fileIds: string[]): Promise<void> {

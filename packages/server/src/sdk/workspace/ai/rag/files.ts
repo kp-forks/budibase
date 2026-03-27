@@ -123,17 +123,17 @@ const toSourceMetadata = (
   const summary = new Map<string, AgentMessageRagSource>()
 
   for (const chunk of chunks) {
+    if (!chunk.sourceId) {
+      continue
+    }
     const file = fileBySourceId.get(chunk.sourceId)
     if (!summary.has(chunk.sourceId)) {
       summary.set(chunk.sourceId, {
         sourceId: chunk.sourceId,
         fileId: file?._id,
         filename: file?.filename ?? chunk.sourceId,
-        chunkCount: 0,
       })
     }
-    const entry = summary.get(chunk.sourceId)!
-    entry.chunkCount += 1
   }
   return Array.from(summary.values())
 }

@@ -7,7 +7,7 @@ import {
   KnowledgeBaseType,
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
-import { createGoogleFileStore } from "./geminiFileStore"
+import { createGeminiFileStore } from "./geminiFileStore"
 import { utils } from "@budibase/shared-core"
 
 const normalizeKnowledgeBaseName = (name: string | undefined) =>
@@ -62,7 +62,7 @@ export async function create(
   let newConfig: KnowledgeBase
   switch (knowledgeBaseType) {
     case KnowledgeBaseType.GEMINI: {
-      const googleFileStoreId = await createGoogleFileStore(config.name.trim())
+      const googleFileStoreId = await createGeminiFileStore(config.name.trim())
       newConfig = {
         _id: docIds.generateKnowledgeBaseID(),
         name: config.name.trim(),
