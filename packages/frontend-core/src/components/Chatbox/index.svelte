@@ -652,13 +652,6 @@
                       <span class="source-name"
                         >{source.filename || source.sourceId}</span
                       >
-                      {#if source.chunkCount > 0}
-                        <span class="source-count"
-                          >({source.chunkCount} chunk{source.chunkCount === 1
-                            ? ""
-                            : "s"})</span
-                        >
-                      {/if}
                     </li>
                   {/each}
                 </ul>
@@ -1130,9 +1123,5 @@
 
   .source-name {
     font-weight: 500;
-  }
-
-  .source-count {
-    color: var(--spectrum-global-color-gray-600);
   }
 </style>
