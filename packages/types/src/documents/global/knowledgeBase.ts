@@ -1,17 +1,7 @@
 import { Document } from "../.."
 
 export enum KnowledgeBaseType {
-  LOCAL = "local",
   GEMINI = "gemini",
-}
-
-export interface LocalKnowledgeBase extends Document {
-  name: string
-  type: KnowledgeBaseType.LOCAL
-  config: {
-    embeddingModel: string
-    vectorDb: string
-  }
 }
 
 export interface GeminiKnowledgeBase extends Document {
@@ -22,7 +12,7 @@ export interface GeminiKnowledgeBase extends Document {
   }
 }
 
-export type KnowledgeBase = LocalKnowledgeBase | GeminiKnowledgeBase
+export type KnowledgeBase = GeminiKnowledgeBase
 
 export enum KnowledgeBaseFileStatus {
   PROCESSING = "processing",

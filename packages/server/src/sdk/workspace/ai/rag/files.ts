@@ -8,7 +8,6 @@ import {
 } from "@budibase/types"
 import { knowledgeBase as knowledgeBaseSdk } from ".."
 import { RetrievedContextChunk } from "./processors"
-import { LocalRagProcessor } from "./processors/local"
 import { GeminiRagProcessor } from "./processors/gemini"
 
 const resolveKnowledgeBasesForAgent = async (
@@ -28,7 +27,7 @@ const resolveKnowledgeBasesForAgent = async (
   }
 
   if (knowledgeBases.length === 0) {
-    throw new Error("No valid knowledge base is configured for this agent")
+    return []
   }
 
   return knowledgeBases
@@ -36,7 +35,6 @@ const resolveKnowledgeBasesForAgent = async (
 
 function getProcessor(kb: KnowledgeBase) {
   const ProcessorClassByType = {
-    [KnowledgeBaseType.LOCAL]: LocalRagProcessor,
     [KnowledgeBaseType.GEMINI]: GeminiRagProcessor,
   }
 

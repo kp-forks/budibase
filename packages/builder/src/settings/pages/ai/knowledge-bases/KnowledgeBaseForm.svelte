@@ -6,14 +6,7 @@
     knowledgeBaseStore,
     vectorDbStore,
   } from "@/stores/portal"
-  import {
-    ActionButton,
-    Button,
-    Helpers,
-    Input,
-    notifications,
-    Select,
-  } from "@budibase/bbui"
+  import { Button, Helpers, Input, notifications, Select } from "@budibase/bbui"
   import {
     KnowledgeBaseType,
     type CreateKnowledgeBaseRequest,
@@ -32,8 +25,6 @@
     _rev?: string
     name: string
     type: KnowledgeBaseType
-    embeddingModel?: string
-    vectorDb?: string
   }
 
   let { knowledgeBaseId }: Props = $props()
@@ -49,18 +40,12 @@
           _rev: config._rev,
           name: config.name,
           type: config.type,
-          ...(config.type === KnowledgeBaseType.LOCAL
-            ? {
-                embeddingModel: config.config.embeddingModel,
-                vectorDb: config.config.vectorDb,
-              }
-            : {}),
         }
       : {
           _id: undefined,
           _rev: undefined,
           name: "",
-          type: KnowledgeBaseType.LOCAL,
+          type: KnowledgeBaseType.GEMINI,
         }
 
   let draft = $state<KnowledgeBaseFormDraft>(createDraft())
@@ -75,22 +60,7 @@
   let isModified = $derived(
     JSON.stringify(savedSnapshot) !== JSON.stringify(draft)
   )
-  let hasReferenceChanges = $derived.by(
-    () =>
-      draft.type === KnowledgeBaseType.LOCAL &&
-      (savedSnapshot?.embeddingModel !== draft.embeddingModel ||
-        savedSnapshot?.vectorDb !== draft.vectorDb)
-  )
 
-  let embeddingModelOptions = $derived(
-    [...$aiConfigsStore.customConfigsPerType.embeddings].sort((a, b) =>
-      a.name.localeCompare(b.name)
-    )
-  )
-  let vectorDbOptions = $derived(
-    [...$vectorDbStore.configs].sort((a, b) => a.name.localeCompare(b.name))
-  )
-  let canEditReferences = $derived((config?.files.length || 0) === 0)
   let duplicateNameError = $derived.by(() => {
     const normalizedDraftName = draft.name?.trim().toLowerCase()
     if (!normalizedDraftName) {
@@ -108,37 +78,16 @@
       : undefined
   })
 
-  let isLocalKnowledgeBase = $derived(draft.type === KnowledgeBaseType.LOCAL)
   let canSave = $derived.by(() => {
     if (isSaving || !isModified) {
       return false
     }
-    return (
-      !!draft.name?.trim() &&
-      !duplicateNameError &&
-      (!isLocalKnowledgeBase ||
-        (!!draft.embeddingModel?.trim() && !!draft.vectorDb?.trim()))
-    )
+    return !!draft.name?.trim() && !duplicateNameError
   })
 
   let knowledgeBaseTypeOptions = [
-    { label: "Local", value: KnowledgeBaseType.LOCAL },
     { label: "Gemini", value: KnowledgeBaseType.GEMINI },
   ]
-
-  let embeddingModelSelectOptions = $derived(
-    embeddingModelOptions.map(option => ({
-      label: option.name,
-      value: option._id || "",
-    }))
-  )
-
-  let vectorDbSelectOptions = $derived(
-    vectorDbOptions.map(option => ({
-      label: option.name,
-      value: option._id || "",
-    }))
-  )
 
   onMount(async () => {
     try {
@@ -180,44 +129,22 @@
       isSaving = true
 
       if (draft._id && draft._rev) {
-        const payload: UpdateKnowledgeBaseRequest =
-          draft.type === KnowledgeBaseType.LOCAL
-            ? {
-                _id: draft._id,
-                _rev: draft._rev,
-                name: draft.name,
-                type: KnowledgeBaseType.LOCAL,
-                config: {
-                  embeddingModel: draft.embeddingModel || "",
-                  vectorDb: draft.vectorDb || "",
-                },
-              }
-            : {
-                _id: draft._id,
-                _rev: draft._rev,
-                name: draft.name,
-                type: KnowledgeBaseType.GEMINI,
-              }
+        const payload: UpdateKnowledgeBaseRequest = {
+          _id: draft._id,
+          _rev: draft._rev,
+          name: draft.name,
+          type: KnowledgeBaseType.GEMINI,
+        }
         const updated = await knowledgeBaseStore.edit(payload)
 
         draft._rev = updated._rev
         captureSavedSnapshot()
         notifications.success("Knowledge base updated")
       } else {
-        const payload: CreateKnowledgeBaseRequest =
-          draft.type === KnowledgeBaseType.LOCAL
-            ? {
-                name: draft.name || "",
-                type: KnowledgeBaseType.LOCAL,
-                config: {
-                  embeddingModel: draft.embeddingModel || "",
-                  vectorDb: draft.vectorDb || "",
-                },
-              }
-            : {
-                name: draft.name || "",
-                type: KnowledgeBaseType.GEMINI,
-              }
+        const payload: CreateKnowledgeBaseRequest = {
+          name: draft.name || "",
+          type: KnowledgeBaseType.GEMINI,
+        }
 
         const created = await knowledgeBaseStore.create(payload)
 
@@ -233,16 +160,6 @@
     } finally {
       isSaving = false
     }
-  }
-
-  function createNewEmbeddingModel() {
-    knowledgeBaseStore.setFormDraft(Helpers.cloneDeep(draft))
-    bb.settings(`/connections/knowledge-bases/${knowledgeBaseId}/embedding/new`)
-  }
-
-  function createNewVectorDb() {
-    knowledgeBaseStore.setFormDraft(Helpers.cloneDeep(draft))
-    bb.settings(`/connections/knowledge-bases/${knowledgeBaseId}/vectordb/new`)
   }
 
   async function deleteKnowledgeBase() {
@@ -304,60 +221,11 @@
       options={knowledgeBaseTypeOptions}
       getOptionValue={option => option.value}
       getOptionLabel={option => option.label}
-      disabled={!canEditReferences}
-      tooltip={!canEditReferences
-        ? "Remove all files to change the knowledge base type."
-        : ""}
+      disabled={isEdit}
     />
   </div>
 
-  {#if isLocalKnowledgeBase}
-    <div class="select">
-      <Select
-        label="Embedding model"
-        description="Models used to convert text into vector embeddings for search and retrieval."
-        required
-        bind:value={draft.embeddingModel}
-        options={embeddingModelSelectOptions}
-        getOptionValue={option => option.value}
-        getOptionLabel={option => option.label}
-        disabled={!canEditReferences}
-        tooltip={!canEditReferences
-          ? "Remove all files to change the embedding model."
-          : ""}
-      />
-      <ActionButton
-        icon={"Add"}
-        size="M"
-        disabled={!canEditReferences}
-        on:click={createNewEmbeddingModel}
-      />
-    </div>
-
-    <div class="select">
-      <Select
-        label="Vector database"
-        description="Databases optimized for storing and querying vector embeddings. We support PGVector."
-        required
-        bind:value={draft.vectorDb}
-        options={vectorDbSelectOptions}
-        getOptionValue={option => option.value}
-        getOptionLabel={option => option.label}
-        disabled={!canEditReferences}
-        tooltip={!canEditReferences
-          ? "Remove all files to change the vector database."
-          : ""}
-      />
-      <ActionButton
-        icon={"Add"}
-        size="M"
-        disabled={!canEditReferences}
-        on:click={createNewVectorDb}
-      />
-    </div>
-  {/if}
-
-  <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} {hasReferenceChanges} />
+  <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} />
 </div>
 
 <style>

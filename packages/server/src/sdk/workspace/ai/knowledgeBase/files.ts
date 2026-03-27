@@ -10,7 +10,6 @@ import {
   KnowledgeBase,
   KnowledgeBaseFile,
   KnowledgeBaseFileStatus,
-  KnowledgeBaseType,
   RequiredKeys,
   ToDocCreateMetadata,
 } from "@budibase/types"
@@ -57,7 +56,6 @@ export const createKnowledgeBaseFile = async (
     ragSourceId: ragSourceId || _id,
     status: KnowledgeBaseFileStatus.PROCESSING,
     uploadedBy,
-    chunkCount: 0,
     errorMessage: undefined,
     processedAt: undefined,
   }
@@ -128,10 +126,7 @@ export const removeKnowledgeBaseFile = async (
     }
   }
 
-  if (
-    !isFileInProduction &&
-    (knowledgeBase.type || KnowledgeBaseType.LOCAL) === KnowledgeBaseType.LOCAL
-  ) {
+  if (!isFileInProduction) {
     await deleteKnowledgeBaseFileChunks(knowledgeBase, [file.ragSourceId])
   }
 

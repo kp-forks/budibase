@@ -7,7 +7,7 @@
     Layout,
     ProgressCircle,
   } from "@budibase/bbui"
-  import { KnowledgeBaseType, type Agent } from "@budibase/types"
+  import { type Agent } from "@budibase/types"
   import EmptyStateImage from "assets/no-knowledge-bases.png"
   import {
     agentsStore,
@@ -108,26 +108,12 @@
       : selectedKnowledgeBases.filter(id => id !== knowledgeBaseId)
     scheduleSave(true)
   }
-  let embeddingNameById = $derived(
-    new Map(
-      $aiConfigsStore.customConfigs.map(config => [
-        config._id,
-        config.name || "",
-      ])
-    )
-  )
   let tableRows = $derived.by(() =>
     knowledgeBases
       .map(knowledgeBase => ({
         ...knowledgeBase,
         enabled: selectedKnowledgeBases.includes(knowledgeBase._id || ""),
-        embeddingModel:
-          knowledgeBase.type === KnowledgeBaseType.LOCAL
-            ? embeddingNameById.get(knowledgeBase.config.embeddingModel) ||
-              knowledgeBase.config.embeddingModel
-            : "Gemini File Search",
-        type:
-          knowledgeBase.type === KnowledgeBaseType.GEMINI ? "Gemini" : "Local",
+        type: "Gemini",
         files: knowledgeBase.files.length,
         onToggle: toggleKnowledgeBase,
         onManage: (knowledgeBaseId: string) =>
@@ -202,8 +188,7 @@
       schema={{
         enabled: { displayName: "", width: "48px" },
         name: {},
-        type: { displayName: "Type", width: "90px" },
-        embeddingModel: { displayName: "Embedding model" },
+        type: { displayName: "Type", width: "100px" },
         files: { displayName: "# Files", width: "60px" },
         manage: { displayName: "", width: "88px" },
       }}

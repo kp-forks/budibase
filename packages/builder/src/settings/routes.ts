@@ -345,44 +345,6 @@ export const workspaceRoutes = (
           component: Pages.get("knowledgeBases"),
           routes: [
             {
-              path: "embedding",
-              routes: [
-                {
-                  path: ":configId",
-                  title: (path: string | undefined) => {
-                    const id = getPathId(path)
-                    if (!id) {
-                      return "New embedding model"
-                    }
-                    return (
-                      get(aiConfigsStore).customConfigs.find(c => c._id === id)
-                        ?.name ?? "Embedding model"
-                    )
-                  },
-                  component: Pages.get("embedding_model"),
-                },
-              ],
-            },
-            {
-              path: "vectordb",
-              routes: [
-                {
-                  path: ":id",
-                  title: (path: string | undefined) => {
-                    const id = getPathId(path)
-                    if (!id) {
-                      return "New vector database"
-                    }
-                    return (
-                      get(vectorDbStore).configs.find(db => db._id === id)
-                        ?.name ?? "Vector database"
-                    )
-                  },
-                  component: Pages.get("vector_database"),
-                },
-              ],
-            },
-            {
               path: ":knowledgeBaseId",
               component: Pages.get("knowledgeBase"),
               title: (path: string | undefined) => {
@@ -395,47 +357,6 @@ export const workspaceRoutes = (
                   "Knowledge base"
                 )
               },
-              routes: [
-                {
-                  path: "embedding",
-                  routes: [
-                    {
-                      path: ":configId",
-                      title: (path: string | undefined) => {
-                        const id = getPathId(path)
-                        if (!id) {
-                          return "New embedding model"
-                        }
-                        return (
-                          get(aiConfigsStore).customConfigs.find(
-                            c => c._id === id
-                          )?.name ?? "Embedding model"
-                        )
-                      },
-                      component: Pages.get("embedding_model"),
-                    },
-                  ],
-                },
-                {
-                  path: "vectordb",
-                  routes: [
-                    {
-                      path: ":id",
-                      title: (path: string | undefined) => {
-                        const id = getPathId(path)
-                        if (!id) {
-                          return "New vector database"
-                        }
-                        return (
-                          get(vectorDbStore).configs.find(db => db._id === id)
-                            ?.name ?? "Vector database"
-                        )
-                      },
-                      component: Pages.get("vector_database"),
-                    },
-                  ],
-                },
-              ],
             },
           ],
         },

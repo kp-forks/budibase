@@ -3,7 +3,6 @@ import {
   CreateKnowledgeBaseRequest,
   KnowledgeBase,
   KnowledgeBaseFile,
-  KnowledgeBaseType,
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
 import { DerivedBudiStore } from "../BudiStore"
@@ -30,10 +29,7 @@ interface DerivedKnowledgeBaseState {
 }
 
 type KnowledgeBaseFormDraft = Partial<
-  Pick<KnowledgeBase, "_id" | "_rev" | "name" | "type"> & {
-    embeddingModel?: string
-    vectorDb?: string
-  }
+  Pick<KnowledgeBase, "_id" | "_rev" | "name" | "type">
 >
 
 export class KnowledgeBaseStore extends DerivedBudiStore<
@@ -159,7 +155,7 @@ export class KnowledgeBaseStore extends DerivedBudiStore<
     }
     return {
       ...this.formDraft,
-      type: this.formDraft.type || KnowledgeBaseType.LOCAL,
+      type: this.formDraft.type,
     }
   }
 

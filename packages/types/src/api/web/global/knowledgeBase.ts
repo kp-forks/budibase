@@ -1,33 +1,16 @@
-import {
-  KnowledgeBase,
-  KnowledgeBaseFile,
-  KnowledgeBaseType,
-  LocalKnowledgeBase,
-} from "../../../documents"
+import { KnowledgeBase, KnowledgeBaseFile } from "../../../documents"
 
 export type KnowledgeBaseListResponse = KnowledgeBase[]
 
 export type CreateKnowledgeBaseRequest = Omit<
   KnowledgeBase,
-  "_id" | "_rev" | "_deleted" | "type" | "config"
-> &
-  (
-    | ({ type: KnowledgeBaseType.LOCAL } & {
-        config: LocalKnowledgeBase["config"]
-      })
-    | { type: KnowledgeBaseType.GEMINI }
-  )
+  "_id" | "_rev" | "_deleted" | "config"
+>
 
 export type UpdateKnowledgeBaseRequest = Omit<
   KnowledgeBase,
-  "_deleted" | "type" | "config"
-> &
-  (
-    | ({ type: KnowledgeBaseType.LOCAL } & {
-        config: LocalKnowledgeBase["config"]
-      })
-    | { type: KnowledgeBaseType.GEMINI }
-  )
+  "_deleted" | "config"
+>
 
 export interface FetchKnowledgeBaseFilesResponse {
   files: KnowledgeBaseFile[]
