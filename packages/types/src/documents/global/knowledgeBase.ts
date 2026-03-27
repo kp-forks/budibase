@@ -5,13 +5,24 @@ export enum KnowledgeBaseType {
   GEMINI = "gemini",
 }
 
-export interface KnowledgeBase extends Document {
+export interface LocalKnowledgeBase extends Document {
   name: string
-  type: KnowledgeBaseType
-  googleFileStoreId?: string
-  embeddingModel?: string
-  vectorDb?: string
+  type: KnowledgeBaseType.LOCAL
+  config: {
+    embeddingModel: string
+    vectorDb: string
+  }
 }
+
+export interface GeminiKnowledgeBase extends Document {
+  name: string
+  type: KnowledgeBaseType.GEMINI
+  config: {
+    googleFileStoreId: string
+  }
+}
+
+export type KnowledgeBase = LocalKnowledgeBase | GeminiKnowledgeBase
 
 export enum KnowledgeBaseFileStatus {
   PROCESSING = "processing",

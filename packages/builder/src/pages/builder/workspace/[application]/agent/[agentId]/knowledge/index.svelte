@@ -7,7 +7,7 @@
     Layout,
     ProgressCircle,
   } from "@budibase/bbui"
-  import { type Agent } from "@budibase/types"
+  import { KnowledgeBaseType, type Agent } from "@budibase/types"
   import EmptyStateImage from "assets/no-knowledge-bases.png"
   import {
     agentsStore,
@@ -122,8 +122,12 @@
         ...knowledgeBase,
         enabled: selectedKnowledgeBases.includes(knowledgeBase._id || ""),
         embeddingModel:
-          embeddingNameById.get(knowledgeBase.embeddingModel) ||
-          knowledgeBase.embeddingModel,
+          knowledgeBase.type === KnowledgeBaseType.LOCAL
+            ? embeddingNameById.get(knowledgeBase.config.embeddingModel) ||
+              knowledgeBase.config.embeddingModel
+            : "Gemini File Search",
+        type:
+          knowledgeBase.type === KnowledgeBaseType.GEMINI ? "Gemini" : "Local",
         files: knowledgeBase.files.length,
         onToggle: toggleKnowledgeBase,
         onManage: (knowledgeBaseId: string) =>
@@ -198,6 +202,7 @@
       schema={{
         enabled: { displayName: "", width: "48px" },
         name: {},
+        type: { displayName: "Type", width: "90px" },
         embeddingModel: { displayName: "Embedding model" },
         files: { displayName: "# Files", width: "60px" },
         manage: { displayName: "", width: "88px" },

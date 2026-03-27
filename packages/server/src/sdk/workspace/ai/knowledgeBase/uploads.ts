@@ -63,17 +63,9 @@ export const uploadKnowledgeBaseFile = async (
     })
 
     try {
-      if (
-        (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
-        KnowledgeBaseType.GEMINI
-      ) {
-        if (!knowledgeBase.googleFileStoreId) {
-          throw new Error(
-            "Google file store is not configured for this knowledge base"
-          )
-        }
+      if (knowledgeBase.type === KnowledgeBaseType.GEMINI) {
         const ingested = await ingestGoogleFile({
-          vectorStoreId: knowledgeBase.googleFileStoreId,
+          vectorStoreId: knowledgeBase.config.googleFileStoreId,
           filename: input.filename,
           mimetype: input.mimetype,
           buffer: input.buffer,

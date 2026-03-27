@@ -8,7 +8,7 @@
     vectorDbStore,
   } from "@/stores/portal"
   import { Button, Layout, notifications, Table } from "@budibase/bbui"
-  import { AIConfigType } from "@budibase/types"
+  import { AIConfigType, KnowledgeBaseType } from "@budibase/types"
   import { onMount } from "svelte"
 
   let loading = $state(false)
@@ -21,13 +21,22 @@
       ])
     )
   )
+  const typeToNameMap: Record<KnowledgeBaseType, string> = {
+    [KnowledgeBaseType.LOCAL]: "Local",
+    [KnowledgeBaseType.GEMINI]: "Gemini",
+  }
+
   let knowledgeBases = $derived(
     [...$knowledgeBaseStore.list]
       .map(kb => ({
         _id: kb._id,
         name: kb.name,
+        type: typeToNameMap[kb.type],
         embeddingModel:
-          embeddingNameById.get(kb.embeddingModel) || kb.embeddingModel,
+          kb.type === KnowledgeBaseType.LOCAL
+            ? embeddingNameById.get(kb.config.embeddingModel) ||
+              kb.config.embeddingModel
+            : "Gemini File Search",
         files: kb.files.length,
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -37,7 +46,9 @@
       .map(config => ({
         ...config,
         usages: $knowledgeBaseStore.list.filter(
-          knowledgeBase => knowledgeBase.embeddingModel === config._id
+          knowledgeBase =>
+            knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+            knowledgeBase.config.embeddingModel === config._id
         ).length,
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -47,7 +58,9 @@
       .map(config => ({
         ...config,
         usages: $knowledgeBaseStore.list.filter(
-          knowledgeBase => knowledgeBase.vectorDb === config._id
+          knowledgeBase =>
+            knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+            knowledgeBase.config.vectorDb === config._id
         ).length,
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -151,6 +164,7 @@
           data={knowledgeBases}
           schema={{
             name: {},
+            type: { displayName: "Type", width: "100px" },
             embeddingModel: { displayName: "Embedding model" },
             files: { displayName: "# Files", width: "100px" },
           }}

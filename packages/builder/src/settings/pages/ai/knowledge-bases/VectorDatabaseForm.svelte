@@ -3,7 +3,11 @@
   import { bb } from "@/stores/bb"
   import { knowledgeBaseStore, vectorDbStore } from "@/stores/portal"
   import { Button, Helpers, Input, notifications } from "@budibase/bbui"
-  import { VectorDbProvider, type VectorDb } from "@budibase/types"
+  import {
+    KnowledgeBaseType,
+    VectorDbProvider,
+    type VectorDb,
+  } from "@budibase/types"
   import { onMount } from "svelte"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import EnvVariableInput from "@/components/portal/environment/EnvVariableInput.svelte"
@@ -41,7 +45,9 @@
   let referencingKnowledgeBaseCount = $derived.by(
     () =>
       $knowledgeBaseStore.list.filter(
-        knowledgeBase => knowledgeBase.vectorDb === draft._id
+        knowledgeBase =>
+          knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+          knowledgeBase.config.vectorDb === draft._id
       ).length
   )
 
@@ -117,7 +123,10 @@
         if (formDraft && created._id) {
           knowledgeBaseStore.setFormDraft({
             ...formDraft,
-            vectorDb: created._id,
+            localConfig: {
+              ...(formDraft.localConfig || {}),
+              vectorDb: created._id,
+            },
           })
         }
       }

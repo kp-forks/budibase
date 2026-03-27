@@ -1,26 +1,29 @@
 import { context, docIds, HTTPError } from "@budibase/backend-core"
 import {
   AIConfigType,
+  CreateKnowledgeBaseRequest,
   DocumentType,
+  GeminiKnowledgeBase,
   KnowledgeBase,
   KnowledgeBaseType,
+  LocalKnowledgeBase,
+  UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
 import * as configSdk from "../configs"
 import * as knowledgeBaseFileSdk from "./files"
 import * as vectorDbSdk from "../vectorDb"
 import { createGoogleFileStore } from "./googleFileStore"
+import { utils } from "@budibase/shared-core"
 
 const normalizeKnowledgeBaseName = (name: string | undefined) =>
   name?.trim().toLowerCase() || ""
 
-const validateReferences = async ({
-  type,
-  embeddingModel,
-  vectorDb,
-}: Pick<KnowledgeBase, "type" | "embeddingModel" | "vectorDb">) => {
-  if (type === KnowledgeBaseType.GEMINI) {
+const validateReferences = async (knowledgeBase: KnowledgeBase) => {
+  if (knowledgeBase.type === KnowledgeBaseType.GEMINI) {
     return
   }
+
+  const { embeddingModel, vectorDb } = knowledgeBase.config
 
   if (!embeddingModel) {
     throw new HTTPError(
@@ -69,7 +72,7 @@ export async function findByEmbeddingModel(
   return knowledgeBases.filter(
     knowledgeBase =>
       knowledgeBase.type === KnowledgeBaseType.LOCAL &&
-      knowledgeBase.embeddingModel === embeddingModelId
+      knowledgeBase.config.embeddingModel === embeddingModelId
   )
 }
 
@@ -80,7 +83,7 @@ export async function findByVectorDb(
   return knowledgeBases.filter(
     knowledgeBase =>
       knowledgeBase.type === KnowledgeBaseType.LOCAL &&
-      knowledgeBase.vectorDb === vectorDbId
+      knowledgeBase.config.vectorDb === vectorDbId
   )
 }
 
@@ -110,28 +113,43 @@ const ensureUniqueName = async (
   }
 }
 
-export async function create(config: KnowledgeBase): Promise<KnowledgeBase> {
+export async function create(
+  config: CreateKnowledgeBaseRequest
+): Promise<KnowledgeBase> {
   const db = context.getWorkspaceDB()
-  const knowledgeBaseType = config.type || KnowledgeBaseType.LOCAL
-  await validateReferences({
-    ...config,
-    type: knowledgeBaseType,
-  })
+  const knowledgeBaseType = config.type
   await ensureUniqueName(config.name)
 
-  const googleFileStoreId =
-    knowledgeBaseType === KnowledgeBaseType.GEMINI
-      ? await createGoogleFileStore(config.name.trim())
-      : undefined
-
-  const newConfig: KnowledgeBase = {
-    _id: docIds.generateKnowledgeBaseID(),
-    name: config.name.trim(),
-    type: knowledgeBaseType,
-    googleFileStoreId,
-    embeddingModel: config.embeddingModel,
-    vectorDb: config.vectorDb,
+  let newConfig: KnowledgeBase
+  switch (knowledgeBaseType) {
+    case KnowledgeBaseType.GEMINI: {
+      const googleFileStoreId = await createGoogleFileStore(config.name.trim())
+      newConfig = {
+        _id: docIds.generateKnowledgeBaseID(),
+        name: config.name.trim(),
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId,
+        },
+      } satisfies GeminiKnowledgeBase
+      break
+    }
+    case KnowledgeBaseType.LOCAL: {
+      newConfig = {
+        _id: docIds.generateKnowledgeBaseID(),
+        name: config.name.trim(),
+        type: KnowledgeBaseType.LOCAL,
+        config: {
+          embeddingModel: config.config.embeddingModel,
+          vectorDb: config.config.vectorDb,
+        },
+      } satisfies LocalKnowledgeBase
+      break
+    }
+    default:
+      throw utils.unreachable(knowledgeBaseType)
   }
+  await validateReferences(newConfig)
 
   const { rev } = await db.put(newConfig)
   newConfig._rev = rev
@@ -139,7 +157,9 @@ export async function create(config: KnowledgeBase): Promise<KnowledgeBase> {
   return newConfig
 }
 
-export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
+export async function update(
+  config: UpdateKnowledgeBaseRequest
+): Promise<KnowledgeBase> {
   if (!config._id || !config._rev) {
     throw new HTTPError("id and rev required", 400)
   }
@@ -150,34 +170,61 @@ export async function update(config: KnowledgeBase): Promise<KnowledgeBase> {
     throw new HTTPError("Knowledge base not found", 404)
   }
 
-  const existingType = existing.type || KnowledgeBaseType.LOCAL
-  const requestedType = config.type || existingType
-  if (requestedType !== existingType) {
-    throw new HTTPError("Knowledge base type cannot be changed", 400)
-  }
-
-  const updated: KnowledgeBase = {
-    ...existing,
-    ...config,
-    type: existingType,
-  }
-
-  const referencesChanged =
-    existing.embeddingModel !== updated.embeddingModel ||
-    existing.vectorDb !== updated.vectorDb
-
-  if (referencesChanged) {
-    const files = await knowledgeBaseFileSdk.listKnowledgeBaseFiles(config._id)
-    if (files.length > 0) {
-      throw new HTTPError(
-        "Embedding model and vector database cannot be changed after files are added",
-        400
-      )
+  let updated: KnowledgeBase
+  const knowledgeBaseType = config.type
+  switch (knowledgeBaseType) {
+    case KnowledgeBaseType.GEMINI: {
+      if (knowledgeBaseType !== existing.type) {
+        throw new HTTPError("Knowledge base type cannot be changed", 400)
+      }
+      updated = {
+        ...existing,
+        ...config,
+        type: KnowledgeBaseType.GEMINI,
+        config: { googleFileStoreId: existing.config.googleFileStoreId },
+      } satisfies GeminiKnowledgeBase
+      break
     }
+    case KnowledgeBaseType.LOCAL: {
+      if (knowledgeBaseType !== existing.type) {
+        throw new HTTPError("Knowledge base type cannot be changed", 400)
+      }
+      updated = {
+        ...existing,
+        ...config,
+        type: KnowledgeBaseType.LOCAL,
+        config: {
+          embeddingModel: config.config.embeddingModel,
+          vectorDb: config.config.vectorDb,
+        },
+      } satisfies LocalKnowledgeBase
+
+      const referencesChanged =
+        existing.config.embeddingModel !== updated.config.embeddingModel ||
+        existing.config.vectorDb !== updated.config.vectorDb
+
+      if (referencesChanged) {
+        const files = await knowledgeBaseFileSdk.listKnowledgeBaseFiles(
+          config._id
+        )
+        if (files.length > 0) {
+          throw new HTTPError(
+            "Embedding model and vector database cannot be changed after files are added",
+            400
+          )
+        }
+      }
+      break
+    }
+    default:
+      throw utils.unreachable(knowledgeBaseType)
   }
 
   await validateReferences(updated)
-  if (updated.type === KnowledgeBaseType.GEMINI && !updated.googleFileStoreId) {
+  if (
+    updated.type === KnowledgeBaseType.GEMINI &&
+    !updated.config.googleFileStoreId
+  ) {
     throw new HTTPError(
       "Google knowledge base is missing its file store configuration",
       400

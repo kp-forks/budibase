@@ -219,22 +219,14 @@ const resolveKnowledgeBasesForAgent = async (
 }
 
 const getLocalKnowledgeBaseRefs = (knowledgeBase: KnowledgeBase) => {
-  if (
-    (knowledgeBase.type || KnowledgeBaseType.LOCAL) !== KnowledgeBaseType.LOCAL
-  ) {
+  if (knowledgeBase.type !== KnowledgeBaseType.LOCAL) {
     throw new Error(
       "Knowledge base is not configured for local vector retrieval"
     )
   }
-  if (!knowledgeBase.embeddingModel) {
-    throw new Error("Embedding model is required for local knowledge bases")
-  }
-  if (!knowledgeBase.vectorDb) {
-    throw new Error("Vector database is required for local knowledge bases")
-  }
   return {
-    embeddingModel: knowledgeBase.embeddingModel,
-    vectorDb: knowledgeBase.vectorDb,
+    embeddingModel: knowledgeBase.config.embeddingModel,
+    vectorDb: knowledgeBase.config.vectorDb,
   }
 }
 
@@ -438,16 +430,9 @@ export const retrieveContextForAgent = async (
       continue
     }
 
-    if (
-      (knowledgeBase.type || KnowledgeBaseType.LOCAL) ===
-      KnowledgeBaseType.GEMINI
-    ) {
-      if (!knowledgeBase.googleFileStoreId) {
-        throw new Error("Google knowledge base store is not configured")
-      }
-
+    if (knowledgeBase.type === KnowledgeBaseType.GEMINI) {
       const rows = await searchGoogleFileStore({
-        vectorStoreId: knowledgeBase.googleFileStoreId,
+        vectorStoreId: knowledgeBase.config.googleFileStoreId,
         query: question,
         maxNumResults: DEFAULT_RAG_TOP_K,
       })

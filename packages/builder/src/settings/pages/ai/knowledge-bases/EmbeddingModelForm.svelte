@@ -1,6 +1,6 @@
 <script lang="ts">
   import { knowledgeBaseStore } from "@/stores/portal"
-  import { AIConfigType } from "@budibase/types"
+  import { AIConfigType, KnowledgeBaseType } from "@budibase/types"
   import AIConfigEditor from "../AIConfigEditor.svelte"
   import { onMount } from "svelte"
   import { notifications } from "@budibase/bbui"
@@ -18,7 +18,9 @@
     }
 
     return $knowledgeBaseStore.list.filter(
-      knowledgeBase => knowledgeBase.embeddingModel === configId
+      knowledgeBase =>
+        knowledgeBase.type === KnowledgeBaseType.LOCAL &&
+        knowledgeBase.config.embeddingModel === configId
     ).length
   })
 
@@ -33,7 +35,10 @@
     if (formDraft && _id) {
       knowledgeBaseStore.setFormDraft({
         ...formDraft,
-        embeddingModel: _id,
+        localConfig: {
+          ...(formDraft.localConfig || {}),
+          embeddingModel: _id,
+        },
       })
     }
   }

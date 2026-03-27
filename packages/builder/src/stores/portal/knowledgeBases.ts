@@ -3,12 +3,13 @@ import {
   CreateKnowledgeBaseRequest,
   KnowledgeBase,
   KnowledgeBaseFile,
+  KnowledgeBaseType,
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
 import { DerivedBudiStore } from "../BudiStore"
 import { derived, Writable } from "svelte/store"
 
-interface KnowledgeBaseWithFiles extends KnowledgeBase {
+type KnowledgeBaseWithFiles = KnowledgeBase & {
   files: KnowledgeBaseFile[]
 }
 
@@ -29,10 +30,10 @@ interface DerivedKnowledgeBaseState {
 }
 
 type KnowledgeBaseFormDraft = Partial<
-  Pick<
-    KnowledgeBase,
-    "_id" | "_rev" | "name" | "type" | "embeddingModel" | "vectorDb"
-  >
+  Pick<KnowledgeBase, "_id" | "_rev" | "name" | "type"> & {
+    embeddingModel?: string
+    vectorDb?: string
+  }
 >
 
 export class KnowledgeBaseStore extends DerivedBudiStore<
@@ -153,7 +154,13 @@ export class KnowledgeBaseStore extends DerivedBudiStore<
   }
 
   getFormDraft = (): KnowledgeBaseFormDraft | undefined => {
-    return this.formDraft
+    if (!this.formDraft) {
+      return undefined
+    }
+    return {
+      ...this.formDraft,
+      type: this.formDraft.type || KnowledgeBaseType.LOCAL,
+    }
   }
 
   clearFormDraft = () => {

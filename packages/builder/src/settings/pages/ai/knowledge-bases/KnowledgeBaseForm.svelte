@@ -14,7 +14,11 @@
     notifications,
     Select,
   } from "@budibase/bbui"
-  import { KnowledgeBaseType } from "@budibase/types"
+  import {
+    KnowledgeBaseType,
+    type CreateKnowledgeBaseRequest,
+    type UpdateKnowledgeBaseRequest,
+  } from "@budibase/types"
   import { onMount } from "svelte"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeBaseFilesPanel from "./files-panel/index.svelte"
@@ -23,36 +27,47 @@
     knowledgeBaseId: string
   }
 
+  interface KnowledgeBaseFormDraft {
+    _id?: string
+    _rev?: string
+    name: string
+    type: KnowledgeBaseType
+    embeddingModel?: string
+    vectorDb?: string
+  }
+
   let { knowledgeBaseId }: Props = $props()
 
   let config = $derived(
     $knowledgeBaseStore.list.find(kb => kb._id === knowledgeBaseId)
   )
 
-  const createDraft = () =>
+  const createDraft = (): KnowledgeBaseFormDraft =>
     config?._id
       ? {
           _id: config._id,
           _rev: config._rev,
           name: config.name,
           type: config.type,
-          embeddingModel: config.embeddingModel,
-          vectorDb: config.vectorDb,
+          ...(config.type === KnowledgeBaseType.LOCAL
+            ? {
+                embeddingModel: config.config.embeddingModel,
+                vectorDb: config.config.vectorDb,
+              }
+            : {}),
         }
       : {
-          _id: undefined as string | undefined,
-          _rev: undefined as string | undefined,
+          _id: undefined,
+          _rev: undefined,
           name: "",
-          type: KnowledgeBaseType.GEMINI,
-          embeddingModel: "",
-          vectorDb: "",
+          type: KnowledgeBaseType.LOCAL,
         }
 
-  let draft = $state(createDraft())
+  let draft = $state<KnowledgeBaseFormDraft>(createDraft())
 
   let isEdit = $derived(!!draft._id)
   let isSaving = $state(false)
-  let savedSnapshot = $state<typeof draft>()
+  let savedSnapshot = $state<KnowledgeBaseFormDraft>()
   const captureSavedSnapshot = () => {
     savedSnapshot = Helpers.cloneDeep(draft)
   }
@@ -62,8 +77,9 @@
   )
   let hasReferenceChanges = $derived.by(
     () =>
-      savedSnapshot?.embeddingModel !== draft.embeddingModel ||
-      savedSnapshot?.vectorDb !== draft.vectorDb
+      draft.type === KnowledgeBaseType.LOCAL &&
+      (savedSnapshot?.embeddingModel !== draft.embeddingModel ||
+        savedSnapshot?.vectorDb !== draft.vectorDb)
   )
 
   let embeddingModelOptions = $derived(
@@ -164,25 +180,46 @@
       isSaving = true
 
       if (draft._id && draft._rev) {
-        const updated = await knowledgeBaseStore.edit({
-          _id: draft._id,
-          _rev: draft._rev,
-          name: draft.name || "",
-          type: draft.type,
-          embeddingModel: draft.embeddingModel || "",
-          vectorDb: draft.vectorDb || "",
-        })
+        const payload: UpdateKnowledgeBaseRequest =
+          draft.type === KnowledgeBaseType.LOCAL
+            ? {
+                _id: draft._id,
+                _rev: draft._rev,
+                name: draft.name,
+                type: KnowledgeBaseType.LOCAL,
+                config: {
+                  embeddingModel: draft.embeddingModel || "",
+                  vectorDb: draft.vectorDb || "",
+                },
+              }
+            : {
+                _id: draft._id,
+                _rev: draft._rev,
+                name: draft.name,
+                type: KnowledgeBaseType.GEMINI,
+              }
+        const updated = await knowledgeBaseStore.edit(payload)
 
         draft._rev = updated._rev
         captureSavedSnapshot()
         notifications.success("Knowledge base updated")
       } else {
-        const created = await knowledgeBaseStore.create({
-          name: draft.name || "",
-          type: draft.type,
-          embeddingModel: draft.embeddingModel || "",
-          vectorDb: draft.vectorDb || "",
-        })
+        const payload: CreateKnowledgeBaseRequest =
+          draft.type === KnowledgeBaseType.LOCAL
+            ? {
+                name: draft.name || "",
+                type: KnowledgeBaseType.LOCAL,
+                config: {
+                  embeddingModel: draft.embeddingModel || "",
+                  vectorDb: draft.vectorDb || "",
+                },
+              }
+            : {
+                name: draft.name || "",
+                type: KnowledgeBaseType.GEMINI,
+              }
+
+        const created = await knowledgeBaseStore.create(payload)
 
         draft._id = created._id
         draft._rev = created._rev
