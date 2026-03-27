@@ -79,6 +79,21 @@ describe("knowledge base configs", () => {
       })
     })
 
+    it("rejects config payload for Gemini knowledge bases", async () => {
+      await withRagEnabled(async () => {
+        await config.api.knowledgeBase.create(
+          {
+            name: "Support Docs",
+            type: KnowledgeBaseType.GEMINI,
+            config: {
+              googleFileStoreId: "should-not-be-accepted",
+            },
+          } as any,
+          { status: 400 }
+        )
+      })
+    })
+
     it("rejects duplicate knowledge base names", async () => {
       await withRagEnabled(async () => {
         await config.api.knowledgeBase.create({
@@ -171,6 +186,28 @@ describe("knowledge base configs", () => {
             type: "local" as KnowledgeBaseType,
           },
           { status: 400 }
+        )
+      })
+    })
+
+    it("preserves existing Gemini file store id on update", async () => {
+      await withRagEnabled(async () => {
+        const created = await config.api.knowledgeBase.create({
+          name: "Support Docs",
+          type: KnowledgeBaseType.GEMINI,
+        })
+
+        const updated = await config.api.knowledgeBase.update({
+          ...created,
+          name: "Support Docs v2",
+          type: KnowledgeBaseType.GEMINI,
+          config: {
+            googleFileStoreId: "tampered-file-store",
+          },
+        } as any)
+
+        expect(updated.config.googleFileStoreId).toBe(
+          created.config.googleFileStoreId
         )
       })
     })

@@ -111,6 +111,13 @@ describe("knowledge base files", () => {
       )
       .reply(200, { deleted: true })
 
+  const mockGeminiFileDelete404 = (vectorStoreId: string, fileId: string) =>
+    nock(environment.LITELLM_URL)
+      .delete(
+        `/v1/vector_stores/${encodeURIComponent(vectorStoreId)}/files/${encodeURIComponent(fileId)}`
+      )
+      .reply(404, { error: "not found" })
+
   it("uploads and lists knowledge base files", async () => {
     await withRagEnabled(async () => {
       const knowledgeBase = await createKnowledgeBase()
@@ -169,6 +176,35 @@ describe("knowledge base files", () => {
         knowledgeBase._id!
       )
       expect(files).toHaveLength(0)
+    })
+  })
+
+  it("deletes knowledge base files when Gemini delete returns 404", async () => {
+    await withRagEnabled(async () => {
+      const knowledgeBase = await createKnowledgeBase()
+      const ingestScope = mockGeminiIngest("gemini-file-missing")
+      const deleteScope = mockGeminiFileDelete404(
+        "vector-store-1",
+        "gemini-file-missing"
+      )
+
+      const upload = await config.api.knowledgeBaseFiles.upload(
+        knowledgeBase._id!,
+        {
+          file: fileBuffer,
+          name: "missing.txt",
+        }
+      )
+
+      await utils.queue.processMessages(getQueue().getBullQueue())
+      expect(ingestScope.isDone()).toBe(true)
+
+      const response = await config.api.knowledgeBaseFiles.remove(
+        knowledgeBase._id!,
+        upload.file._id!
+      )
+      expect(response.deleted).toBe(true)
+      expect(deleteScope.isDone()).toBe(true)
     })
   })
 })
