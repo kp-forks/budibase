@@ -167,7 +167,7 @@
     </div>
   {:else if knowledgeBases.length > 0}
     <div class="knowledge-header">
-      <Body size="XS">Knowledge bases</Body>
+      <Body size="XS"></Body>
 
       <Button
         icon="plus"
@@ -188,8 +188,7 @@
       schema={{
         enabled: { displayName: "", width: "48px" },
         name: {},
-        type: { displayName: "Type", width: "100px" },
-        files: { displayName: "# Files", width: "60px" },
+        files: { displayName: "# Files", width: "100px" },
         manage: { displayName: "", width: "88px" },
       }}
       {customRenderers}
