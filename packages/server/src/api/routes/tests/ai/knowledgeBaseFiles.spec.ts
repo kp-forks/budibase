@@ -22,6 +22,7 @@ jest.mock("../../../../sdk/workspace/ai/vectorDb/pgVectorDb", () => {
 
 describe("knowledge base files", () => {
   const config = new TestConfiguration()
+  let cleanup: ReturnType<typeof setEnv> | undefined
 
   const withRagEnabled = async <T>(f: () => Promise<T>) => {
     return await features.testutils.withFeatureFlags(
@@ -31,15 +32,19 @@ describe("knowledge base files", () => {
     )
   }
 
+  beforeAll(() => {
+    cleanup = setEnv({ GEMINI_API_KEY: "test-gemini-key" })
+  })
+
   afterAll(() => {
     config.end()
+    cleanup?.()
   })
 
   beforeEach(async () => {
     await config.newTenant()
     jest.restoreAllMocks()
     nock.cleanAll()
-    setEnv({ GEMINI_API_KEY: "test-gemini-key" })
   })
 
   const fileBuffer = Buffer.from("Hello from Budibase")
