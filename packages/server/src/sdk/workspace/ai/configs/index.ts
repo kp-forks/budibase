@@ -18,7 +18,7 @@ import {
 } from "@budibase/types"
 import * as liteLLM from "./litellm"
 import { processEnvironmentVariable } from "../../../utils"
-import { IMPORT_PENDING_LITELLM_MODEL_ID } from "../../backups/imports"
+import { IMPORT_PENDING_LITELLM_MODEL_ID } from "../../backups/constants"
 
 const SECRET_ENCODING_PREFIX = "bbai_enc::"
 
