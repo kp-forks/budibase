@@ -15,7 +15,7 @@ const resolveKnowledgeBasesForAgent = async (
 ): Promise<KnowledgeBase[]> => {
   const knowledgeBaseIds = (agent.knowledgeBases || []).filter(Boolean)
   if (knowledgeBaseIds.length === 0) {
-    throw new Error("No knowledge base is configured for this agent")
+    return []
   }
 
   const knowledgeBases: KnowledgeBase[] = []

@@ -144,6 +144,25 @@ describe("rag files", () => {
   })
 
   describe("retrieveContextForAgent", () => {
+    it("returns empty context without searching when no knowledge bases are configured", async () => {
+      const agent = {
+        _id: "agent_1",
+        name: "agent_name",
+        aiconfig: "config",
+        knowledgeBases: [],
+      } satisfies Agent
+
+      const result = await retrieveContextForAgent(agent, "What is Budibase?")
+
+      expect(result).toEqual({
+        text: "",
+        chunks: [],
+        sources: [],
+      })
+      expect(mockKnowledgeBaseFind).not.toHaveBeenCalled()
+      expect(mockProcessorSearch).not.toHaveBeenCalled()
+    })
+
     it("returns empty context for an empty question", async () => {
       const agent = {
         _id: "agent_1",
