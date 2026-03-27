@@ -38,7 +38,6 @@ export interface KnowledgeBaseFile extends Document {
   objectStoreKey: string
   ragSourceId: string
   status: KnowledgeBaseFileStatus
-  chunkCount: number
   uploadedBy: string
   errorMessage?: string
   processedAt?: string

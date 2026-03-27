@@ -11,10 +11,7 @@ interface CreateVectorStoreResponse {
 }
 
 interface GoogleIngestResponse {
-  file_id?: string
-  fileId?: string
-  chunk_count?: number
-  chunkCount?: number
+  file_id: string
 }
 
 interface GoogleSearchContent {
@@ -99,7 +96,7 @@ export async function ingestGoogleFile({
   filename: string
   mimetype?: string
   buffer: Buffer
-}): Promise<{ fileId?: string; chunkCount: number }> {
+}): Promise<{ fileId: string }> {
   const geminiApiKey = getGeminiApiKey()
   const response = await fetch(`${environment.LITELLM_URL}/v1/rag/ingest`, {
     method: "POST",
@@ -140,19 +137,16 @@ export async function ingestGoogleFile({
 
   const payload = (await response.json()) as GoogleIngestResponse
   return {
-    fileId: payload.file_id || payload.fileId,
-    chunkCount: Number(payload.chunk_count || payload.chunkCount || 0),
+    fileId: payload.file_id,
   }
 }
 
 export async function searchGoogleFileStore({
   vectorStoreId,
   query,
-  maxNumResults = 5,
 }: {
   vectorStoreId: string
   query: string
-  maxNumResults?: number
 }): Promise<GoogleSearchResultItem[]> {
   const geminiApiKey = getGeminiApiKey()
   const response = await fetch(
@@ -165,7 +159,6 @@ export async function searchGoogleFileStore({
       body: JSON.stringify({
         query,
         custom_llm_provider: "gemini",
-        max_num_results: maxNumResults,
         ...(geminiApiKey ? { api_key: geminiApiKey } : {}),
       }),
     }
