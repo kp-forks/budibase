@@ -7,7 +7,7 @@ import {
   KnowledgeBaseType,
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
-import { createGoogleFileStore } from "./googleFileStore"
+import { createGoogleFileStore } from "./geminiFileStore"
 import { utils } from "@budibase/shared-core"
 
 const normalizeKnowledgeBaseName = (name: string | undefined) =>

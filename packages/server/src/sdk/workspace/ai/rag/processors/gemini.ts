@@ -10,7 +10,7 @@ import { RagProcessor, RetrievedContextChunk } from "."
 import {
   ingestGoogleFile,
   searchGoogleFileStore,
-} from "../../knowledgeBase/googleFileStore"
+} from "../../knowledgeBase/geminiFileStore"
 import { updateKnowledgeBaseFile } from "../../knowledgeBase"
 
 export class GeminiRagProcessor implements RagProcessor {
