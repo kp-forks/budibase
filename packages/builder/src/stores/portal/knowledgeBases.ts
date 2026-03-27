@@ -28,16 +28,10 @@ interface DerivedKnowledgeBaseState {
   selectedKnowledgeBase: KnowledgeBaseWithFiles | undefined
 }
 
-type KnowledgeBaseFormDraft = Partial<
-  Pick<KnowledgeBase, "_id" | "_rev" | "name" | "type">
->
-
 export class KnowledgeBaseStore extends DerivedBudiStore<
   KnowledgeBaseState,
   DerivedKnowledgeBaseState
 > {
-  private formDraft: KnowledgeBaseFormDraft | undefined
-
   constructor() {
     const makeDerivedStore = (store: Writable<KnowledgeBaseState>) => {
       return derived(store, $state => {
@@ -143,24 +137,6 @@ export class KnowledgeBaseStore extends DerivedBudiStore<
       return state
     })
     await this.fetch()
-  }
-
-  setFormDraft = (draft: KnowledgeBaseFormDraft) => {
-    this.formDraft = draft
-  }
-
-  getFormDraft = (): KnowledgeBaseFormDraft | undefined => {
-    if (!this.formDraft) {
-      return undefined
-    }
-    return {
-      ...this.formDraft,
-      type: this.formDraft.type,
-    }
-  }
-
-  clearFormDraft = () => {
-    this.formDraft = undefined
   }
 
   selectKnowledgeBase = (knowledgeBaseId?: string) => {

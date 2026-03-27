@@ -29,7 +29,6 @@
   )
 
   function createKnowledgeBase() {
-    knowledgeBaseStore.clearFormDraft()
     bb.settings(`/connections/knowledge-bases/new`)
   }
 
@@ -37,7 +36,6 @@
     if (!row._id) {
       return
     }
-    knowledgeBaseStore.clearFormDraft()
     bb.settings(`/connections/knowledge-bases/${row._id}`)
   }
 

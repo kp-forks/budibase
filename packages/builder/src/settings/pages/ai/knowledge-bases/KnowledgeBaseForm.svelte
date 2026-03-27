@@ -105,16 +105,7 @@
       }
 
       draft = createDraft()
-      const persistedDraft = isCreation
-        ? knowledgeBaseStore.getFormDraft()
-        : undefined
       captureSavedSnapshot()
-      if (persistedDraft) {
-        draft = {
-          ...draft,
-          ...persistedDraft,
-        }
-      }
     } catch (err: any) {
       notifications.error(
         err.message || "Failed to load knowledge base settings"
@@ -153,7 +144,6 @@
         captureSavedSnapshot()
         notifications.success("Knowledge base created")
       }
-      knowledgeBaseStore.clearFormDraft()
       bb.settings(`/connections/knowledge-bases/${draft._id}`)
     } catch (err: any) {
       notifications.error(err.message || "Failed to save knowledge base")
@@ -175,7 +165,6 @@
       onConfirm: async () => {
         try {
           await knowledgeBaseStore.delete(knowledgeBaseId)
-          knowledgeBaseStore.clearFormDraft()
           notifications.success("Knowledge base deleted")
           bb.settings(`/connections/knowledge-bases`)
         } catch (err: any) {
