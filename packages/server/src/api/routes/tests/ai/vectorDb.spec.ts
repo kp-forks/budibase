@@ -3,7 +3,6 @@ import {
   FeatureFlag,
   PASSWORD_REPLACEMENT,
   VectorDbProvider,
-  KnowledgeBaseType,
 } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { validatePgVectorDbConfig } from "../../../../sdk/workspace/ai/vectorDb/pgVectorDb"
