@@ -13,11 +13,7 @@ import { AppMetaState } from "@/stores/builder/app"
 import { PortalAppsStore } from "@/stores/portal/apps"
 import { StoreApp } from "@/types"
 import { featureFlag } from "@/helpers"
-import {
-  aiConfigsStore,
-  knowledgeBaseStore,
-  vectorDbStore,
-} from "@/stores/portal"
+import { aiConfigsStore, knowledgeBaseStore } from "@/stores/portal"
 import { get } from "svelte/store"
 
 const getPathId = (path: string | undefined) => {

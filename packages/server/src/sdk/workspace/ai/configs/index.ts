@@ -17,7 +17,6 @@ import {
   RequiredKeys,
 } from "@budibase/types"
 import * as liteLLM from "./litellm"
-import * as knowledgeBaseSdk from "../knowledgeBase"
 import { processEnvironmentVariable } from "../../../utils"
 import { IMPORT_PENDING_LITELLM_MODEL_ID } from "../../backups/imports"
 
