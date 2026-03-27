@@ -1,4 +1,4 @@
-import { context, docIds, objectStore } from "@budibase/backend-core"
+import { context, docIds, HTTPError, objectStore } from "@budibase/backend-core"
 import { KnowledgeBaseFile, KnowledgeBaseFileStatus } from "@budibase/types"
 import { ObjectStoreBuckets } from "../../../../constants"
 import { enqueueRagFileIngestion } from "../rag/queue"
@@ -28,7 +28,7 @@ export const uploadKnowledgeBaseFile = async (
   const workspaceId = context.getOrThrowWorkspaceId()
   const knowledgeBase = await findKnowledgeBase(input.knowledgeBaseId)
   if (!knowledgeBase) {
-    throw new Error("Knowledge base not found")
+    throw new HTTPError("Knowledge base not found", 404)
   }
 
   const fileId = docIds.generateKnowledgeBaseFileID(input.knowledgeBaseId)
