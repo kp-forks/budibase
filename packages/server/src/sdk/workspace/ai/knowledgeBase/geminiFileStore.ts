@@ -30,8 +30,16 @@ interface GeminiSearchResponse {
   data?: GeminiSearchResultItem[]
 }
 
-const getGeminiApiKey = () =>
-  process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+const getGeminiApiKey = () => {
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+  if (!key) {
+    throw new HTTPError(
+      "Gemini File Search failed. Set GEMINI_API_KEY (or GOOGLE_API_KEY) on your local environment",
+      400
+    )
+  }
+  return key
+}
 
 const getCommonAuthHeaders = async () => {
   const { secretKey } = await getKeySettings()
@@ -56,15 +64,6 @@ export async function createGeminiFileStore(name: string): Promise<string> {
 
   if (!response.ok) {
     const text = await response.text()
-    if (
-      text.includes("PERMISSION_DENIED") ||
-      text.includes("unregistered callers")
-    ) {
-      throw new HTTPError(
-        "Gemini File Search authentication failed. Configure GEMINI_API_KEY (or GOOGLE_API_KEY) on the LiteLLM service, or provide api_key in the request.",
-        400
-      )
-    }
     throw new HTTPError(
       text || "Failed to create Gemini file store",
       response.status
