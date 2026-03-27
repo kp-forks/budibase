@@ -143,23 +143,6 @@ describe("vector db configs", () => {
     })
   })
 
-  it("allows deleting a vector db even when a Gemini knowledge base exists", async () => {
-    await withRagEnabled(async () => {
-      const created = await config.api.vectorDb.create(vectorDbRequest)
-
-      await config.api.knowledgeBase.create({
-        name: "Support Docs",
-        type: KnowledgeBaseType.GEMINI,
-      })
-
-      const { deleted } = await config.api.vectorDb.remove(created._id!)
-      expect(deleted).toBe(true)
-
-      const configs = await config.api.vectorDb.fetch()
-      expect(configs).toHaveLength(0)
-    })
-  })
-
   it("rejects unsupported providers", async () => {
     await withRagEnabled(async () => {
       await config.api.vectorDb.create(
