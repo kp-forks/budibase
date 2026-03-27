@@ -385,15 +385,6 @@ export async function update(
 }
 
 export async function remove(id: string) {
-  const dependentKnowledgeBases =
-    await knowledgeBaseSdk.findByEmbeddingModel(id)
-  if (dependentKnowledgeBases.length > 0) {
-    throw new HTTPError(
-      "Embedding model cannot be deleted while it is used by a knowledge base",
-      400
-    )
-  }
-
   const db = context.getWorkspaceDB()
 
   const existing = await db.get<CustomAIProviderConfig>(id)

@@ -1,20 +1,14 @@
-import { context, docIds, features } from "@budibase/backend-core"
-import {
-  AIConfigType,
-  FeatureFlag,
-  KnowledgeBaseFileStatus,
-  KnowledgeBaseType,
-  VectorDbProvider,
-} from "@budibase/types"
+import { features } from "@budibase/backend-core"
+import { FeatureFlag, KnowledgeBaseType } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
-jest.mock("../../../../sdk/workspace/ai/vectorDb/pgVectorDb", () => {
+jest.mock("../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore", () => {
   const actual = jest.requireActual(
-    "../../../../sdk/workspace/ai/vectorDb/pgVectorDb"
+    "../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore"
   )
   return {
     ...actual,
-    validatePgVectorDbConfig: jest.fn().mockResolvedValue(undefined),
+    createGeminiFileStore: jest.fn().mockResolvedValue("gemini_store_test"),
   }
 })
 
@@ -42,53 +36,22 @@ describe("knowledge base configs", () => {
   }
 
   beforeEach(async () => {
+    jest.clearAllMocks()
     await config.newTenant()
   })
 
-  const buildDependencies = async () => {
-    const embeddingModelId = docIds.generateAIConfigID("embedding_test")
-    await config.doInContext(config.getDevWorkspaceId(), async () => {
-      const db = context.getWorkspaceDB()
-      await db.put({
-        _id: embeddingModelId,
-        name: "Embeddings",
-        provider: "OpenAI",
-        credentialsFields: {},
-        model: "text-embedding-3-small",
-        liteLLMModelId: "embedding-model",
-        configType: AIConfigType.EMBEDDINGS,
-      })
-    })
-
-    const vectorDb = await config.api.vectorDb.create({
-      name: "Primary Vector DB",
-      provider: VectorDbProvider.PGVECTOR,
-      host: "localhost",
-      port: 5432,
-      database: "budibase",
-      user: "bb_user",
-      password: "secret",
-    })
-
-    return { embeddingModelId, vectorDb }
-  }
-
   describe("create", () => {
-    it("creates a knowledge base", async () => {
+    it("creates a Gemini knowledge base", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
-
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         expect(created._id).toBeDefined()
         expect(created.name).toBe("Support Docs")
+        expect(created.type).toBe(KnowledgeBaseType.GEMINI)
+        expect(created.config.googleFileStoreId).toBeTruthy()
       })
     })
 
@@ -96,119 +59,20 @@ describe("knowledge base configs", () => {
       await withRagEnabled(async () => {
         await config.api.knowledgeBase.create(
           {
-            name: "Incomplete",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: "",
-              vectorDb: "",
-            },
+            name: "",
+            type: KnowledgeBaseType.GEMINI,
           },
           { status: 400 }
         )
       })
     })
 
-    it("rejects unknown vector db", async () => {
+    it("rejects invalid knowledge base type", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId } = await buildDependencies()
         await config.api.knowledgeBase.create(
           {
-            name: "Invalid Vector DB",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: embeddingModelId,
-              vectorDb: "vectordb_missing",
-            },
-          },
-          { status: 404 }
-        )
-      })
-    })
-
-    it("rejects unknown embedding model", async () => {
-      await withRagEnabled(async () => {
-        const { vectorDb } = await buildDependencies()
-        await config.api.knowledgeBase.create(
-          {
-            name: "Invalid Embedding",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: "aiconfig_missing",
-              vectorDb: vectorDb._id!,
-            },
-          },
-          { status: 404 }
-        )
-      })
-    })
-
-    it("rejects non-embedding model configs", async () => {
-      await withRagEnabled(async () => {
-        const completionsModelId = docIds.generateAIConfigID("completions_test")
-        await config.doInContext(config.getDevWorkspaceId(), async () => {
-          const db = context.getWorkspaceDB()
-          await db.put({
-            _id: completionsModelId,
-            name: "Completions",
-            provider: "OpenAI",
-            credentialsFields: {},
-            model: "gpt-4o-mini",
-            liteLLMModelId: "completions-model",
-            configType: AIConfigType.COMPLETIONS,
-          })
-        })
-
-        const vectorDb = await config.api.vectorDb.create({
-          name: "Primary Vector DB",
-          provider: VectorDbProvider.PGVECTOR,
-          host: "localhost",
-          port: 5432,
-          database: "budibase",
-          user: "bb_user",
-          password: "secret",
-        })
-
-        await config.api.knowledgeBase.create(
-          {
-            name: "Invalid Embedding Type",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: completionsModelId,
-              vectorDb: vectorDb._id!,
-            },
-          },
-          { status: 400 }
-        )
-      })
-    })
-
-    it("rejects non-vector db configs", async () => {
-      await withRagEnabled(async () => {
-        const { embeddingModelId } = await buildDependencies()
-        const completionsModelId = docIds.generateAIConfigID(
-          "vectordb_type_mismatch"
-        )
-        await config.doInContext(config.getDevWorkspaceId(), async () => {
-          const db = context.getWorkspaceDB()
-          await db.put({
-            _id: completionsModelId,
-            name: "Completions",
-            provider: "OpenAI",
-            credentialsFields: {},
-            model: "gpt-4o-mini",
-            liteLLMModelId: "completions-model",
-            configType: AIConfigType.COMPLETIONS,
-          })
-        })
-
-        await config.api.knowledgeBase.create(
-          {
-            name: "Invalid Vector DB Type",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: embeddingModelId,
-              vectorDb: completionsModelId,
-            },
+            name: "Invalid type",
+            type: "local" as KnowledgeBaseType,
           },
           { status: 400 }
         )
@@ -217,25 +81,15 @@ describe("knowledge base configs", () => {
 
     it("rejects duplicate knowledge base names", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
-
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         await config.api.knowledgeBase.create(
           {
             name: " support docs ",
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: embeddingModelId,
-              vectorDb: vectorDb._id!,
-            },
+            type: KnowledgeBaseType.GEMINI,
           },
           { status: 400 }
         )
@@ -246,23 +100,16 @@ describe("knowledge base configs", () => {
   describe("fetch", () => {
     it("lists knowledge bases", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         const knowledgeBases = await config.api.knowledgeBase.fetch()
         expect(knowledgeBases).toHaveLength(1)
-        if (knowledgeBases[0].type !== KnowledgeBaseType.LOCAL) {
-          throw new Error("Expected local knowledge base")
-        }
-        expect(knowledgeBases[0].config.embeddingModel).toBe(embeddingModelId)
-        expect(knowledgeBases[0].config.vectorDb).toBe(vectorDb._id)
+        expect(knowledgeBases[0].name).toBe("Support Docs")
+        expect(knowledgeBases[0].type).toBe(KnowledgeBaseType.GEMINI)
+        expect(knowledgeBases[0].config.googleFileStoreId).toBeTruthy()
       })
     })
   })
@@ -270,47 +117,40 @@ describe("knowledge base configs", () => {
   describe("update", () => {
     it("updates knowledge bases", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         const updated = await config.api.knowledgeBase.update({
           ...created,
           name: "Updated Knowledge Base",
+          type: KnowledgeBaseType.GEMINI,
         })
+
         expect(updated.name).toBe("Updated Knowledge Base")
+        expect(updated.type).toBe(KnowledgeBaseType.GEMINI)
+        expect(updated.config.googleFileStoreId).toBe(
+          created.config.googleFileStoreId
+        )
       })
     })
 
     it("rejects duplicate names when updating", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
         await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
         const created = await config.api.knowledgeBase.create({
           name: "HR Policies",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         await config.api.knowledgeBase.update(
           {
             ...created,
+            type: KnowledgeBaseType.GEMINI,
             name: " support docs ",
           },
           { status: 400 }
@@ -318,120 +158,20 @@ describe("knowledge base configs", () => {
       })
     })
 
-    it("rejects changing the knowledge base type", async () => {
+    it("rejects invalid type on update", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
-          type: KnowledgeBaseType.LOCAL,
+          type: KnowledgeBaseType.GEMINI,
         })
 
         await config.api.knowledgeBase.update(
           {
             ...created,
-            type: KnowledgeBaseType.GEMINI,
-          },
-          {
-            status: 400,
-            body: {
-              message: "Knowledge base type cannot be changed",
-            },
-          }
-        )
-      })
-    })
-
-    it("rejects changing embedding model or vector db", async () => {
-      await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
-        const created = await config.api.knowledgeBase.create({
-          name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
-        })
-
-        const otherVectorDb = await config.api.vectorDb.create({
-          name: "Secondary Vector DB",
-          provider: VectorDbProvider.PGVECTOR,
-          host: "localhost",
-          port: 5432,
-          database: "budibase",
-          user: "bb_user",
-          password: "secret",
-        })
-
-        await config.doInContext(config.getDevWorkspaceId(), async () => {
-          const db = context.getWorkspaceDB()
-          await db.put({
-            _id: docIds.generateKnowledgeBaseFileID(created._id!),
-            knowledgeBaseId: created._id!,
-            filename: "support.txt",
-            mimetype: "text/plain",
-            size: 128,
-            objectStoreKey: "test/object-key",
-            ragSourceId: docIds.generateKnowledgeBaseFileID(created._id!),
-            status: KnowledgeBaseFileStatus.READY,
-            chunkCount: 1,
-            uploadedBy: "user_123",
-          })
-        })
-
-        await config.api.knowledgeBase.update(
-          {
-            ...created,
-            type: KnowledgeBaseType.LOCAL,
-            config: {
-              embeddingModel: embeddingModelId,
-              vectorDb: otherVectorDb._id!,
-            },
+            type: "local" as KnowledgeBaseType,
           },
           { status: 400 }
         )
-      })
-    })
-
-    it("allows changing embedding model or vector db before files are added", async () => {
-      await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
-        const created = await config.api.knowledgeBase.create({
-          name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
-        })
-
-        const otherVectorDb = await config.api.vectorDb.create({
-          name: "Secondary Vector DB",
-          provider: VectorDbProvider.PGVECTOR,
-          host: "localhost",
-          port: 5432,
-          database: "budibase",
-          user: "bb_user",
-          password: "secret",
-        })
-
-        const updated = await config.api.knowledgeBase.update({
-          ...created,
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: otherVectorDb._id!,
-          },
-        })
-
-        if (updated.type !== KnowledgeBaseType.LOCAL) {
-          throw new Error("Expected local knowledge base")
-        }
-        expect(updated.config.vectorDb).toBe(otherVectorDb._id)
       })
     })
   })
@@ -439,14 +179,9 @@ describe("knowledge base configs", () => {
   describe("delete", () => {
     it("deletes knowledge bases", async () => {
       await withRagEnabled(async () => {
-        const { embeddingModelId, vectorDb } = await buildDependencies()
         const created = await config.api.knowledgeBase.create({
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: embeddingModelId,
-            vectorDb: vectorDb._id!,
-          },
+          type: KnowledgeBaseType.GEMINI,
         })
 
         const { deleted } = await config.api.knowledgeBase.remove(created._id!)
@@ -464,11 +199,7 @@ describe("knowledge base configs", () => {
       await config.api.knowledgeBase.create(
         {
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: "aiconfig_test",
-            vectorDb: "vectordb_test",
-          },
+          type: KnowledgeBaseType.GEMINI,
         },
         { status: 403 }
       )
@@ -477,11 +208,7 @@ describe("knowledge base configs", () => {
           _id: "kb_test",
           _rev: "1-test",
           name: "Support Docs",
-          type: KnowledgeBaseType.LOCAL,
-          config: {
-            embeddingModel: "aiconfig_test",
-            vectorDb: "vectordb_test",
-          },
+          type: KnowledgeBaseType.GEMINI,
         },
         { status: 403 }
       )

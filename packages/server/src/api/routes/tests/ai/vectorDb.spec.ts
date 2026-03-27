@@ -2,11 +2,9 @@ import { features } from "@budibase/backend-core"
 import {
   FeatureFlag,
   PASSWORD_REPLACEMENT,
-  AIConfigType,
   VectorDbProvider,
   KnowledgeBaseType,
 } from "@budibase/types"
-import { context, docIds } from "@budibase/backend-core"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { validatePgVectorDbConfig } from "../../../../sdk/workspace/ai/vectorDb/pgVectorDb"
 import { mocks } from "@budibase/backend-core/tests"
@@ -18,6 +16,16 @@ jest.mock("../../../../sdk/workspace/ai/vectorDb/pgVectorDb", () => {
   return {
     ...actual,
     validatePgVectorDbConfig: jest.fn().mockResolvedValue(undefined),
+  }
+})
+
+jest.mock("../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore", () => {
+  const actual = jest.requireActual(
+    "../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore"
+  )
+  return {
+    ...actual,
+    createGeminiFileStore: jest.fn().mockResolvedValue("gemini_store_test"),
   }
 })
 
@@ -135,37 +143,20 @@ describe("vector db configs", () => {
     })
   })
 
-  it("rejects deleting a vector db used by a knowledge base", async () => {
+  it("allows deleting a vector db even when a Gemini knowledge base exists", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.vectorDb.create(vectorDbRequest)
-      const embeddingModelId = docIds.generateAIConfigID("embedding_test")
-
-      await config.doInContext(config.getDevWorkspaceId(), async () => {
-        const db = context.getWorkspaceDB()
-        await db.put({
-          _id: embeddingModelId,
-          name: "Embeddings",
-          provider: "OpenAI",
-          credentialsFields: {},
-          model: "text-embedding-3-small",
-          liteLLMModelId: "embedding-model",
-          configType: AIConfigType.EMBEDDINGS,
-        })
-      })
 
       await config.api.knowledgeBase.create({
         name: "Support Docs",
-        type: KnowledgeBaseType.LOCAL,
-        config: {
-          embeddingModel: embeddingModelId,
-          vectorDb: created._id!,
-        },
+        type: KnowledgeBaseType.GEMINI,
       })
 
-      await config.api.vectorDb.remove(created._id!, { status: 400 })
+      const { deleted } = await config.api.vectorDb.remove(created._id!)
+      expect(deleted).toBe(true)
 
       const configs = await config.api.vectorDb.fetch()
-      expect(configs).toHaveLength(1)
+      expect(configs).toHaveLength(0)
     })
   })
 

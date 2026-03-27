@@ -7,16 +7,8 @@ import {
   KnowledgeBaseType,
 } from "@budibase/types"
 import environment from "../../../../environment"
-import * as ragSdk from "../../../../sdk/workspace/ai/rag"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
-
-jest.mock("../../../../sdk/workspace/ai/rag/files", () => {
-  return {
-    ingestKnowledgeBaseFile: jest.fn(),
-    deleteKnowledgeBaseFileChunks: jest.fn(),
-  }
-})
 
 jest.mock("../../../../sdk/workspace/ai/vectorDb/pgVectorDb", () => {
   const actual = jest.requireActual(
@@ -101,14 +93,22 @@ describe("knowledge base files", () => {
     return kb
   }
 
+  const mockGeminiIngest = (fileId: string) =>
+    nock(environment.LITELLM_URL)
+      .post("/v1/rag/ingest")
+      .reply(200, { file_id: fileId })
+
+  const mockGeminiFileDelete = (vectorStoreId: string, fileId: string) =>
+    nock(environment.LITELLM_URL)
+      .delete(
+        `/v1/vector_stores/${encodeURIComponent(vectorStoreId)}/files/${encodeURIComponent(fileId)}`
+      )
+      .reply(200, { deleted: true })
+
   it("uploads and lists knowledge base files", async () => {
     await withRagEnabled(async () => {
-      const ingestSpy = ragSdk.ingestKnowledgeBaseFile as jest.MockedFunction<
-        typeof ragSdk.ingestKnowledgeBaseFile
-      >
-      ingestSpy.mockResolvedValue({ inserted: 1, total: 2 })
-
       const knowledgeBase = await createKnowledgeBase()
+      const ingestScope = mockGeminiIngest("gemini-file-1")
 
       const upload = await config.api.knowledgeBaseFiles.upload(
         knowledgeBase._id!,
@@ -123,24 +123,24 @@ describe("knowledge base files", () => {
 
       await utils.queue.processMessages(getQueue().getBullQueue())
 
-      expect(ingestSpy).toHaveBeenCalled()
+      expect(ingestScope.isDone()).toBe(true)
       const { files } = await config.api.knowledgeBaseFiles.fetch(
         knowledgeBase._id!
       )
       expect(files).toHaveLength(1)
       expect(files[0].status).toBe(KnowledgeBaseFileStatus.READY)
-      expect(files[0].chunkCount).toBe(2)
+      expect(files[0].ragSourceId).toBe("gemini-file-1")
     })
   })
 
   it("deletes knowledge base files", async () => {
     await withRagEnabled(async () => {
-      const ingestSpy = ragSdk.ingestKnowledgeBaseFile as jest.MockedFunction<
-        typeof ragSdk.ingestKnowledgeBaseFile
-      >
-      ingestSpy.mockResolvedValue({ inserted: 1, total: 1 })
-
       const knowledgeBase = await createKnowledgeBase()
+      const ingestScope = mockGeminiIngest("gemini-file-2")
+      const deleteScope = mockGeminiFileDelete(
+        "vector-store-1",
+        "gemini-file-2"
+      )
       const upload = await config.api.knowledgeBaseFiles.upload(
         knowledgeBase._id!,
         {
@@ -150,12 +150,14 @@ describe("knowledge base files", () => {
       )
 
       await utils.queue.processMessages(getQueue().getBullQueue())
+      expect(ingestScope.isDone()).toBe(true)
 
       const response = await config.api.knowledgeBaseFiles.remove(
         knowledgeBase._id!,
         upload.file._id!
       )
       expect(response.deleted).toBe(true)
+      expect(deleteScope.isDone()).toBe(true)
 
       const { files } = await config.api.knowledgeBaseFiles.fetch(
         knowledgeBase._id!
