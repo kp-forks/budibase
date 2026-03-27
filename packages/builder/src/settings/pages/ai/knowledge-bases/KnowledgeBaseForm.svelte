@@ -212,18 +212,20 @@
     placeholder="HR Policies"
   />
 
-  <div class="select">
-    <Select
-      label="Knowledge base type"
-      description="Choose where retrieval is handled."
-      required
-      bind:value={draft.type}
-      options={knowledgeBaseTypeOptions}
-      getOptionValue={option => option.value}
-      getOptionLabel={option => option.label}
-      disabled={isEdit}
-    />
-  </div>
+  {#if knowledgeBaseTypeOptions.length > 1}
+    <div class="select">
+      <Select
+        label="Knowledge base type"
+        description="Choose where retrieval is handled."
+        required
+        bind:value={draft.type}
+        options={knowledgeBaseTypeOptions}
+        getOptionValue={option => option.value}
+        getOptionLabel={option => option.label}
+        disabled={isEdit}
+      />
+    </div>
+  {/if}
 
   <KnowledgeBaseFilesPanel knowledgeBaseId={draft._id} />
 </div>
