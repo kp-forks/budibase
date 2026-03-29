@@ -1,5 +1,6 @@
 const mockFetch = jest.fn()
 const mockGetKeySettings = jest.fn()
+const mockSyncKeyVectorStores = jest.fn()
 
 jest.mock("node-fetch", () => ({
   __esModule: true,
@@ -8,6 +9,7 @@ jest.mock("node-fetch", () => ({
 
 jest.mock("../configs/litellm", () => ({
   getKeySettings: (...args: any[]) => mockGetKeySettings(...args),
+  syncKeyVectorStores: (...args: any[]) => mockSyncKeyVectorStores(...args),
 }))
 
 import { setEnv, withEnv } from "../../../../environment"
@@ -45,6 +47,7 @@ describe("geminiFileStore", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetKeySettings.mockResolvedValue({ secretKey: "workspace-key" })
+    mockSyncKeyVectorStores.mockResolvedValue(undefined)
   })
 
   it("throws a 400 when GEMINI_API_KEY is missing", async () => {

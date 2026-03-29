@@ -585,17 +585,20 @@ async function regenerateWorkspaceKey() {
   return result
 }
 
-export async function syncKeyVectorStores() {
+export async function syncKeyVectorStores(extraVectorStoreIds: string[] = []) {
   const kbs = await sdk.ai.knowledgeBase.fetch()
   const vectorStoreIds = kbs
     .filter(kb => kb.type === KnowledgeBaseType.GEMINI)
     .map(kb => kb.config.googleFileStoreId)
     .filter((id): id is string => !!id)
+  const mergedVectorStoreIds = Array.from(
+    new Set([...vectorStoreIds, ...extraVectorStoreIds])
+  )
 
   const { keyId } = await getKeySettings()
   await updateKey({
     keyId,
-    vectorStoreIds,
+    vectorStoreIds: mergedVectorStoreIds,
   })
 }
 
