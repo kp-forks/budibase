@@ -1,6 +1,7 @@
 import { features } from "@budibase/backend-core"
 import { FeatureFlag, KnowledgeBaseType } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
+import { syncKeyVectorStores } from "../../../../sdk/workspace/ai/configs/litellm"
 
 jest.mock("../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore", () => {
   const actual = jest.requireActual(
@@ -12,8 +13,21 @@ jest.mock("../../../../sdk/workspace/ai/knowledgeBase/geminiFileStore", () => {
   }
 })
 
+jest.mock("../../../../sdk/workspace/ai/configs/litellm", () => {
+  const actual = jest.requireActual(
+    "../../../../sdk/workspace/ai/configs/litellm"
+  )
+  return {
+    ...actual,
+    syncKeyVectorStores: jest.fn().mockResolvedValue(undefined),
+  }
+})
+
 describe("knowledge base configs", () => {
   const config = new TestConfiguration()
+  const mockSyncKeyVectorStores = syncKeyVectorStores as jest.MockedFunction<
+    typeof syncKeyVectorStores
+  >
 
   afterAll(() => {
     config.end()
@@ -37,6 +51,7 @@ describe("knowledge base configs", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks()
+    mockSyncKeyVectorStores.mockResolvedValue(undefined)
     await config.newTenant()
   })
 
@@ -52,6 +67,7 @@ describe("knowledge base configs", () => {
         expect(created.name).toBe("Support Docs")
         expect(created.type).toBe(KnowledgeBaseType.GEMINI)
         expect(created.config.googleFileStoreId).toBeTruthy()
+        expect(mockSyncKeyVectorStores).not.toHaveBeenCalled()
       })
     })
 
@@ -148,6 +164,7 @@ describe("knowledge base configs", () => {
         expect(updated.config.googleFileStoreId).toBe(
           created.config.googleFileStoreId
         )
+        expect(mockSyncKeyVectorStores).not.toHaveBeenCalled()
       })
     })
 
@@ -223,6 +240,7 @@ describe("knowledge base configs", () => {
 
         const { deleted } = await config.api.knowledgeBase.remove(created._id!)
         expect(deleted).toBe(true)
+        expect(mockSyncKeyVectorStores).toHaveBeenCalledTimes(1)
 
         const knowledgeBases = await config.api.knowledgeBase.fetch()
         expect(knowledgeBases).toHaveLength(0)
