@@ -1,7 +1,7 @@
 import { KnowledgeBaseFile } from "@budibase/types"
 
 export interface RetrievedContextChunk {
-  sourceId?: string
+  source?: string
   chunkText: string
 }
 
