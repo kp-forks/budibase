@@ -38,6 +38,23 @@ const getGeminiApiKey = () => {
   return key
 }
 
+const handleNotOkResponse = async ({
+  response,
+  fallbackMessage,
+  allowedStatuses = [],
+}: {
+  response: { ok: boolean; status: number; text: () => Promise<string> }
+  fallbackMessage: string
+  allowedStatuses?: number[]
+}): Promise<void> => {
+  if (response.ok || allowedStatuses.includes(response.status)) {
+    return
+  }
+
+  const text = await response.text()
+  throw new HTTPError(text || fallbackMessage, response.status)
+}
+
 const getCommonAuthHeaders = async () => {
   const { secretKey } = await getKeySettings()
   const authKey = environment.LITELLM_MASTER_KEY || secretKey
@@ -59,13 +76,10 @@ export async function createGeminiFileStore(name: string): Promise<string> {
     }),
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    throw new HTTPError(
-      text || "Failed to create Gemini file store",
-      response.status
-    )
-  }
+  await handleNotOkResponse({
+    response,
+    fallbackMessage: "Failed to create Gemini file store",
+  })
 
   const payload = (await response.json()) as CreateVectorStoreResponse
   if (!payload.id) {
@@ -92,13 +106,11 @@ export async function deleteGeminiVectorStore(
     }
   )
 
-  if (!response.ok && response.status !== 404) {
-    const text = await response.text()
-    throw new HTTPError(
-      text || "Failed to delete Gemini vector store",
-      response.status
-    )
-  }
+  await handleNotOkResponse({
+    response,
+    fallbackMessage: "Failed to delete Gemini vector store",
+    allowedStatuses: [404],
+  })
 }
 
 export async function ingestGeminiFile({
@@ -133,22 +145,10 @@ export async function ingestGeminiFile({
     }),
   })
 
-  if (!response.ok) {
-    const text = await response.text()
-    if (
-      text.includes("PERMISSION_DENIED") ||
-      text.includes("unregistered callers")
-    ) {
-      throw new HTTPError(
-        "Gemini File Search authentication failed. Configure GEMINI_API_KEY (or GOOGLE_API_KEY) on the LiteLLM service, or provide api_key in the request.",
-        400
-      )
-    }
-    throw new HTTPError(
-      text || "Failed to ingest file into Gemini store",
-      response.status
-    )
-  }
+  await handleNotOkResponse({
+    response,
+    fallbackMessage: "Failed to ingest file into Gemini store",
+  })
 
   const payload = (await response.json()) as GeminiIngestResponse
   if (!payload.file_id) {
@@ -182,22 +182,10 @@ export async function searchGeminiFileStore({
     }
   )
 
-  if (!response.ok) {
-    const text = await response.text()
-    if (
-      text.includes("PERMISSION_DENIED") ||
-      text.includes("unregistered callers")
-    ) {
-      throw new HTTPError(
-        "Gemini File Search authentication failed. Configure GEMINI_API_KEY (or GOOGLE_API_KEY) on the LiteLLM service, or provide api_key in the request.",
-        400
-      )
-    }
-    throw new HTTPError(
-      text || "Failed to search Gemini vector store",
-      response.status
-    )
-  }
+  await handleNotOkResponse({
+    response,
+    fallbackMessage: "Failed to search Gemini vector store",
+  })
 
   const payload = (await response.json()) as GeminiSearchResponse
   return payload.data || []
@@ -225,20 +213,9 @@ export async function deleteGeminiFileFromStore({
     }
   )
 
-  if (!response.ok && response.status !== 404) {
-    const text = await response.text()
-    if (
-      text.includes("PERMISSION_DENIED") ||
-      text.includes("unregistered callers")
-    ) {
-      throw new HTTPError(
-        "Gemini File Search authentication failed. Configure GEMINI_API_KEY (or GOOGLE_API_KEY) on the LiteLLM service, or provide api_key in the request.",
-        400
-      )
-    }
-    throw new HTTPError(
-      text || "Failed to delete file from Gemini vector store",
-      response.status
-    )
-  }
+  await handleNotOkResponse({
+    response,
+    fallbackMessage: "Failed to delete file from Gemini vector store",
+    allowedStatuses: [404],
+  })
 }
