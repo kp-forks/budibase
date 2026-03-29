@@ -7,7 +7,10 @@ import {
   KnowledgeBaseType,
   UpdateKnowledgeBaseRequest,
 } from "@budibase/types"
-import { createGeminiFileStore } from "./geminiFileStore"
+import {
+  createGeminiFileStore,
+  deleteGeminiVectorStore,
+} from "./geminiFileStore"
 import { syncKeyVectorStores } from "../configs/litellm"
 import { utils } from "@budibase/shared-core"
 
@@ -61,9 +64,11 @@ export async function create(
   await ensureUniqueName(config.name)
 
   let newConfig: KnowledgeBase
+  let createdGeminiStoreId: string | undefined
   switch (knowledgeBaseType) {
     case KnowledgeBaseType.GEMINI: {
       const googleFileStoreId = await createGeminiFileStore(config.name.trim())
+      createdGeminiStoreId = googleFileStoreId
       newConfig = {
         _id: docIds.generateKnowledgeBaseID(),
         name: config.name.trim(),
@@ -78,9 +83,22 @@ export async function create(
       throw utils.unreachable(knowledgeBaseType)
   }
 
-  const { rev } = await db.put(newConfig)
-  newConfig._rev = rev
-  await syncKeyVectorStores()
+  try {
+    const { rev } = await db.put(newConfig)
+    newConfig._rev = rev
+  } catch (error) {
+    if (createdGeminiStoreId) {
+      await deleteGeminiVectorStore(createdGeminiStoreId).catch(
+        cleanupError => {
+          console.log(
+            "Failed to cleanup Gemini vector store after knowledge base create failure",
+            cleanupError
+          )
+        }
+      )
+    }
+    throw error
+  }
 
   return newConfig
 }

@@ -76,6 +76,31 @@ export async function createGeminiFileStore(name: string): Promise<string> {
   return payload.id
 }
 
+export async function deleteGeminiVectorStore(
+  vectorStoreId: string
+): Promise<void> {
+  const geminiApiKey = getGeminiApiKey()
+  const response = await fetch(
+    `${environment.LITELLM_URL}/v1/vector_stores/${encodeURIComponent(vectorStoreId)}`,
+    {
+      method: "DELETE",
+      headers: await getCommonAuthHeaders(),
+      body: JSON.stringify({
+        custom_llm_provider: "gemini",
+        ...(geminiApiKey ? { api_key: geminiApiKey } : {}),
+      }),
+    }
+  )
+
+  if (!response.ok && response.status !== 404) {
+    const text = await response.text()
+    throw new HTTPError(
+      text || "Failed to delete Gemini vector store",
+      response.status
+    )
+  }
+}
+
 export async function ingestGeminiFile({
   vectorStoreId,
   filename,
@@ -126,6 +151,9 @@ export async function ingestGeminiFile({
   }
 
   const payload = (await response.json()) as GeminiIngestResponse
+  if (!payload.file_id) {
+    throw new HTTPError("Gemini ingest did not return file_id", 500)
+  }
   return {
     fileId: payload.file_id,
   }

@@ -85,6 +85,23 @@ describe("geminiFileStore", () => {
     })
   })
 
+  it("throws when ingest succeeds without returning a file_id", async () => {
+    await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
+      mockFetch.mockResolvedValue(response({ ok: true, status: 200, json: {} }))
+
+      await expect(
+        ingestGeminiFile({
+          vectorStoreId: "vector-store-1",
+          filename: "notes.txt",
+          buffer: Buffer.from("hello"),
+        })
+      ).rejects.toMatchObject({
+        status: 500,
+        message: "Gemini ingest did not return file_id",
+      })
+    })
+  })
+
   it("does not throw when deleting a file that already does not exist", async () => {
     await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
       mockFetch.mockResolvedValue(
