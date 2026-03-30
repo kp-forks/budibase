@@ -591,6 +591,7 @@ export async function syncKeyVectorStores() {
     .filter(kb => kb.type === KnowledgeBaseType.GEMINI)
     .map(kb => kb.config.googleFileStoreId)
     .filter((id): id is string => !!id)
+    .sort()
 
   const { keyId } = await getKeySettings()
   await updateKey({
