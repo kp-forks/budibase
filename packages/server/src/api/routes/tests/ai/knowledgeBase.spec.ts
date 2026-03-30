@@ -152,13 +152,13 @@ describe("knowledge base configs", () => {
           name: "Support Docs",
           type: KnowledgeBaseType.GEMINI,
         })
+        mockSyncKeyVectorStores.mockClear()
 
         const updated = await config.api.knowledgeBase.update({
           ...created,
           name: "Updated Knowledge Base",
           type: KnowledgeBaseType.GEMINI,
         })
-        mockSyncKeyVectorStores.mockClear()
 
         expect(updated.name).toBe("Updated Knowledge Base")
         expect(updated.type).toBe(KnowledgeBaseType.GEMINI)
