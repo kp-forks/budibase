@@ -67,7 +67,7 @@ describe("knowledge base configs", () => {
         expect(created.name).toBe("Support Docs")
         expect(created.type).toBe(KnowledgeBaseType.GEMINI)
         expect(created.config.googleFileStoreId).toBeTruthy()
-        expect(mockSyncKeyVectorStores).not.toHaveBeenCalled()
+        expect(mockSyncKeyVectorStores).toHaveBeenCalledTimes(1)
       })
     })
 
@@ -158,6 +158,7 @@ describe("knowledge base configs", () => {
           name: "Updated Knowledge Base",
           type: KnowledgeBaseType.GEMINI,
         })
+        mockSyncKeyVectorStores.mockClear()
 
         expect(updated.name).toBe("Updated Knowledge Base")
         expect(updated.type).toBe(KnowledgeBaseType.GEMINI)
@@ -237,6 +238,7 @@ describe("knowledge base configs", () => {
           name: "Support Docs",
           type: KnowledgeBaseType.GEMINI,
         })
+        mockSyncKeyVectorStores.mockClear()
 
         const { deleted } = await config.api.knowledgeBase.remove(created._id!)
         expect(deleted).toBe(true)

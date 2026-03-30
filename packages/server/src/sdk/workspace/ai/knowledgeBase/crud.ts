@@ -99,6 +99,7 @@ export async function create(
     }
     throw error
   }
+  await syncKeyVectorStores()
 
   return newConfig
 }
