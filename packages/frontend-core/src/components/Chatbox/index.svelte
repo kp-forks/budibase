@@ -645,7 +645,16 @@
             {/each}
             {#if message.metadata?.ragSources?.length}
               <div class="sources">
-                <div class="sources-title">Sources</div>
+                <div class="sources-header">
+                  <span class="sources-icon">
+                    <Icon
+                      name="book-open"
+                      size="M"
+                      color="var(--spectrum-global-color-gray-600)"
+                    />
+                  </span>
+                  <span class="sources-title">Sources</span>
+                </div>
                 <ul>
                   {#each message.metadata.ragSources as source (source.sourceId)}
                     <li class="source-item">
@@ -1097,12 +1106,23 @@
     border-top: 1px solid var(--grey-3);
   }
 
+  .sources-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .sources-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
   .sources-title {
     font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     color: var(--spectrum-global-color-gray-600);
-    margin-bottom: var(--spacing-xs);
   }
 
   .sources ul {
@@ -1117,11 +1137,11 @@
   .source-item {
     display: flex;
     gap: 8px;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--spectrum-global-color-gray-900);
   }
 
   .source-name {
-    font-weight: 500;
+    font-weight: 400;
   }
 </style>
