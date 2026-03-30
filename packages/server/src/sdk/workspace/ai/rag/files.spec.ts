@@ -222,7 +222,7 @@ describe("rag files", () => {
       ])
       mockProcessorSearch.mockResolvedValue([
         {
-          sourceId: "source-1",
+          source: "policy.md",
           chunkText: "4-day in-office policy",
         },
       ])
@@ -232,14 +232,13 @@ describe("rag files", () => {
       expect(result.text).toBe("4-day in-office policy")
       expect(result.chunks).toEqual([
         {
-          sourceId: "source-1",
+          source: "policy.md",
           chunkText: "4-day in-office policy",
         },
       ])
       expect(result.sources).toEqual([
         {
-          sourceId: "source-1",
-          fileId: "file_1",
+          sourceId: "policy.md",
           filename: "policy.md",
         },
       ])
