@@ -176,7 +176,7 @@
 </div>
 
 <style>
-  .indicator-overlay {
+  .canvas-wrap .indicator-overlay {
     position: absolute;
     width: 100%;
     height: 100%;
